@@ -1,0 +1,1244 @@
+  :root {
+    --accent: #2563eb;
+    --danger: #dc2626;
+    --bg: #f4f5f7;
+    --row-alt: #fafafa;
+    --border: #dfe3e8;
+  }
+  * { box-sizing: border-box; }
+  html, body { overflow-x: hidden; width: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    margin: 0;
+    padding: max(16px, env(safe-area-inset-top)) 16px 16px 16px;
+    color: #1f2430;
+  }
+  .page { max-width: 100%; }
+  /* На больших мониторах не даём строкам таблицы растягиваться до бесконечности —
+     но сама шапка и фон по-прежнему занимают весь экран. */
+  @media (min-width: 1400px) {
+    .page { max-width: 1400px; margin: 0 auto; }
+  }
+  h1 { font-size: 20px; margin: 0 0 12px 0; }
+  .section-head {
+    display: flex; align-items: center; gap: 8px;
+    flex-wrap: wrap; margin: 22px 0 8px 0;
+  }
+  .section-head h2.section-title { margin: 0; }
+  .section-head .util { margin-top: 0; }
+  .corner-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    flex-basis: 100%;
+    width: 100%;
+  }
+  h2.section-title {
+    font-size: 16px;
+    margin: 22px 0 8px 0;
+    padding: 6px 10px;
+    background: #e2e8f0;
+    border-radius: 8px;
+    display: inline-block;
+  }
+
+  /* Шапка ВСЕГДА зафиксирована сверху (без переключения sticky/fixed по
+     прокрутке — раньше здесь было пороговое условие «отлипает при
+     прокрутке», из-за которого в PWA то наезжало на панель добавления, то
+     не прилипало вовсе). Позиция и ширина заданы через left/right/env(),
+     без JS-расчётов viewport — под iPhone это надёжнее. */
+  .sticky-top {
+    position: fixed;
+    top: max(6px, env(safe-area-inset-top));
+    left: max(16px, env(safe-area-inset-left));
+    right: max(16px, env(safe-area-inset-right));
+    z-index: 150;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    box-sizing: border-box;
+  }
+  @media (min-width: 1400px) {
+    .sticky-top { max-width: 1400px; margin-left: auto; margin-right: auto; }
+  }
+  /* Распорка занимает в потоке ровно ту же высоту, что и шапка — её
+     реальный размер выставляет JS (syncStickyTopHeight). Без этого
+     контент под шапкой (панель добавления и т.д.) был бы перекрыт. */
+  .sticky-top-placeholder { }
+  .app-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  /* Всё, что лежит в общей шапке (строка поиска и панель добавления), —
+     одинаковый отступ сверху вместо собственного margin-top у .add-panel. */
+  .sticky-top .add-panel {
+    margin: 10px 0 0 0;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    border: 1px solid var(--border);
+    background: #fff;
+    border-radius: 10px;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+    -webkit-appearance: none;
+    appearance: none;
+    min-height: 44px;
+  }
+  .tab-btn:active { background: #e2e8f0; }
+  .tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* Одна кнопка-переключатель вкладок вместо трёх на всю ширину — экономит
+     место. Не используем класс .tab-btn, чтобы её не подхватывал глобальный
+     обработчик переключения вкладок (иначе второй тап сбрасывал на «Учёт»). */
+  .tabs-trigger {
+    padding: 10px 14px;
+    min-height: 44px;
+    min-width: 105px;
+    font-size: 15px;
+    font-weight: 700;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #fff;
+    border-radius: 10px;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+    -webkit-appearance: none;
+    appearance: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .tabs-trigger:active { background: #1d4ed8; }
+  .tabs-caret { font-size: 12px; opacity: 0.85; }
+  .tabs-menu-wrap .menu-panel.list { min-width: 150px; left: 0; right: auto; }
+  .tabs-menu-wrap .menu-panel.list .tab-btn { flex: none; width: 100%; }
+  #tabsMenuPanel {
+    background: #1f2430;
+    border-color: #1f2430;
+  }
+  #tabsMenuPanel .tab-btn {
+    background: #333c4d;
+    color: #fff;
+    border-color: #454f63;
+  }
+  #tabsMenuPanel .tab-btn:active { background: #454f63; }
+  #tabsMenuPanel .tab-btn.active { background: var(--accent); border-color: var(--accent); }
+
+  /* Верхняя прилипающая шапка (дата + меню вкладок + «Экспорт»/«История») —
+     одинаковый вид всех элементов в ряд */
+  .app-header .date-picker,
+  .app-header button.util {
+    height: 44px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .app-header .date-picker #dateDisplayText { font-size: 15px; font-weight: 700; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  button.iconbtn {
+    border: 1px solid #94a3b8;
+    background: #e2e8f0;
+    color: #1f2430;
+    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    font-size: 19px;
+    font-weight: 700;
+    cursor: pointer;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  button.iconbtn:disabled { opacity: 0.35; cursor: default; }
+  button.iconbtn:active:not(:disabled) { background: #cbd5e1; }
+  .date-picker {
+    position: relative;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0 10px;
+    height: 36px;
+    min-width: 105px;
+    background: #f8fafc;
+    gap: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+  }
+  .date-picker #dateDisplayText { font-size: 14px; font-weight: 600; }
+  .date-picker input[type="date"] {
+    position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; border: none; cursor: pointer;
+  }
+  .spacer { flex: 1 1 auto; min-width: 4px; }
+  button.util {
+    border: 1px solid var(--border);
+    background: #fff;
+    border-radius: 6px;
+    padding: 0 12px;
+    height: 36px;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
+  button.util:active { background: #eee; }
+  button.util.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* Прокрутка (если понадобится) остаётся только внутри самой таблицы,
+     а не у всей страницы — шапка с поиском всегда остаётся на месте
+     и не "укорачивается" относительно списка. */
+  .table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 10px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  thead th {
+    background: #eef1f5;
+    text-align: left;
+    padding: 10px 8px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+  }
+  /* Тонкая граница между столбцами — во всех таблицах */
+  td, th { border-right: 1px solid var(--border); }
+  td:last-child, th:last-child { border-right: none; }
+  tbody tr:nth-child(even) { background: var(--row-alt); }
+  tbody tr { border-bottom: 1px solid var(--border); }
+  /* Заголовок группы по модели в «Учёте». Фон ставим на саму ячейку: у
+     строки он спорит с полосатой раскраской tbody tr:nth-child(even). */
+  tbody tr.group-row td {
+    background: #dbe3ec;
+    padding: 5px 8px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #41506a;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+  tbody tr.row-match { background: #fef08a !important; }
+  tbody tr.row-picked { background: #fde68a !important; }
+  tbody tr.row-flash { background: #fef08a !important; }
+  tbody tr.row-current { background: #fdba74 !important; box-shadow: inset 3px 0 0 #ea580c; }
+  .search-count {
+    font-size: 13px; color: #475569; white-space: nowrap; padding: 0 4px;
+    min-width: 62px; text-align: center;
+  }
+  .iconbtn.nav { width: 32px; height: 32px; font-size: 18px; flex: 0 0 auto; }
+  .search-icon { font-size: 15px; opacity: 0.6; flex: 0 0 auto; }
+  .iconbtn.clear { width: 28px; height: 28px; font-size: 13px; flex: 0 0 auto; border-radius: 6px; }
+  /* Блок поиска на телефоне: всё в одну строку, ничего не уезжает вниз */
+  @media (max-width: 480px) {
+    .add-panel.search-bar {
+      flex-wrap: nowrap;
+      gap: 4px;
+      padding: 8px;
+    }
+    .search-bar .search-icon { display: none; }
+    .search-bar input[type="text"] {
+      min-width: 0;
+      flex: 1 1 auto;
+      font-size: 16px;
+      padding: 8px 6px;
+    }
+    .search-bar .search-count { min-width: 30px; font-size: 10px; padding: 0 2px; }
+    .search-bar .iconbtn.clear { width: 22px; height: 22px; font-size: 10px; flex: 0 0 auto; }
+    .search-bar .iconbtn.nav { width: 24px; height: 24px; font-size: 15px; flex: 0 0 auto; }
+  }
+  td { padding: 5px 8px; font-size: 15px; vertical-align: middle; }
+  td.num { width: 44px; text-align: center; color: #94a3b8; font-size: 13px; }
+  td.code { width: 130px; user-select: text; -webkit-user-select: text; font-size: 12px; color: #475569; font-family: monospace; white-space: nowrap; }
+  .code-split { display: inline-flex; flex-direction: column; align-items: flex-start; line-height: 1.25; user-select: none; -webkit-user-select: none; }
+  .code-split .code-line { user-select: none; -webkit-user-select: none; }
+  .code-split .code-line + .code-line { border-top: 1px solid #cbd5e1; margin-top: 2px; padding-top: 2px; }
+  td.code.wh-code { font-size: 15px; font-weight: 600; width: auto; white-space: nowrap; }
+  .code-text { cursor: pointer; border-radius: 3px; padding: 1px 2px; }
+  .code-text.code-copied { background: #bbf7d0; }
+  td.name { width: auto; min-width: 198px; cursor: pointer; user-select: text; -webkit-user-select: text; touch-action: manipulation; position: relative; }
+  .oc-addwh-badge {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    z-index: 2;
+  }
+  .oc-addwh-badge:active { background: #1d4ed8; }
+  /* Версия модели — серой подписью в ячейке КОДА, отдельной строкой под
+     самим кодом (раньше висела абсолютом в углу ячейки имени). */
+  .wh-model-badge {
+    display: block;
+    margin-top: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #94a3b8;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    line-height: 1.2;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  /* «Учёт»: версия модели — серым в правом верхнем углу ячейки названия.
+     Без рамки и подложки, просто текст. (На «Складе» и в «1С» версия
+     показывается в ячейке кода — там класс .wh-model-badge.) */
+  .ca-model-badge {
+    position: absolute;
+    top: 4px;
+    right: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+    line-height: 1.2;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .ca-del-badge {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #94a3b8;
+    color: #fff;
+    border: none;
+    font-size: 14px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    z-index: 2;
+  }
+  .ca-del-badge:active { background: #64748b; }
+  td.check { width: 40px; text-align: center; vertical-align: middle; }
+  td, th { vertical-align: middle; }
+  .chk-toggle {
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+    background: #fff; font-size: 15px; font-weight: 700; color: #059669; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; line-height: 1;
+  }
+  .chk-toggle.on { background: #059669; color: #fff; border-color: #059669; }
+  thead th.narrow { width: 60px; padding: 10px 4px; font-size: 12px; text-align: center; }
+  thead th.narrow .sort-arrow { margin-left: 1px; }
+  .col-total {
+    font-size: 12px; font-weight: 700; color: #0f766e;
+    margin-top: 2px; letter-spacing: -0.2px;
+  }
+  th.sortable { cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation; white-space: nowrap; }
+  th.sortable .sort-arrow { font-size: 11px; opacity: 0.6; margin-left: 3px; }
+  th.sortable.sort-active .sort-arrow { opacity: 1; }
+  th.sortable[data-col="count"] { text-align: center; }
+  .sort-arrow { display: none; }
+  td.count { width: 42px; text-align: center; font-weight: 700; font-size: 17px; }
+  td.count input {
+    width: 38px; padding: 3px 2px; font-size: 16px; font-weight: 700; text-align: center;
+    border: 1px solid var(--border); border-radius: 6px;
+    -moz-appearance: textfield; appearance: textfield;
+  }
+  td.count input::-webkit-outer-spin-button,
+  td.count input::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+  }
+  /* «Учёт»: объединённая колонка «Шт» — 3 яруса: число / «+» / «–» */
+  td.count-merged {
+    width: 46px;
+    padding: 0;
+    vertical-align: middle;
+  }
+  .count-tier {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .count-tier + .count-tier { border-top: 1px solid var(--border); }
+  .count-tier-num { padding: 6px 4px; }
+  .count-tier-num input { margin: 0 auto; }
+  .count-tier .btn {
+    width: 100%;
+    height: auto;
+    padding: 7px 0;
+    border-radius: 0;
+  }
+
+  /* «Склад»: объединённая колонка «Склад / 1С» — 2 яруса, как «Шт» в «Учёте»:
+     сверху — редактируемое количество на складе, снизу — остаток из 1С (только чтение). */
+  td.wh-merged { width: 62px; }
+  td.wh-merged .count-tier-num { padding: 4px 2px; }
+  td.wh-merged .count-tier-num input {
+    width: 54px; padding: 3px 2px; font-size: 15px; font-weight: 700; text-align: center;
+    border: 1px solid var(--border); border-radius: 6px;
+    -moz-appearance: textfield; appearance: textfield;
+  }
+  td.wh-merged .count-tier-num input::-webkit-outer-spin-button,
+  td.wh-merged .count-tier-num input::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+  }
+  .count-tier-oc { padding: 5px 2px; font-size: 14px; font-weight: 700; color: #475569; }
+  .count-tier-diff { padding: 4px 2px; }
+  .count-tier-diff .diff { display: block; }
+  .merged-total { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+
+  td.buttons { width: 68px; white-space: nowrap; }
+  td.buttons > div {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+  }
+  td.buttons.wh-buttons { width: 40px; text-align: center; }
+  td.buttons.wh-buttons > .menu-wrap { display: block; }
+  td.buttons.oc-buttons { width: 44px; text-align: center; }
+  td.buttons.oc-buttons > .menu-wrap { display: block; }
+  .btn {
+    width: 27px; height: 27px; border-radius: 6px; border: none;
+    font-size: 15px; font-weight: 700; color: #fff; cursor: pointer; line-height: 1;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0;
+    touch-action: manipulation;
+    -webkit-user-select: none; user-select: none;
+  }
+  .btn.plus { background: var(--accent); }
+  .btn.minus { background: var(--danger); }
+  .btn.del { background: #6b7280; font-size: 12px; }
+  .btn.edit { background: #059669; font-size: 12px; }
+  .btn:active { opacity: 0.75; }
+
+  .add-panel {
+    margin-top: 18px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    position: relative;
+  }
+  .add-panel select, .add-panel input[type="text"], .add-panel input[type="number"] {
+    padding: 10px; font-size: 15px; border: 1px solid var(--border); border-radius: 8px;
+  }
+  .add-panel input[type="text"] { flex: 1; min-width: 160px; }
+  .add-panel input[type="number"] { width: 90px; }
+  .add-panel input.code-input { width: 130px; font-family: monospace; }
+
+  .suggest-box {
+    position: absolute;
+    top: 100%; left: 12px; right: 12px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-top: 4px;
+    max-height: 220px;
+    overflow-y: auto;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+    z-index: 50;
+    display: none;
+  }
+  .suggest-box.open { display: block; }
+  .suggest-item {
+    padding: 9px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+  }
+  .suggest-item:last-child { border-bottom: none; }
+  .suggest-item:active, .suggest-item:hover { background: #f1f5f9; }
+  .suggest-item .code { font-family: monospace; font-size: 12px; color: #64748b; }
+  /* Версия модели в конце строки подсказки — просто серый текст, без
+     рамок и подложки. */
+  .suggest-item .suggest-model {
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 6px;
+    white-space: nowrap;
+  }
+  /* Остаток из «1С» в конце строки подсказки: серым и тем же размером, что и
+     название (модель рядом — мельче, это разные подписи). */
+  .suggest-item .suggest-oc-qty {
+    float: right;
+    margin-left: 10px;
+    color: #94a3b8;
+    font-variant-numeric: tabular-nums;
+  }
+  .suggest-empty { padding: 9px 12px; font-size: 13px; color: #94a3b8; }
+
+  .app-header .date-picker.hidden { visibility: hidden; }
+  .footer-note { font-size: 12px; color: #667; margin-top: 10px; }
+
+  /* ==================== Компактные таблицы на смартфоне ====================
+     Сжимаем колонки так, чтобы вся таблица помещалась по ширине экрана
+     без горизонтальной прокрутки — так строки визуально совпадают по
+     ширине с шапкой (поиск / добавление) над ними. */
+  @media (max-width: 480px) {
+    td, th { padding: 4px 3px; font-size: 12.5px; }
+    thead th { font-size: 10px; padding: 8px 2px; white-space: nowrap; }
+    td.num { width: 14px; padding-left: 2px; padding-right: 2px; font-size: 10px; }
+    td.code {
+      width: 72px; font-size: 9.5px; white-space: nowrap;
+      padding-left: 2px; padding-right: 2px;
+    }
+    td.code.wh-code { font-size: 11px; width: auto; white-space: nowrap; }
+    td.name { min-width: 0; font-size: 13px; line-height: 1.25; }
+    .oc-addwh-badge { width: 22px; height: 22px; font-size: 15px; right: 4px; bottom: 4px; }
+    .ca-del-badge { width: 22px; height: 22px; font-size: 12px; right: 4px; bottom: 4px; }
+    td.check { width: 22px; padding-left: 2px; padding-right: 2px; }
+    .chk-toggle { width: 20px; height: 20px; font-size: 11px; }
+    td.count { width: 22px; padding-left: 1px; padding-right: 1px; white-space: nowrap; }
+    td.count input { width: auto; min-width: 20px; font-size: 16px; padding: 2px 1px; }
+    thead th.narrow { width: 34px; font-size: 9px; padding: 8px 1px; white-space: normal; }
+    .col-total { font-size: 9px; }
+    td.buttons { width: 48px; padding-left: 2px; padding-right: 2px; }
+    td.buttons > div { gap: 3px; }
+    td.buttons.wh-buttons { width: 30px; }
+    td.buttons.wh-buttons .wh-menu-btn { width: 26px; height: 26px; font-size: 15px; }
+    td.buttons.oc-buttons { width: 32px; }
+    td.buttons.oc-buttons .oc-menu-btn { width: 26px; height: 26px; font-size: 15px; }
+    /* «Учёт»: объединённая колонка «Шт» на мобильном — уже, кнопки чуть меньше */
+    td.count-merged { width: 40px; }
+    .count-tier-num { padding: 4px 2px; }
+    .count-tier .btn { padding: 5px 0; }
+    /* «Склад»: объединённая колонка «Склад / 1С» на мобильном */
+    td.wh-merged { width: 40px; }
+    td.wh-merged .count-tier-num input { width: auto; min-width: 26px; font-size: 16px; padding: 2px 1px; }
+    .count-tier-oc { font-size: 11px; padding: 3px 1px; }
+    .count-tier-diff { padding: 2px 1px; }
+    .count-tier-diff .diff { font-size: 11px; }
+    .btn { width: 20px; height: 20px; font-size: 11px; border-radius: 5px; }
+    .btn.del { font-size: 9px; }
+    .btn.edit { font-size: 9px; }
+    .add-panel { padding: 8px; gap: 6px; }
+    .add-panel select, .add-panel input[type="text"], .add-panel input[type="number"] {
+      padding: 8px; font-size: 16px;
+    }
+    button.util { font-size: 12px; padding: 0 8px; height: 32px; }
+    h2.section-title { font-size: 14px; padding: 5px 8px; }
+  }
+
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    align-items: center; justify-content: center; z-index: 1000;
+  }
+  .modal-overlay.open { display: flex; }
+  /* Окна, которые открываются ПОВЕРХ другого окна (сравнение и вставка
+     вызываются из окна импорта) — иначе они появлялись под ним, так как
+     z-index у всех модалок одинаковый. */
+  #ocCompareOverlay, #ocPasteOverlay, #ocTransferOverlay { z-index: 1100; }
+  .modal-box { background: #fff; border-radius: 12px; padding: 20px; max-width: 340px; width: 90%; text-align: center; }
+  .modal-box p { font-size: 15px; margin: 0 0 12px 0; }
+  .modal-actions { display: flex; gap: 10px; justify-content: center; margin-top: 4px; }
+  .modal-actions button {
+    flex: 1; padding: 10px 0; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  .modal-actions .confirm-yes { background: var(--danger); color: #fff; }
+  /* Модификатор: подтверждающая кнопка обычного (не опасного) действия —
+     раньше акцентный цвет дублировался инлайном в 9 модалках. */
+  .modal-actions .confirm-yes.accent { background: var(--accent); }
+  .modal-actions .confirm-no { background: #e5e7eb; color: #1f2430; }
+  .full-w { width: 100%; }
+  /* Выпадающий список внутри модалки — раньше один и тот же длинный набор
+     свойств дублировался инлайном в трёх формах редактирования. */
+  .modal-box select {
+    width: 100%;
+    padding: 9px;
+    font-size: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    background: #fff;
+  }
+  .modal-box input[type="text"], .modal-box input[type="number"] {
+    width: 100%; padding: 10px; font-size: 15px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px;
+  }
+  .modal-box .field-label { font-size: 12px; color: #667; text-align: left; margin: 6px 0 2px 0; }
+
+  /* Крестик закрытия в углу окна */
+  /* Подпись выбранного фильтра рядом с кнопкой в шапке раздела 1С */
+  /* Тумблер «показывать расходники» (только в режиме «Остаток») */
+  .oc-cons-toggle { position: relative; }
+  .oc-cons-toggle.off { opacity: 0.45; }
+  .oc-cons-toggle.off::after {
+    content: "";
+    position: absolute;
+    left: 4px; right: 4px; top: 50%;
+    height: 2px;
+    background: var(--danger);
+    transform: rotate(-20deg);
+    border-radius: 2px;
+  }
+  .oc-filter-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    white-space: nowrap;
+    margin-left: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 96px;
+  }
+  .oc-filter-wrap .menu-panel.list { min-width: 160px; }
+  .modal-x {
+    position: absolute;
+    top: 10px; right: 10px;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: none;
+    background: #e2e8f0;
+    color: #475569;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 2;
+  }
+  .modal-x:active { background: #cbd5e1; }
+  .modal-box.wide { max-width: 420px; max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .modal-box.wide p { text-align: left; }
+
+  /* ==================== Строка формы в модалке печати этикеток ==================== */
+  /* Раньше здесь были max-height + overflow-y: скролл-контейнер обрезал
+     выпадающие подсказки, из-за чего их пришлось выносить в body и
+     позиционировать через JS — а они «отставали» от поля при появлении
+     клавиатуры и накрывали строку ввода. Теперь контейнер ничего не
+     обрезает, подсказка живёт прямо под своим полем в обычном потоке,
+     и никакие координаты считать не нужно. */
+  #printLabelRows { }
+  .print-label-row {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 32px 4px 10px;
+    margin-top: 10px;
+    text-align: left;
+  }
+  .print-label-row:first-child { margin-top: 0; }
+  .print-label-row .plr-line {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .print-label-row .plr-name-wrap {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+  }
+  .print-label-row .plr-name-wrap input[type="text"] { width: 100%; }
+  .print-label-row .plr-side { width: 72px; flex: 0 0 auto; }
+  /* Порядковый номер строки в форме печати — серым в правом нижнем
+     углу, без рамки и подложки. Только ориентир на экране; на печатный
+     лист не попадает (см. @media print — там скрыта вся модалка). */
+  .print-label-row .plr-num {
+    position: absolute;
+    right: 10px;
+    bottom: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+    line-height: 1;
+    pointer-events: none;
+  }
+  .print-label-row .plr-del {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: #e2e8f0;
+    color: #475569;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .print-label-row .plr-del:active { background: #cbd5e1; }
+  /* Подсказки вынесены в <body> и позиционируются через JS (position:fixed)
+     — иначе их обрезает скролл-контейнер #printLabelRows. */
+  /* ==================== Переключатель модели (3 положения) ====================
+     Слева YGW 4.0 — по центру «—» (без модели) — справа YGW 5.0.
+     Заменил поле ввода: значения всего три, набирать руками незачем. */
+  .model-switch {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f1f5f9;
+    height: 40px;
+    flex: 0 0 auto;
+  }
+  .model-switch .ms-opt {
+    flex: 1;
+    min-width: 0;          /* было 42px — из-за этого «9Bot» не влезал */
+    border: none;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 700;
+    color: #64748b;
+    cursor: pointer;
+    padding: 0 2px;
+    white-space: nowrap;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .model-switch .ms-opt + .ms-opt { border-left: 1px solid var(--border); }
+  .model-switch .ms-opt.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .history-range { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .history-range input[type="date"] { flex: 1; padding: 7px; font-size: 13px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 0; }
+  .history-range span { font-size: 12px; color: #667; }
+  .history-list { max-height: 320px; overflow-y: auto; text-align: left; border: 1px solid var(--border); border-radius: 8px; }
+  .history-row { display: flex; justify-content: space-between; padding: 8px 10px; font-size: 14px; border-bottom: 1px solid #eee; }
+  .history-row:last-child { border-bottom: none; }
+  .history-row .h-date { font-weight: 600; color: #475569; }
+  .history-row .h-minus { color: var(--danger); font-weight: 700; }
+  .history-empty { padding: 16px; text-align: center; font-size: 13px; color: #94a3b8; }
+  .btn.history { background: #7c3aed; font-size: 12px; }
+  .btn.addwh { background: #2563eb; font-size: 18px; }
+  .btn.onec {
+    background: #0f766e; font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
+    border-radius: 6px; width: auto; height: 22px; padding: 0 7px;
+    vertical-align: middle; margin-left: 6px;
+  }
+  #backBtn {
+    position: fixed; left: 14px; bottom: 14px; z-index: 300;
+    width: 46px; height: 46px; border-radius: 50%;
+    border: 1px solid var(--border); background: #fff; color: #0f766e;
+    font-size: 22px; font-weight: 700; line-height: 1; cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+    display: none; align-items: center; justify-content: center;
+    touch-action: manipulation; -webkit-appearance: none; appearance: none;
+  }
+  #backBtn.show { display: flex; }
+  #topBtn {
+    position: fixed; right: 62px; bottom: 14px; z-index: 300;
+    width: 46px; height: 46px; border-radius: 50%;
+    border: 1px solid var(--border); background: #fff; color: #0f766e;
+    font-size: 22px; font-weight: 700; line-height: 1; cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+    display: none; align-items: center; justify-content: center;
+    touch-action: manipulation; -webkit-appearance: none; appearance: none;
+  }
+  #topBtn.show { display: flex; }
+  #topBtn:active { background: #e2e8f0; }
+  #backBtn:active { background: #e2e8f0; }
+  #syncBtn {
+    flex: 0 0 auto;
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 1px solid var(--border); background: #fff; color: #0f766e;
+    font-size: 19px; font-weight: 700; line-height: 1; cursor: pointer;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: manipulation; -webkit-appearance: none; appearance: none;
+  }
+  #syncBtn:active { background: #e2e8f0; }
+  #syncBtn.err { color: var(--danger); }
+  #syncBtn.syncing { animation: sync-spin 1s linear infinite; }
+  @keyframes sync-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  /* Оранжевая точка на кнопке ⚙ — есть правки, ещё не отправленные на сервер */
+  #syncBtn.dirty::after {
+    content: "";
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: #f59e0b;
+    border: 2px solid #fff;
+  }
+  /* Маленький номер версии файлов (совпадает с CACHE_NAME в sw.js) — в
+     углу шапки, рядом с облачком. Чисто для проверки «долетело» ли
+     обновление на устройство. */
+  #appVersionBadge {
+    flex: 0 0 auto;
+    font-size: 10px;
+    color: #94a3b8;
+    font-weight: 700;
+    align-self: flex-start;
+    margin-top: -2px;
+  }
+  .sync-status-line { font-size: 13px; color: #475569; margin: 6px 0 12px 0; text-align: left; }
+  .sync-status-line.err { color: var(--danger); }
+  /* Текст результата обмена — многострочный (причина + ID Gist) */
+  #manualSyncInfo { white-space: pre-line; word-break: break-word; }
+  .sync-help { font-size: 12px; color: #667; text-align: left; line-height: 1.5; margin-top: 10px; }
+  .sync-help a { color: var(--accent); }
+  .sync-help ol { margin: 4px 0; padding-left: 18px; }
+  .sync-history-list {
+    max-height: 55vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    text-align: left;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .sync-history-empty { padding: 14px 10px; font-size: 13px; color: #667; }
+  .sync-history-entry { position: relative; padding: 8px 22px 8px 10px; border-bottom: 1px solid var(--border); }
+  .sync-history-entry:last-child { border-bottom: none; }
+  /* Маленькая точка в правом нижнем углу записи: зелёная — сохранилось,
+     красная — попытка не удалась (данные никуда не делись, ждут повтора). */
+  .sync-history-dot {
+    position: absolute;
+    right: 8px; bottom: 8px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .sync-history-dot.ok { background: #16a34a; }
+  .sync-history-dot.err { background: var(--danger); }
+  /* Янтарная — данные с сервера были устаревшими и намеренно не применены */
+  .sync-history-dot.warn { background: #f59e0b; }
+  /* Синяя — обычное сохранение на самом устройстве (без сервера) */
+  .sync-history-dot.local { background: var(--accent); }
+  .sync-history-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 13px; gap: 8px; margin-bottom: 4px;
+  }
+  .sync-history-head span { color: #475569; font-size: 12px; }
+  /* ==================== Карточка позиции (сравнение / перемещение) ====
+     По наброску: код слева сверху, версия модели справа сверху, название
+     по центру, снизу два блока с остатками и кнопка действия. */
+  .cmp-card {
+    border-bottom: 1px solid var(--border);
+    padding: 10px 12px 12px 12px;
+    text-align: left;
+  }
+  .cmp-card:last-child { border-bottom: none; }
+  .cmp-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .cmp-code {
+    font-family: monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: #334155;
+  }
+  .cmp-model {
+    font-size: 12px;
+    font-weight: 600;
+    color: #94a3b8;
+    white-space: nowrap;
+  }
+  .cmp-name {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.25;
+    margin: 8px 0 10px 0;
+    color: #1f2430;
+  }
+  .cmp-bottom {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .cmp-cell {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 5px 6px;
+    text-align: center;
+    background: #f8fafc;
+  }
+  .cmp-cell-label { font-size: 11px; color: #64748b; line-height: 1.2; }
+  .cmp-cell-val { font-size: 18px; font-weight: 700; color: #1f2430; line-height: 1.2; }
+  .cmp-add {
+    flex: 0 0 auto;
+    align-self: center;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 20px; font-weight: 700; line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cmp-add:active { background: #1d4ed8; }
+  .cmp-add.added { background: #16a34a; }
+  .cmp-add.danger { background: #e2e8f0; color: #475569; font-size: 15px; }
+  .cmp-add.danger:active { background: #cbd5e1; }
+  .sync-history-body {
+    margin: 0; font-family: inherit; white-space: pre-wrap; word-break: break-word;
+    font-size: 12px; color: #334155; line-height: 1.5;
+  }
+  .main-name { line-height: 1.25; }
+  .alt-name { color: #0f766e; font-size: 13px; line-height: 1.25; margin-top: 2px; }
+  .alt-name .alt-code { font-family: monospace; font-size: 12px; opacity: 0.85; }
+  .alt-link { cursor: pointer; }
+  .alt-link:hover { opacity: 0.75; }
+  .diff { font-size: 13px; font-weight: 700; display: block; text-align: center; }
+  .two-line { display: inline-block; line-height: 1.15; text-align: center; vertical-align: middle; }
+  .two-line-split { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; }
+  .two-line-split .tl-top { border-bottom: 1px solid #64748b; padding-bottom: 2px; margin-bottom: 2px; }
+  .diff.plus  { color: #16a34a; }
+  .diff.minus { color: var(--danger); }
+  .diff.zero  { color: #94a3b8; }
+
+  #printArea { display: none; }
+  #printArea h1 { font-size: 18px; margin: 0 0 4px 0; }
+  #printArea .print-date { font-size: 13px; margin-bottom: 14px; }
+  #printArea h3 { font-size: 15px; margin: 16px 0 6px 0; }
+  #printArea table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+  #printArea th, #printArea td { border: 1px solid #999; padding: 6px 8px; font-size: 13px; text-align: left; }
+  #printArea thead th { background: #eee; }
+  #printArea .print-labels-grid {
+    display: grid;
+    gap: 0;
+  }
+  #printArea .print-labels-grid + .print-labels-grid {
+    page-break-before: always;
+    break-before: page;
+  }
+
+  /* ==================== Этикетка «большая» (эталон) ====================
+     90x45мм, 2x5=10 на лист — единый дизайн для одиночной печати со
+     склада (🖨️ в строке товара) и для формы ручного ввода (⋮ → 🖨️ Печать).
+     4 условные строки (не рисуем линии — только позиционирование):
+       1) 10мм — модель слева, «N шт» в правом углу
+       2-3) по 10мм — название (короткое — по центру обеих строк, длинное —
+            переносом: 1-я строка в строке 2, 2-я в строке 3)
+       4) 15мм — код, жирным, растянут под ширину/высоту строки
+     ВАЖНО про центрирование: пробовали min-height на всю высоту листа —
+     переполняло реальную печатную область (Safari добавляет свои поля и
+     подвал поверх), последний ряд уезжал на 2-й лист. Поэтому центрируем
+     через простой фиксированный отступ, без попытки занять весь лист. */
+  #printArea .print-labels-page {
+    /* Этикетка 85мм → сетка 2×85 = 170мм. Влезает в печатную область
+       целиком, поэтому НИКАКОГО сдвига влево: отрицательный margin
+       обрезал левый край. Просто прижато к левому краю без отступов.
+       Фиксированную height/padding не задаём — раньше height:297mm с
+       отступом сверху выталкивали нижний ряд на второй лист. */
+    width: 170mm;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+  }
+  #printArea .print-labels-page + .print-labels-page {
+    page-break-before: always;
+    break-before: page;
+  }
+  #printArea .print-label.v2 {
+    position: relative;
+    width: 85mm;
+    height: 45mm;
+    border: 1px solid #999;
+    box-sizing: border-box;
+    overflow: hidden;
+    padding: 0 3mm;
+    display: flex;
+    flex-direction: column;
+  }
+  #printArea .pl2-row1 {
+    height: 10mm;
+    flex: 0 0 10mm;      /* строго своя высота, не сжимается */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  #printArea .pl2-model {
+    font-size: 13pt;
+    font-weight: 700;
+    color: #111;
+  }
+  #printArea .pl2-qty {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #111;
+  }
+  #printArea .pl2-name {
+    height: 20mm;                 /* строки 2+3 вместе */
+    flex: 0 0 20mm;               /* строго своя высота, не сжимается */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 18pt;
+    font-weight: 700;
+    /* line-height 1.15 вместо 10mm: при 10mm две строки названия не
+       помещались в 20мм-блок и наползали на соседние секторы. */
+    line-height: 1.15;
+    overflow: hidden;
+  }
+  #printArea .pl2-code {
+    height: 15mm;
+    flex: 0 0 15mm;      /* строго своя высота, не сжимается */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 26pt;
+    font-weight: 700;
+    font-family: monospace;
+    color: #000;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  /* ==================== Блок добавления (Учёт): 1 строка ====================
+     Раздел (выпадающий список) → название (растягивается, занимает
+     оставшееся место) → количество → кнопка «+» одной строкой. */
+  .add-panel.one-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  /* Ширину селекта подгоняет JS под ВЫБРАННЫЙ пункт (fitSectionSelectWidth):
+     фиксированные 92px либо оставляли пустое место у «Деталей», либо резали
+     «Расходники» многоточием. Здесь — только страховка на случай, если JS не
+     отработал. */
+  .add-panel.one-row select {
+    flex: 0 0 auto;
+    min-width: 0;
+    /* Системный вид списка убран: на iOS он добавляет свою широкую стрелку и
+       внутренние поля, из-за которых рамка была заметно шире текста. Рисуем
+       компактную стрелку сами — тогда ширина ровно по выбранному пункту. */
+    -webkit-appearance: none;
+    appearance: none;
+    padding-left: 8px;
+    padding-right: 20px;
+    white-space: nowrap;
+    color: #1f2430;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%2364748b' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    background-size: 9px 6px;
+  }
+  /* Точка отсчёта для крестика очистки. Подсказки специально вынесены из
+     этой обёртки в саму панель — иначе они сузились бы до ширины поля. */
+  .add-panel.one-row .add-name-wrap {
+    flex: 1 1 auto;
+    min-width: 0;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .add-panel.one-row .add-name-wrap input[type="text"] {
+    width: 100%;
+    min-width: 0;
+    padding-right: 32px;      /* место под крестик, текст под него не заезжает */
+  }
+  /* Крестик лежит ПОВЕРХ правого края поля, а не рядом: так поле не
+     сужается, когда крестик появляется. Показывается только при наборе. */
+  .add-panel.one-row .add-clear {
+    display: none;
+    position: absolute;
+    right: 6px;
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    background: #e2e8f0;
+    color: #475569;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .add-panel.one-row .add-clear.show { display: flex; }
+  .add-panel.one-row .add-clear:active { background: #cbd5e1; }
+  /* Подсказки при вводе названия — во всю ширину панели (а не узкого поля
+     ввода), чтобы длинные названия и коды было видно целиком. */
+  .add-panel.one-row #addSuggestBox {
+    left: 12px;
+    right: 12px;
+  }
+  .add-panel.one-row input[type="number"] {
+    flex: 0 0 auto;
+    width: 48px;
+    text-align: center;
+  }
+  .add-panel.one-row button.util {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  /* ==================== Выпадающее меню действий («⋮») ====================
+     Квадратные эмодзи-кнопки, 2 колонки — как в GitHub, без подписей. */
+  .menu-wrap { position: relative; }
+  /* Меню строки: у нижних строк раскрывается вверх (класс drop-up ставит
+     JS), иначе оно уходило под край обрезающего контейнера таблицы. */
+  /* Меню, вынесенное поверх страницы: координаты ставит JS, чтобы его не
+     обрезал контейнер таблицы (см. placeRowMenu). */
+  .menu-panel.floating {
+    z-index: 1200;
+    margin: 0 !important;
+  }
+  .menu-panel.drop-up {
+    top: auto;
+    bottom: 100%;
+    margin-top: 0;
+    margin-bottom: 6px;
+  }
+  .menu-panel {
+    display: none;
+    position: absolute;
+    top: 100%; right: 0;
+    margin-top: 6px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.14);
+    padding: 8px;
+    z-index: 200;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .menu-panel.open { display: grid; }
+  .menu-panel button {
+    width: 50px; height: 50px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #f1f5f9;
+    font-size: 21px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .menu-panel button:active { background: #e2e8f0; }
+  .menu-panel button.danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+  .menu-panel button.danger:active { background: #b91c1c; }
+
+  /* Вариант меню со списком текстовых кнопок (Экспорт/История в шапке) —
+     вместо квадратной 2-колоночной сетки эмодзи-кнопок. */
+  .menu-panel.list { grid-template-columns: 1fr; min-width: 170px; }
+  .menu-panel.list button {
+    width: 100%; height: auto;
+    padding: 10px 14px;
+    font-size: 14px;
+    justify-content: flex-start;
+    border-radius: 8px;
+  }
+
+  .iconbtn.danger { background: var(--danger); color: #fff; }
+  .iconbtn.danger:active { background: #b91c1c; }
+  .head-menu-wrap { display: flex; align-items: center; justify-content: center; }
+
+  @media print {
+    /* Голый белый лист: фон body (--bg, серый) при печати просвечивал
+       под этикетками — гасим его и все поля страницы. */
+    html, body {
+      background: #fff !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    @page { size: A4; margin: 0; }
+    .page, .modal-overlay { display: none !important; }
+    #printArea { display: block !important; background: #fff !important; }
+    /* Плавающие кнопки (☁️ синхронизация, ↑ наверх, ← назад к позиции)
+       лежат вне .page, поэтому их нужно прятать отдельно — иначе они
+       остаются поверх печатного листа. */
+    #topBtn, #backBtn, #syncBtn { display: none !important; }
+  }
+
+  /* ==================== Утилитарные классы ====================
+     Раньше в index.html было ~94 инлайн-style="" — повторяющиеся (отступы,
+     flex-обёртки, скрытие по умолчанию) вынесены сюда классами; единичные,
+     привязанные к одной конкретной кнопке/полю — правилами по #id ниже. */
+  .modal-title { font-weight: 700; }
+  .pos-rel { position: relative; }
+  .hide-init { display: none; }
+  .flex-1 { flex: 1; }
+  .flex-1-0 { flex: 1; min-width: 0; }
+  .field-narrow { flex: 0 0 92px; }
+  .field-w110 { width: 110px; flex: 0 0 auto; }
+  .field-w106 { flex: 0 0 106px; }
+  .readonly-field { background: #f1f5f9; }
+  .mono-field { font-family: monospace; }
+  .bg-neutral { background: #e2e8f0; }
+  .bg-danger-soft { background: #fecaca; }
+  .file-input { width: 100%; font-size: 13px; }
+  .suggest-box-inset { left: 20px; right: 20px; }
+  .paste-textarea {
+    width: 100%; min-height: 170px; font-family: monospace; font-size: 12px;
+    padding: 8px; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box;
+  }
+  .paste-textarea.tall { min-height: 180px; }
+  .flex-row { display: flex; gap: 10px; }
+  .flex-row.gap-8 { gap: 8px; }
+  .mt-0  { margin-top: 0; }
+  .mt-4  { margin-top: 4px; }
+  .mt-6  { margin-top: 6px; }
+  .mt-8  { margin-top: 8px; }
+  .mt-10 { margin-top: 10px; }
+  .mt-12 { margin-top: 12px; }
+  .mb-6  { margin-bottom: 6px; }
+  .mb-8  { margin-bottom: 8px; }
+  .mb-10 { margin-bottom: 10px; }
+  .modal-actions.stack { flex-direction: column; gap: 8px; }
+  /* Сравнение остатков — строка фильтров и строка поиска (раньше — инлайн) */
+  .cmp-filter-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 8px; }
+  .cmp-search-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  /* Тумблер «главное устройство» в настройках синхронизации */
+  .role-toggle {
+    display: flex; align-items: center; gap: 10px; margin: 4px 0 4px;
+    padding: 8px 10px; background: #f8fafc; border: 1px solid var(--border);
+    border-radius: 8px; cursor: pointer;
+  }
+  .role-toggle input[type="checkbox"] { width: 20px; height: 20px; flex: 0 0 auto; }
+  .role-toggle span { font-size: 13px; }
+
+  /* ==================== Правила по #id для единичных инлайн-style ==================== */
+  #ocAddBtn { width: auto; padding: 0 16px; }
+  /* display не задаём здесь: JS переключает его через element.style.display
+     между "" и "none" (updateOcFilterUI) — CSS-правило с display:none тут
+     перебило бы очистку инлайн-стиля в JS и поле никогда бы не появлялось. */
+  #ocFilterQty { width: 56px; margin: 0 0 0 6px; padding: 6px; font-size: 13px; }
+  #printLabelAddRow { width: 100%; font-size: 22px; font-weight: 700; margin-top: 6px; }
