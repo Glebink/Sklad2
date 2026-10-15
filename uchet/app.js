@@ -4722,11 +4722,9 @@ function setAutoSyncOff(off) {
 // Автоматика разрешена: выполнен вход и режим не ручной.
 function isAutoSyncActive() { return isSyncConfigured() && !isAutoSyncOff(); }
 
-/* ==================== Окно обмена с сервером ==================== */
+/* ==================== Обмен с сервером (кнопки в окне «Синхронизация и аккаунт») ==================== */
 function manualModeStatusText() {
-  return isAutoSyncOff()
-    ? "Автосинхронизация выключена. Тап по облачку — обмен с сервером."
-    : "Тап по облачку — обмен с сервером.";
+  return isAutoSyncOff() ? "Автосинхронизация выключена." : "Синхронизация включена.";
 }
 function formatSyncMoment(ts) {
   if (!ts) return "—";
@@ -4734,21 +4732,8 @@ function formatSyncMoment(ts) {
   const pad = (n) => String(n).padStart(2, "0");
   return pad(d.getDate()) + "." + pad(d.getMonth() + 1) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes());
 }
-function openManualSync() {
-  const info = document.getElementById("manualSyncInfo");
-  info.classList.remove("err");
-  info.textContent =
-    "Последний обмен с сервером: " + formatSyncMoment(getLastSyncedAt())
-    + (isDirty() ? " · есть неотправленные правки" : "");
-  manualSyncBusy(false);
-  document.getElementById("manualSyncHint").textContent =
-    "«Синхронизировать» объединяет всё без потерь и останавливается, если данные расходятся. "
-    + "Перезапись нужна, чтобы при расхождении выбрать одну из версий.";
-  openModal("manualSyncOverlay");
-}
-function quickSyncAction() { openManualSync(); }
 function manualSyncBusy(on) {
-  ["manualSyncBtn", "manualPushBtn", "manualPullBtn", "manualSyncClose"].forEach((id) => {
+  ["manualSyncBtn", "manualPushBtn", "manualPullBtn"].forEach((id) => {
     const b = document.getElementById(id);
     if (b) b.disabled = on;
   });
@@ -4765,7 +4750,6 @@ async function manualRun(policy, waitText) {
   const r = await syncNow(policy, { manual: true });
   manualSyncBusy(false);
   showManualResult(r.text, !r.ok);
-  if (r.ok) setTimeout(() => closeModal("manualSyncOverlay"), 1400);
 }
 function manualSync() { return manualRun("safe", "Обмениваемся с сервером…"); }
 function manualPush() {
@@ -4780,10 +4764,6 @@ function manualPull() {
 document.getElementById("manualSyncBtn").addEventListener("click", manualSync);
 document.getElementById("manualPushBtn").addEventListener("click", manualPush);
 document.getElementById("manualPullBtn").addEventListener("click", manualPull);
-document.getElementById("manualSyncClose").addEventListener("click", () => closeModal("manualSyncOverlay"));
-document.getElementById("manualSyncOverlay").addEventListener("click", (e) => {
-  if (e.target.id === "manualSyncOverlay") closeModal("manualSyncOverlay");
-});
 function refreshAfterSyncChange() {
   updateAddPanelVisibility();
   renderAll();
@@ -4829,9 +4809,9 @@ function isDirty() {
   return isSyncConfigured() && getLocalUpdatedAt() > getLastSyncedAt();
 }
 function updateDirtyIndicator() {
-  const btn = document.getElementById("syncBtn");
-  if (!btn) return;
-  btn.classList.toggle("dirty", isDirty());
+  const dot = document.getElementById("syncDot");
+  if (!dot) return;
+  dot.classList.toggle("dirty", isDirty());
 }
 
 // Вход выполнен (или сессия сохранена на устройстве) — обмен с сервером возможен.
@@ -4844,13 +4824,17 @@ let lastSyncErrorText = "";
 function setSyncStatus(state, text) {
   if (state === "err") lastSyncErrorText = text || "";
   else if (state === "ok") lastSyncErrorText = "";
-  const btn = document.getElementById("syncBtn");
+  const dot = document.getElementById("syncDot");
   const line = document.getElementById("syncStatusLine");
-  btn.classList.remove("err", "syncing");
-  const icons = { idle: "⚙", syncing: "⏳", ok: "☁", err: "⚠", off: "⚙", frozen: "⏸" };
-  if (state === "syncing") btn.classList.add("syncing");
-  if (state === "err") btn.classList.add("err");
-  btn.textContent = icons[state] || "⚙";
+  const pill = document.getElementById("syncMenuStatus");
+  if (dot) {
+    dot.classList.toggle("err", state === "err" || state === "off");
+    dot.classList.toggle("busy", state === "syncing");
+  }
+  if (pill) {
+    pill.textContent = state === "err" ? "ошибка" : state === "off" ? "нет входа" : state === "syncing" ? "обмен…" : "";
+    pill.classList.toggle("err", state === "err" || state === "off");
+  }
   if (line) {
     line.textContent = text || "";
     line.classList.toggle("err", state === "err");
@@ -5341,8 +5325,14 @@ async function syncNow(policy, opts) {
   try {
     const r = await runSync(policy || "safe");
     if (r.conflicts.length) {
+      const meta0 = loadSyncMeta();
+      const firstTime = r.conflicts.every((k) => !meta0[k]);
       out = { ok: false, conflict: true,
-        text: "Данные расходятся с сервером: " + names(r.conflicts) + ". Тап по облачку — выбрать, чьи данные оставить." };
+        text: (firstTime
+          ? "Первая синхронизация: данные здесь и на сервере разные (" + names(r.conflicts) + "). "
+            + "Если здесь пусто или это новое устройство — оставьте данные сервера. Если вы только что восстановили копию — оставьте мои данные."
+          : "Данные расходятся с сервером: " + names(r.conflicts) + ". Выберите, чьи данные оставить.")
+        + " Меню ⋮ → Синхронизация." };
       setSyncStatus("err", out.text);
     } else {
       markSyncedTo(startedAt, (r.pushed.length || r.pulled.length) ? buildSyncPayload() : null,
@@ -5451,39 +5441,20 @@ async function refreshAccountLine() {
 function openSyncModal() {
   const auto = document.getElementById("syncAutoToggle");
   if (auto) auto.checked = !isAutoSyncOff();
+  const info = document.getElementById("manualSyncInfo");
+  if (info) {
+    info.classList.remove("err");
+    info.textContent = "Последний обмен с сервером: " + formatSyncMoment(getLastSyncedAt())
+      + (isDirty() ? " · есть неотправленные правки" : "");
+  }
+  manualSyncBusy(false);
   refreshAccountLine();
   openModal("syncOverlay");
 }
 function closeSyncModal() {
   closeModal("syncOverlay");
 }
-(function setupSyncBtnPress() {
-  const btn = document.getElementById("syncBtn");
-  let timer = null, longFired = false, startX = 0, startY = 0;
-  function clearTimer() { if (timer) { clearTimeout(timer); timer = null; } }
-  btn.addEventListener("pointerdown", (e) => {
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-    longFired = false;
-    startX = e.clientX; startY = e.clientY;
-    clearTimer();
-    timer = setTimeout(() => {
-      longFired = true; timer = null;
-      if (navigator.vibrate) navigator.vibrate(15);
-      openSyncModal();
-    }, LONG_PRESS_MS);
-  });
-  btn.addEventListener("pointermove", (e) => {
-    if (!timer) return;
-    if (Math.abs(e.clientX - startX) > LONG_PRESS_MOVE_TOLERANCE || Math.abs(e.clientY - startY) > LONG_PRESS_MOVE_TOLERANCE) clearTimer();
-  });
-  btn.addEventListener("pointerup", () => {
-    const hadTimer = !!timer;
-    clearTimer();
-    if (hadTimer && !longFired) quickSyncAction();
-  });
-  btn.addEventListener("pointercancel", clearTimer);
-  btn.addEventListener("contextmenu", (e) => e.preventDefault());
-})();
+document.getElementById("syncMenuBtn").addEventListener("click", openSyncModal);
 document.getElementById("syncClose").addEventListener("click", closeSyncModal);
 document.getElementById("syncOverlay").addEventListener("click", (e) => {
   if (e.target.id === "syncOverlay") closeSyncModal();

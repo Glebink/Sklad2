@@ -240,7 +240,7 @@ function render() {
   $('#app').innerHTML = `
     <header class="header">
       <div class="brand mod-wrap">
-        <button class="brand-btn" data-act="mod-menu" aria-haspopup="true" aria-expanded="${S.modOpen}"><span class="brand-mark">${ICON.cart.replace('<svg', '<svg stroke="#fff"')}</span>Заявки на закупку<svg class="brand-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <button class="brand-btn" data-act="mod-menu" aria-haspopup="true" aria-expanded="${S.modOpen}"><span class="brand-mark">${ICON.cart.replace('<svg', '<svg stroke="#fff"')}</span>Заявки на закупку<svg class="brand-caret" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
         ${S.modOpen ? `<div class="mod-panel"><a class="mod-item" href="../uchet/">Учёт потребления</a><a class="mod-item active" href="./#/">Заявки на закупку</a></div>` : ''}
       </div>
       <nav class="tabs" aria-label="Разделы">${tabsHTML}</nav>

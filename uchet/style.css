@@ -145,7 +145,7 @@
     gap: 6px;
   }
   .tabs-trigger:active { background:var(--accent-ink); }
-  .tabs-caret { font-size: 12px; opacity: 0.85; }
+  .tabs-caret { flex: 0 0 auto; opacity: 0.95; }
   .tabs-menu-wrap .menu-panel.list { min-width: 150px; left: 0; right: auto; }
   .tabs-menu-wrap .menu-panel.list .tab-btn { flex: none; width: 100%; }
   #tabsMenuPanel { background: var(--surface); border-color: var(--line-strong); }
@@ -781,29 +781,16 @@
   #topBtn.show { display: flex; }
   #topBtn:active { background:var(--s-new-bg); }
   #backBtn:active { background:var(--s-new-bg); }
-  #syncBtn {
-    flex: 0 0 auto;
-    width: 44px; height: 44px; border-radius:50%;
-    border:1px solid var(--border); background:var(--surface); color:var(--ok-ink);
-    font-size: 19px; font-weight: 700; line-height: 1; cursor: pointer;
-    position: relative;
-    display: flex; align-items: center; justify-content: center;
-    touch-action: manipulation; -webkit-appearance: none; appearance: none;
-  }
-  #syncBtn:active { background:var(--s-new-bg); }
-  #syncBtn.err { color:var(--danger); }
-  #syncBtn.syncing { animation: sync-spin 1s linear infinite; }
-  @keyframes sync-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-  /* Оранжевая точка на кнопке ⚙ — есть правки, ещё не отправленные на сервер */
-  #syncBtn.dirty::after {
-    content: "";
-    position: absolute;
-    top: 2px; right: 2px;
-    width: 12px; height: 12px;
-    border-radius:50%;
-    background:var(--warn);
-    border:2px solid var(--surface);
-  }
+  /* Точка состояния на кнопке ⋮: красная — ошибка/нет входа, жёлтая — есть неотправленные правки,
+     пульсирует — идёт обмен. Если всё в порядке — точки нет. */
+  .sync-dot { display: none; position: absolute; top: 5px; right: 5px; width: 11px; height: 11px; border-radius: 50%;
+    border: 2px solid var(--surface); background: var(--warn); }
+  .sync-dot.dirty, .sync-dot.err, .sync-dot.busy { display: block; }
+  .sync-dot.err { background: var(--danger); }
+  .sync-dot.busy { background: var(--accent); animation: sync-pulse 1s ease-in-out infinite; }
+  @keyframes sync-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+  .sync-pill { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--muted); }
+  .sync-pill.err { color: var(--danger); }
   /* Маленький номер версии файлов (совпадает с CACHE_NAME в sw.js) — в
      углу шапки, рядом с облачком. Чисто для проверки «долетело» ли
      обновление на устройство. */
@@ -818,7 +805,7 @@
   .sync-status-line { font-size: 13px; color:var(--muted); margin: 6px 0 12px 0; text-align: left; }
   .sync-status-line.err { color:var(--danger); }
   /* Текст результата обмена — многострочный (причина + ID Gist) */
-  #manualSyncInfo { white-space: pre-line; word-break: break-word; }
+  #manualSyncInfo, #syncStatusLine { white-space: pre-line; word-break: break-word; }
   .sync-help { font-size: 12px; color:var(--muted); text-align: left; line-height: 1.5; margin-top: 10px; }
   .sync-help a { color:var(--accent); }
   .sync-help ol { margin: 4px 0; padding-left: 18px; }
@@ -1203,7 +1190,7 @@
     /* Плавающие кнопки (☁️ синхронизация, ↑ наверх, ← назад к позиции)
        лежат вне .page, поэтому их нужно прятать отдельно — иначе они
        остаются поверх печатного листа. */
-    #topBtn, #backBtn, #syncBtn { display: none !important; }
+    #topBtn, #backBtn { display: none !important; }
   }
 
   /* ==================== Утилитарные классы ====================
@@ -1270,3 +1257,12 @@
   .mod-item { display: block; padding: 11px 14px; border-radius: 8px; color: var(--fg); text-decoration: none; font-weight: 600; font-size: 15px; white-space: nowrap; }
   .mod-item:active { background: var(--accent-soft); }
   .mod-item.active { background: var(--accent-soft); color: var(--accent-ink); }
+
+  /* ==================== Шапка: одинаковые кнопки-иконки ==================== */
+  .app-header button.iconbtn.mod-btn,
+  .app-header button.iconbtn.head-btn { width: 44px; height: 44px; border-radius: 10px; position: relative; }
+  .app-header button.iconbtn.head-btn { background: var(--surface); border-color: var(--line-strong); color: var(--fg); }
+  .app-header button.iconbtn.head-btn:active { background: var(--s-new-bg); }
+  .app-header .tabs-trigger { height: 44px; border-radius: 10px; }
+  #headMenuPanel button.util { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; }
+  #headMenuPanel button.util .mi { flex: 0 0 auto; }

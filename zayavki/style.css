@@ -213,8 +213,9 @@ button.role-chip { background: transparent; cursor: pointer; }
 
 /* ---------- меню разделов ---------- */
 .mod-wrap { position: relative; }
-.brand-btn { display: flex; align-items: center; gap: 10px; border: 0; background: transparent; padding: 0; font: inherit; font-weight: 700; font-size: 17px; color: var(--fg); }
-.brand-caret { color: var(--muted); }
+.brand-btn { display: flex; align-items: center; gap: 10px; padding: 4px 8px 4px 4px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--accent-soft); font: inherit; font-weight: 700; font-size: 16px; color: var(--fg); cursor: pointer; }
+.brand-btn:active { background: var(--line); }
+.brand-caret { flex: 0 0 auto; width: 22px; height: 22px; padding: 3px; box-sizing: border-box; border-radius: 50%; background: var(--accent); color: var(--accent-fg); }
 .mod-panel { position: absolute; top: calc(100% + 8px); left: 0; min-width: 220px; padding: 6px; display: grid; gap: 4px; z-index: 60;
   background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: var(--shadow); }
 .mod-item { display: block; padding: 11px 14px; border-radius: 8px; color: var(--fg); text-decoration: none; font-weight: 600; font-size: 15px; white-space: nowrap; }
