@@ -541,6 +541,7 @@ function loadBestStock() {
 }
 function saveBestStock(data) {
   try { localStorage.setItem(BEST_STOCK_KEY, JSON.stringify(data)); } catch (e) {}
+  scheduleSync();
 }
 let bestStock = loadBestStock();
 
@@ -554,6 +555,7 @@ function loadTransferList() {
 }
 function saveTransferList() {
   try { localStorage.setItem(TRANSFER_KEY, JSON.stringify(transferList)); } catch (e) {}
+  scheduleSync();
 }
 let transferList = loadTransferList();
 
@@ -4677,9 +4679,9 @@ const SYNC_LABEL = {
 };
 const SYNC_META_KEY = "sklad2_sync_meta_v1";     // { ключ: { at: updated_at сервера, h: хэш значения } }
 const SYNC_AUTO_KEY = "sklad2_sync_auto_v1";     // "0" — автосинхронизация выключена
-// Ждём 20 секунд ПОСЛЕ ПОСЛЕДНЕГО действия, прежде чем отправлять правки (debounce).
+// Ждём 3 секунды ПОСЛЕ ПОСЛЕДНЕГО действия, прежде чем отправлять правки (debounce).
 // При сворачивании вкладки отправка идёт сразу (см. flushSyncNow).
-const SYNC_DEBOUNCE_MS = 20000;
+const SYNC_DEBOUNCE_MS = 3000;
 const LOCAL_UPDATED_AT_KEY = "sklad2_local_updated_v1";
 const SYNC_LAST_SYNCED_AT_KEY = "sklad2_last_synced_v1";
 
