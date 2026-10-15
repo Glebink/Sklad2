@@ -48,7 +48,9 @@ self.addEventListener("fetch", (event) => {
   }
   // Файлы приложения: сначала сеть (чтобы обновления доходили), без сети — из кэша
   event.respondWith(
-    fetch(req).then((res) => {
+    // cache: "no-cache" — всегда сверяться с сервером (ETag), а не брать файл из HTTP-кэша браузера:
+    // GitHub Pages разрешает кэш на 10 минут, и исправления иначе доезжали бы с задержкой
+    fetch(req, { cache: "no-cache" }).then((res) => {
       if (res.ok) { const copy = res.clone(); caches.open(CACHE_NAME).then((c) => c.put(req, copy)); }
       return res;
     }).catch(() => caches.match(req).then((hit) => hit || caches.match(url.pathname.includes("/zayavki/") ? "zayavki/index.html" : "uchet/index.html")))

@@ -17,7 +17,10 @@
     removeItem: function (k) { try { sessionStorage.removeItem(k); localStorage.removeItem(k); } catch (e) {} }
   };
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storage: authStore }
+    // lock: свой «замок» вместо navigator.locks. Общая блокировка между окнами/страницами могла
+    // оставаться занятой предыдущей страницей (учёт → заявки) и вешать вход в соседнем сервисе.
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storage: authStore,
+            lock: function (name, acquireTimeout, fn) { return fn(); } }
   });
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }

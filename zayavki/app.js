@@ -796,7 +796,7 @@ async function startApp() {
   if (!session) return showLogin();
   S.me = session.user;
   $('#app').innerHTML = '<div class="locked"><div class="muted">Загрузка…</div></div>';
-  try { await loadAll(); } catch (e) { return showLogin('Не удалось войти: ' + errMsg(e)); }
+  try { await Auth.withTimeout(loadAll(), 25000); } catch (e) { return showLogin('Не удалось загрузить данные: ' + errMsg(e)); }
   if (!S.role) return showLogin('Для этого аккаунта не назначена роль.');
   S.ready = true;
   if (!started) { started = true; subscribe(); }
