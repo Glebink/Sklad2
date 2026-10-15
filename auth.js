@@ -78,6 +78,10 @@
     var first = f.login; if (first && !opts.noFocus) { try { first.focus(); } catch (e) {} }
   }
 
+  // Ответ дольше timeoutMs считаем зависанием (например, блокировка входа занята другим окном).
+  function withTimeout(promise, ms) {
+    return Promise.race([promise, new Promise(function (_, rej) { setTimeout(function () { rej(new Error('network timeout')); }, ms); })]);
+  }
   async function getUser() {
     try {
       var r = await sb.auth.getSession();
@@ -103,15 +107,20 @@
   async function gate(opts) {
     gateOpts = opts || {};
     var r;
-    try { r = await sb.auth.getSession(); } catch (e) { r = { data: { session: null }, error: e }; }
+    try { r = await withTimeout(sb.auth.getSession(), 10000); } catch (e) { r = { data: { session: null }, error: e }; }
     var session = r && r.data && r.data.session;
     var offlineOk = !session && hasStoredSession() && (!navigator.onLine || (r.error && /fetch|network/i.test(r.error.message || '')));
     if (!session && !offlineOk) showGate();
     else if (gateOpts.onLogin) gateOpts.onLogin();
-    sb.auth.onAuthStateChange(async function (event) {
-      if (event !== 'SIGNED_OUT' && event !== 'TOKEN_REFRESHED') return;
-      var c = await getUser();
-      if (!c && gateReady !== 'off') { if (gateOpts.onLogout) gateOpts.onLogout(); showGate('Сессия закончилась. Войдите снова.'); }
+    // ВАЖНО: внутри обработчика нельзя ждать другие вызовы supabase.auth (getSession и т.п.):
+    // библиотека держит блокировку, пока обработчик не вернётся, и всё зависает навсегда
+    // (в том числе вход в соседнем сервисе). Поэтому работу уносим в setTimeout.
+    sb.auth.onAuthStateChange(function (event) {
+      if (event !== 'SIGNED_OUT') return;
+      setTimeout(async function () {
+        var c = await getUser();
+        if (!c) { if (gateOpts.onLogout) gateOpts.onLogout(); showGate('Сессия закончилась. Войдите снова.'); }
+      }, 0);
     });
     gateReady = true;
   }
@@ -119,6 +128,6 @@
 
   window.Auth = {
     sb: sb, authStore: authStore, emailOf: emailOf, doLogin: doLogin, renderLogin: renderLogin,
-    getUser: getUser, gate: gate, logout: logout, clearSession: clearSession, hasStoredSession: hasStoredSession
+    getUser: getUser, withTimeout: withTimeout, gate: gate, logout: logout, clearSession: clearSession, hasStoredSession: hasStoredSession
   };
 })();

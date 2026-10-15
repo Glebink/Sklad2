@@ -787,7 +787,12 @@ function showLogin(msg) {
 }
 let started = false, authBound = false;
 async function startApp() {
-  const { data: { session } } = await sb.auth.getSession();
+  let session;
+  try { ({ data: { session } } = await Auth.withTimeout(sb.auth.getSession(), 10000)); }
+  catch (e) {
+    $('#app').innerHTML = '<div class="locked"><div><p class="muted">Не удалось проверить вход. Проверьте связь.</p><button class="btn primary" onclick="location.reload()">Повторить</button></div></div>';
+    return;
+  }
   if (!session) return showLogin();
   S.me = session.user;
   $('#app').innerHTML = '<div class="locked"><div class="muted">Загрузка…</div></div>';
@@ -798,12 +803,15 @@ async function startApp() {
   if (!authBound) {
     authBound = true;
     {
-    sb.auth.onAuthStateChange(async () => {
-      // сверяем со своей сессией: события из других вкладок не должны ломать эту
-      const { data: { session: cur } } = await sb.auth.getSession();
-      if (!S.ready) return;
-      if (!cur) { S.ready = false; showLogin('Сессия закончилась. Войдите снова.'); }
-      else if (cur.user.id !== S.me.id) location.reload();
+    // Внутри обработчика нельзя ждать другие вызовы supabase.auth (зависает навсегда), поэтому через setTimeout.
+    sb.auth.onAuthStateChange(() => {
+      setTimeout(async () => {
+        // сверяем со своей сессией: события из других вкладок не должны ломать эту
+        const { data: { session: cur } } = await sb.auth.getSession();
+        if (!S.ready) return;
+        if (!cur) { S.ready = false; showLogin('Сессия закончилась. Войдите снова.'); }
+        else if (cur.user.id !== S.me.id) location.reload();
+      }, 0);
     });
     }
   }
