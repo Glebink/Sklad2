@@ -1310,37 +1310,6 @@ const addSuggestBox = document.getElementById("addSuggestBox");
 // ПОСЛЕ того, как страница отрисовалась — из-за этого поле может оказаться
 // под прилипающей шапкой. Подстраховываемся: после открытия клавиатуры
 // прокручиваем поле в центр видимой области.
-/* ==================== Панель добавления: подгонка под содержимое ==========
-   Ширина «Детали/Расходники» — по выбранному пункту. Фиксированная ширина
-   либо оставляла пустое место у короткого «Детали», либо резала длинное
-   «Расходники». Меряем текст скрытым span с тем же шрифтом и прибавляем
-   место под стрелку списка. */
-const sectionSelect = document.getElementById("newItemSection");
-let selectProbe = null;
-function fitSectionSelectWidth() {
-  if (!sectionSelect) return;
-  if (!selectProbe) {
-    selectProbe = document.createElement("span");
-    selectProbe.style.cssText =
-      "position:absolute;visibility:hidden;white-space:nowrap;pointer-events:none;left:-9999px;top:0;";
-    document.body.appendChild(selectProbe);
-  }
-  const cs = getComputedStyle(sectionSelect);
-  selectProbe.style.font = cs.font || (cs.fontSize + " " + cs.fontFamily);
-  selectProbe.textContent = sectionSelect.options[sectionSelect.selectedIndex]?.text || "";
-  // Место под стрелку уже заложено в padding-right (стрелку рисуем сами
-  // фоном, см. style.css), поэтому здесь только пара пикселей запаса.
-  const ARROW = 2;
-  sectionSelect.style.width =
-    Math.ceil(selectProbe.offsetWidth + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + ARROW) + "px";
-}
-if (sectionSelect) {
-  sectionSelect.addEventListener("change", fitSectionSelectWidth);
-  fitSectionSelectWidth();
-  // Шрифты подгружаются позже — пересчитываем, когда они готовы.
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitSectionSelectWidth).catch(() => {});
-}
-
 /* Крестик очистки поля названия: виден только когда есть что стирать. */
 const newItemClearBtn = document.getElementById("newItemClear");
 function updateNewItemClear() {
@@ -1373,8 +1342,6 @@ newItemInput.addEventListener("input", () => {
   renderSuggestions(addSuggestBox, newItemInput.value, (r) => {
     addPicked = r;
     newItemInput.value = r.name;
-    document.getElementById("newItemSection").value = r.section;
-    fitSectionSelectWidth();   // раздел мог смениться — подгоняем ширину
     updateNewItemClear();
   }, { ocQty: true });
 });
@@ -1382,7 +1349,8 @@ newItemInput.addEventListener("input", () => {
 registerSuggestZone(addSuggestBox, [newItemInput]);
 
 document.getElementById("addItemBtn").addEventListener("click", () => {
-  const section = document.getElementById("newItemSection").value;
+  // Раздел определяет выбранная из подсказок позиция; ввод вручную — «Детали».
+  const section = (addPicked && addPicked.section) || "parts";
   const name = newItemInput.value.trim();
   if (!name) return;
   const code = (addPicked && addPicked.name === name) ? addPicked.code : "";
