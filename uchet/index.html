@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Учёт потребления деталей</title>
+<link rel="manifest" href="../manifest.json">
+<meta name="theme-color" content="#2B4C9B">
+<link rel="icon" href="../icon-192.png">
+<link rel="apple-touch-icon" href="../icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Склад">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="../auth.css">
+</head>
+<body>
+
+<button id="backBtn" title="Вернуться на склад к этой позиции">←</button>
+<button id="topBtn" title="Наверх">↑</button>
+
+<div class="page">
+
+<div class="sticky-top" id="stickyTop">
+  <div class="app-header">
+    <div class="menu-wrap mod-menu-wrap">
+      <button class="iconbtn mod-btn" id="modMenuBtn" title="Разделы" aria-label="Разделы" aria-haspopup="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      </button>
+      <div class="mod-panel" id="modMenuPanel">
+        <a class="mod-item active" href="./">Учёт потребления</a>
+        <a class="mod-item" href="../zayavki/">Заявки на закупку</a>
+      </div>
+    </div>
+    <div class="date-picker" id="datePickerBox">
+      <span id="dateDisplayText">—</span>
+      <input type="date" id="reportDate">
+    </div>
+    <div class="menu-wrap tabs-menu-wrap">
+      <button class="tabs-trigger" id="tabsCurrentBtn">
+        <span id="tabsCurrentLabel">Учёт</span><span class="tabs-caret">⌄</span>
+      </button>
+      <div class="menu-panel list" id="tabsMenuPanel">
+        <button class="tab-btn active" id="tabConsumptionBtn">Учёт</button>
+        <button class="tab-btn" id="tabWarehouseBtn">Склад</button>
+        <button class="tab-btn" id="tabOneCBtn">1C</button>
+      </div>
+    </div>
+    <div class="menu-wrap head-menu-wrap">
+      <button class="iconbtn" id="headMenuBtn" title="Экспорт / История">⋮</button>
+      <div class="menu-panel list" id="headMenuPanel">
+        <button class="util primary" id="exportBtn">⬇ Экспорт</button>
+        <button class="util" id="syncHistoryBtn" title="История сохранений">🕘 История</button>
+        <button class="util" id="printLabelBtn" title="Печать этикетки (ручной ввод)">🖨️ Печать</button>
+      </div>
+    </div>
+    <button id="syncBtn" title="Синхронизация">⚙</button>
+    <span id="appVersionBadge" title="Версия файлов (номер кэша)"></span>
+  </div>
+
+  <div class="add-panel search-bar hide-init" id="whSearchBar"></div>
+  <div class="add-panel search-bar" id="caSearchBar"></div>
+  <div class="add-panel search-bar hide-init" id="ocSearchBar"></div>
+
+  <!-- Панель добавления живёт в общей шапке: на «Учёте» она нужна постоянно,
+       а список под ней длинный. Показывается только на «Учёте» — см.
+       updateAddPanelVisibility(). -->
+  <div class="add-panel one-row" id="addPanelConsumption">
+    <select id="newItemSection">
+      <option value="parts">Детали</option>
+      <option value="consumables">Расходники</option>
+    </select>
+    <div class="add-name-wrap">
+      <input type="text" id="newItemName" placeholder="начните вводить название" autocomplete="off">
+      <button type="button" class="add-clear" id="newItemClear" title="Очистить">✕</button>
+    </div>
+    <input type="number" id="newItemQty" min="1" placeholder="1" title="Количество (если пусто — 1)">
+    <button class="util primary" id="addItemBtn" title="Добавить">+</button>
+    <!-- Подсказки — прямой потомок панели, а не обёртки поля: обёртке нужен
+         position:relative под крестик, и подсказки иначе сузились бы до
+         ширины поля ввода вместо всей панели. -->
+    <div class="suggest-box" id="addSuggestBox"></div>
+  </div>
+</div>
+
+<!-- ===================== ВКЛАДКА: УЧЁТ ===================== -->
+<div class="view active" id="viewConsumption">
+
+  <div class="section-head">
+    <h2 class="section-title">Детали</h2>
+    <button class="iconbtn" id="undoBtn" disabled title="Отменить последнее действие">↶</button>
+    <button class="iconbtn" id="redoBtn" disabled title="Повторить действие">↷</button>
+    <button class="iconbtn" id="deleteAllBtn" title="Удалить все позиции учёта за этот день">✕</button>
+  </div>
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>№</th>
+        <th class="sortable" data-table="ca" data-section="parts" data-col="code">Код <span class="sort-arrow">↕</span></th>
+        <th class="sortable" data-table="ca" data-section="parts" data-col="name">Наименование <span class="sort-arrow">↕</span></th>
+        <th></th>
+        <th class="sortable" data-table="ca" data-section="parts" data-col="count">Шт <span class="sort-arrow">↕</span></th>
+      </tr>
+    </thead>
+    <tbody id="body-parts"></tbody>
+  </table>
+  </div>
+
+  <h2 class="section-title">Расходники</h2>
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>№</th>
+        <th class="sortable" data-table="ca" data-section="consumables" data-col="code">Код <span class="sort-arrow">↕</span></th>
+        <th class="sortable" data-table="ca" data-section="consumables" data-col="name">Наименование <span class="sort-arrow">↕</span></th>
+        <th></th>
+        <th class="sortable" data-table="ca" data-section="consumables" data-col="count">Шт <span class="sort-arrow">↕</span></th>
+      </tr>
+    </thead>
+    <tbody id="body-consumables"></tbody>
+  </table>
+  </div>
+
+
+</div>
+
+<!-- ===================== ВКЛАДКА: СКЛАД ===================== -->
+<div class="view" id="viewWarehouse">
+
+  <div class="add-panel">
+    <select id="whNewSection">
+      <option value="parts">Детали</option>
+      <option value="consumables">Расходники</option>
+    </select>
+    <input type="text" id="whNewCode" class="code-input" placeholder="Код">
+    <input type="text" id="whNewName" placeholder="Наименование">
+    <div class="model-switch" id="whNewModel" data-value="" title="Модель">
+      <button type="button" class="ms-opt" data-model="YGW 4.0">4.0</button>
+      <button type="button" class="ms-opt" data-model="">—</button>
+      <button type="button" class="ms-opt" data-model="YGW 5.0">5.0</button>
+          <button type="button" class="ms-opt" data-model="9Bot">9Bot</button>
+    </div>
+    <input type="number" id="whNewQty" placeholder="Кол-во" min="0" value="0">
+    <div class="suggest-box" id="whAddSuggestBox"></div>
+    <div class="corner-row full-row">
+      <button class="util" id="whResetBtn">Обнулить</button>
+      <button class="util" id="whImportBtn" title="Импорт количеств из файла">⬆ Импорт</button>
+      <button class="util primary" id="whAddBtn">+ Добавить</button>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <h2 class="section-title">Детали (склад)</h2>
+    <button class="iconbtn" id="whUndoBtn" disabled title="Отменить последнее действие">↶</button>
+    <button class="iconbtn" id="whRedoBtn" disabled title="Повторить действие">↷</button>
+    <div class="menu-wrap wh-filter-wrap">
+      <button class="iconbtn" id="whFilterBtn" title="Фильтр по модели">⛃</button>
+      <div class="menu-panel list" id="whFilterPanel">
+        <button class="util" data-model="all">Все</button>
+        <button class="util" data-model="YGW 5.0">YGW 5.0</button>
+        <button class="util" data-model="YGW 4.0">YGW 4.0</button>
+        <button class="util" data-model="9Bot">9Bot</button>
+      </div>
+    </div>
+    <span class="oc-filter-label" id="whFilterLabel"></span>
+  </div>
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>№</th>
+        <th class="sortable" data-table="wh" data-section="parts" data-col="code">Код <span class="sort-arrow">↕</span></th>
+        <th class="sortable" data-table="wh" data-section="parts" data-col="name">Наименование <span class="sort-arrow">↕</span></th>
+        <th class="sortable narrow" data-table="wh" data-section="parts" data-col="qty"><span class="two-line-split"><span class="tl-top">Склад</span><span class="tl-bot">1С</span></span> <span class="sort-arrow">↕</span><div class="col-total merged-total"><span id="total-wh-parts-qty"></span><span id="total-wh-parts-ocqty"></span></div></th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="wh-body-parts"></tbody>
+  </table>
+  </div>
+
+  <h2 class="section-title">Расходники (склад)</h2>
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>№</th>
+        <th class="sortable" data-table="wh" data-section="consumables" data-col="code">Код <span class="sort-arrow">↕</span></th>
+        <th class="sortable" data-table="wh" data-section="consumables" data-col="name">Наименование <span class="sort-arrow">↕</span></th>
+        <th class="sortable narrow" data-table="wh" data-section="consumables" data-col="qty"><span class="two-line-split"><span class="tl-top">Склад</span><span class="tl-bot">1С</span></span> <span class="sort-arrow">↕</span><div class="col-total merged-total"><span id="total-wh-consumables-qty"></span><span id="total-wh-consumables-ocqty"></span></div></th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="wh-body-consumables"></tbody>
+  </table>
+  </div>
+
+
+</div>
+
+<!-- ===================== ВКЛАДКА: 1C ===================== -->
+<div class="view" id="viewOneC">
+
+  <div class="add-panel">
+    <select id="ocNewSection">
+      <option value="parts">Детали</option>
+      <option value="consumables">Расходники</option>
+    </select>
+    <input type="text" id="ocNewCode" class="code-input" placeholder="Код">
+    <input type="text" id="ocNewName" placeholder="Наименование">
+    <button class="btn plus" id="ocAddBtn">+ Добавить</button>
+    <button class="util" id="ocImportBtn" title="Импорт остатков из Excel">⬆ Импорт</button>
+  </div>
+
+  <div class="section-head">
+    <h2 class="section-title">Детали (1C)</h2>
+    <button class="iconbtn" id="ocUndoBtn" disabled title="Отменить последнее действие">↶</button>
+    <button class="iconbtn" id="ocRedoBtn" disabled title="Повторить действие">↷</button>
+    <div class="menu-wrap oc-filter-wrap">
+      <button class="iconbtn" id="ocFilterBtn" title="Фильтр списка">⛃</button>
+      <div class="menu-panel list" id="ocFilterPanel">
+        <button class="util" data-filter="all">Всё</button>
+        <button class="util" data-filter="consumables">Расходники</button>
+        <button class="util" data-filter="9Bot">9Bot</button>
+        <button class="util" data-filter="YGW 4.0">YGW 4.0</button>
+        <button class="util" data-filter="YGW 5.0">YGW 5.0</button>
+        <button class="util" data-filter="stock">Остаток</button>
+      </div>
+    </div>
+    <input type="number" id="ocFilterQty" min="0" value="20" title="Показывать позиции с остатком меньше этого числа" style="display:none;">
+    <button class="iconbtn oc-cons-toggle" id="ocConsToggle" style="display:none;" title="Расходники">🧴</button>
+    <span class="oc-filter-label" id="ocFilterLabel"></span>
+    <div class="spacer"></div>
+  </div>
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th class="sortable" data-table="oc" data-section="parts" data-col="code">Код <span class="sort-arrow">↕</span></th>
+        <th class="sortable" data-table="oc" data-section="parts" data-col="name">Наименование <span class="sort-arrow">↕</span></th>
+        <th class="sortable narrow" data-table="oc" data-section="parts" data-col="qty"><span class="two-line-split"><span class="tl-top">1С</span><span class="tl-bot">Склад</span></span> <span class="sort-arrow">↕</span><div class="col-total merged-total"><span id="total-oc-parts-qty"></span><span id="total-oc-parts-whqty"></span></div></th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="oc-body-parts"></tbody>
+  </table>
+  </div>
+
+  <h2 class="section-title">Расходники (1C)</h2>
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th class="sortable" data-table="oc" data-section="consumables" data-col="code">Код <span class="sort-arrow">↕</span></th>
+        <th class="sortable" data-table="oc" data-section="consumables" data-col="name">Наименование <span class="sort-arrow">↕</span></th>
+        <th class="sortable narrow" data-table="oc" data-section="consumables" data-col="qty"><span class="two-line-split"><span class="tl-top">1С</span><span class="tl-bot">Склад</span></span> <span class="sort-arrow">↕</span><div class="col-total merged-total"><span id="total-oc-consumables-qty"></span><span id="total-oc-consumables-whqty"></span></div></th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="oc-body-consumables"></tbody>
+  </table>
+  </div>
+
+
+
+</div>
+
+</div>
+
+<div id="printArea"></div>
+
+<!-- Модалка подтверждения удаления -->
+<div class="modal-overlay" id="confirmOverlay">
+  <div class="modal-box">
+    <p id="confirmText">Удалить позицию?</p>
+    <div class="modal-actions">
+      <button class="confirm-no" id="confirmNo">Отмена</button>
+      <button class="confirm-yes" id="confirmYes">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка редактирования позиции в списке потребления (с поиском по складу) -->
+<div class="modal-overlay" id="editItemOverlay">
+  <div class="modal-box pos-rel">
+    <p>Изменить позицию:</p>
+    <div class="field-label">Раздел</div>
+    <select id="editItemSection">
+      <option value="parts">Детали</option>
+      <option value="consumables">Расходники</option>
+    </select>
+    <div class="field-label">Наименование</div>
+    <input type="text" id="editItemInput" autocomplete="off">
+    <div class="suggest-box suggest-box-inset" id="editSuggestBox"></div>
+    <div class="modal-actions">
+      <button class="confirm-no" id="editItemCancel">Отмена</button>
+      <button class="confirm-yes accent" id="editItemSave">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка: списать / добавить количество по позиции (вкладка «Учёт») -->
+<div class="modal-overlay" id="qtyAdjustOverlay">
+  <div class="modal-box">
+    <p id="qtyAdjustTitle" class="modal-title">Списать</p>
+    <div class="sync-status-line mb-10" id="qtyAdjustInfo"></div>
+    <input type="number" id="qtyAdjustInput" min="1" inputmode="numeric" placeholder="Количество" autocomplete="off">
+    <div class="modal-actions">
+      <button class="confirm-no" id="qtyAdjustCancel">Отмена</button>
+      <button class="confirm-yes accent" id="qtyAdjustConfirm">Применить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка истории по позиции -->
+<div class="modal-overlay" id="historyOverlay">
+  <div class="modal-box wide">
+    <p id="historyTitle" class="modal-title">История: —</p>
+    <div class="history-range">
+      <input type="date" id="historyFrom">
+      <span>—</span>
+      <input type="date" id="historyTo">
+    </div>
+    <div class="history-list" id="historyList"></div>
+    <div class="modal-actions mt-12">
+      <button class="confirm-no" id="historyClose">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка редактирования позиции склада -->
+<div class="modal-overlay" id="whEditOverlay">
+  <div class="modal-box">
+    <p>Изменить позицию на складе:</p>
+    <div class="field-label">Раздел</div>
+    <select id="whEditSection">
+      <option value="parts">Детали</option>
+      <option value="consumables">Расходники</option>
+    </select>
+    <div class="field-label">Код</div>
+    <input type="text" id="whEditCode">
+    <div class="field-label">Наименование</div>
+    <input type="text" id="whEditName">
+    <div class="suggest-box suggest-box-inset" id="whEditSuggestBox"></div>
+    <div class="flex-row">
+      <div class="field-narrow">
+        <div class="field-label">Кол-во</div>
+        <input type="number" id="whEditQty" min="0">
+      </div>
+      <div class="flex-1-0">
+        <div class="field-label">Модель</div>
+        <div class="model-switch" id="whEditModel" data-value="">
+          <button type="button" class="ms-opt" data-model="YGW 4.0">4.0</button>
+          <button type="button" class="ms-opt" data-model="">—</button>
+          <button type="button" class="ms-opt" data-model="YGW 5.0">5.0</button>
+          <button type="button" class="ms-opt" data-model="9Bot">9Bot</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="confirm-no" id="whEditCancel">Отмена</button>
+      <button class="confirm-yes accent" id="whEditSave">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка печати этикеток: ручной ввод, мини-таблица из нескольких позиций -->
+<div class="modal-overlay" id="printLabelOverlay">
+  <div class="modal-box wide">
+    <p>Печать</p>
+    <div id="printLabelRows"></div>
+    <button class="util" id="printLabelAddRow" title="Добавить ещё позицию">+</button>
+    <div class="sync-help mt-8">
+      «Шт» печатается в углу этикетки (необязательно). «Кол-во копий» —
+      сколько этикеток этой позиции разместить на листе (пусто = 1).
+      Лист вмещает 10 этикеток, дальше — новый лист.
+    </div>
+    <div class="modal-actions">
+      <button class="confirm-no" id="printLabelCancel">Отмена</button>
+      <button class="confirm-yes accent" id="printLabelGo">🖨️ Печать</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка выбора варианта экспорта 1C -->
+<div class="modal-overlay" id="ocExportOverlay">
+  <div class="modal-box">
+    <p>Что выгрузить в PDF?</p>
+    <div class="modal-actions stack">
+      <button class="confirm-yes accent full-w" id="ocExportAll">Все позиции</button>
+      <button class="confirm-yes full-w" id="ocExportDiff">Только расхождения (+ / −)</button>
+      <button class="confirm-yes full-w" id="ocExportPlus">Только + (излишки)</button>
+      <button class="confirm-yes full-w" id="ocExportMinus">Только − (недостачи)</button>
+      <button class="confirm-no full-w" id="ocExportCancel">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка: добавить позицию 1C на склад -->
+<div class="modal-overlay" id="ocToWhOverlay">
+  <div class="modal-box">
+    <p>Добавить на склад:</p>
+    <div class="field-label">Раздел</div>
+    <input type="text" id="ocToWhSection" readonly class="readonly-field">
+    <div class="field-label">Код (из 1C, менять нельзя — по нему создаётся связь)</div>
+    <input type="text" id="ocToWhCode" readonly class="readonly-field mono-field">
+    <div class="field-label">Наименование на складе</div>
+    <input type="text" id="ocToWhName">
+    <div class="flex-row">
+      <div class="field-narrow">
+        <div class="field-label">Кол-во</div>
+        <input type="number" id="ocToWhQty" min="0" value="0">
+      </div>
+      <div class="flex-1-0">
+        <div class="field-label">Модель</div>
+        <div class="model-switch" id="ocToWhModel" data-value="">
+          <button type="button" class="ms-opt" data-model="YGW 4.0">4.0</button>
+          <button type="button" class="ms-opt" data-model="">—</button>
+          <button type="button" class="ms-opt" data-model="YGW 5.0">5.0</button>
+          <button type="button" class="ms-opt" data-model="9Bot">9Bot</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="confirm-no" id="ocToWhCancel">Отмена</button>
+      <button class="confirm-yes accent" id="ocToWhSave">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка редактирования позиции 1C -->
+<div class="modal-overlay" id="ocEditOverlay">
+  <div class="modal-box">
+    <p>Изменить позицию 1C:</p>
+    <div class="field-label">Раздел</div>
+    <select id="ocEditSection">
+      <option value="parts">Детали</option>
+      <option value="consumables">Расходники</option>
+    </select>
+    <div class="field-label">Код</div>
+    <input type="text" id="ocEditCode">
+    <div class="field-label">Наименование</div>
+    <input type="text" id="ocEditName">
+    <div class="flex-row">
+      <div class="field-narrow">
+        <div class="field-label">Кол-во</div>
+        <input type="number" id="ocEditQty" min="0">
+      </div>
+      <div class="flex-1-0">
+        <div class="field-label">Модель</div>
+        <div class="model-switch" id="ocEditModel" data-value="">
+          <button type="button" class="ms-opt" data-model="YGW 4.0">4.0</button>
+          <button type="button" class="ms-opt" data-model="">—</button>
+          <button type="button" class="ms-opt" data-model="YGW 5.0">5.0</button>
+          <button type="button" class="ms-opt" data-model="9Bot">9Bot</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="confirm-no" id="ocEditCancel">Отмена</button>
+      <button class="confirm-yes accent" id="ocEditSave">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка копирования/вставки списка склада (для переноса в другой файл) -->
+<!-- Модалка: импорт остатков из Excel в 1С -->
+<!-- Ручная вставка строк из Excel (вынесена из окна импорта) -->
+<div class="modal-overlay" id="ocPasteOverlay">
+  <div class="modal-box wide">
+    <p class="modal-title">Вставить строки Excel</p>
+    <div class="footer-note mb-6">
+      Скопируйте столбцы Код / Наименование / Остаток и вставьте сюда.
+    </div>
+    <textarea id="ocImportArea" class="paste-textarea tall" placeholder="Вставьте строки из Excel"></textarea>
+    <div class="modal-actions mt-10">
+      <button class="confirm-no" id="ocPasteCancel">Отмена</button>
+      <button class="confirm-yes accent" id="ocPasteApply">Применить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Список на перемещение (что заказать со второго склада) -->
+<div class="modal-overlay" id="ocTransferOverlay">
+  <div class="modal-box wide">
+    <p class="modal-title">Список на перемещение</p>
+    <div class="footer-note mb-8">
+      Позиции, которые нужно привезти с «Бестужевской». Добавляются кнопкой «+»
+      из окна сравнения. Остаток на втором складе подставляется автоматически.
+    </div>
+    <div class="footer-note mb-6" id="ocTransferSummary"></div>
+    <div id="ocTransferList" class="sync-history-list"></div>
+    <div class="modal-actions mt-10">
+      <button class="confirm-no" id="ocTransferClose">Закрыть</button>
+      <button class="confirm-no bg-neutral" id="ocTransferCopy">📋 Копировать</button>
+      <button class="confirm-yes accent" id="ocTransferPrint">🖨️ Печать</button>
+    </div>
+    <div class="modal-actions mt-6">
+      <button class="confirm-no bg-danger-soft full-w" id="ocTransferClear">Очистить список</button>
+    </div>
+  </div>
+</div>
+
+<!-- Результат сравнения остатков между складами -->
+<div class="modal-overlay" id="ocCompareOverlay">
+  <div class="modal-box wide pos-rel">
+    <button class="modal-x" id="ocCompareX" title="Закрыть">✕</button>
+    <p class="modal-title">Сравнение остатков</p>
+    <div class="cmp-filter-row">
+      <div class="field-w110">
+        <div class="field-label">Порог (меньше)</div>
+        <input type="number" id="ocCompareLimit" min="1" value="40">
+      </div>
+      <div class="field-w106">
+        <div class="field-label">Модель</div>
+        <select id="ocCompareModel">
+          <option value="all">Все</option>
+          <option value="YGW 5.0">YGW 5.0</option>
+          <option value="YGW 4.0">YGW 4.0</option>
+          <option value="9Bot">9Bot</option>
+          <option value="none">Без версии</option>
+        </select>
+      </div>
+      <div class="field-w106">
+        <div class="field-label">Раздел</div>
+        <select id="ocCompareSection">
+          <option value="parts">Детали</option>
+          <option value="consumables">Расходники</option>
+          <option value="all">Все</option>
+        </select>
+      </div>
+      <div class="flex-1-0">
+        <div class="field-label">Что показывать</div>
+        <select id="ocCompareMode">
+          <option value="more">Бестужевская &gt; 0</option>
+          <option value="all">Все</option>
+        </select>
+      </div>
+    </div>
+    <div class="cmp-search-row">
+      <input type="text" id="ocCompareSearch" placeholder="Поиск по названию или коду" autocomplete="off" class="flex-1-0">
+      <button class="iconbtn" id="ocCompareSearchClear" title="Очистить">×</button>
+    </div>
+    <div class="footer-note mb-6" id="ocCompareSummary"></div>
+    <div id="ocCompareList" class="sync-history-list"></div>
+    <div class="modal-actions mt-10">
+      <button class="confirm-no" id="ocCompareClose">Закрыть</button>
+      <button class="confirm-no bg-neutral" id="ocCompareCopy">📋 Копировать</button>
+      <button class="confirm-yes accent" id="ocComparePrint">🖨️ Печать</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="ocImportOverlay">
+  <div class="modal-box wide">
+    <p class="modal-title">Импорт остатков в 1С</p>
+    <div class="footer-note mb-6">
+      Выгрузка <b>.xlsx</b> из 1С («Остатки и доступность товаров») —
+      столбцы Артикул / Номенклатура / В наличии распознаются сами.
+    </div>
+
+    <div class="field-label">Склад «Ферма» — мой (обновит остатки в 1С)</div>
+    <input type="file" id="ocImportFile" accept=".xlsx" class="file-input">
+    <div class="footer-note mb-10" id="ocImportFileInfo"></div>
+
+    <div class="field-label">Склад «Бестужевская» — второй (сохранится отдельно)</div>
+    <input type="file" id="ocImportFileBest" accept=".xlsx" class="file-input">
+    <div class="footer-note mb-6" id="ocImportFileBestInfo"></div>
+    <button class="util full-w mb-8" id="ocPasteBtn">📋 Вставить строки Excel</button>
+    <button class="util full-w mb-8" id="ocCompareBtn">⚖️ Сравнить остатки</button>
+    <button class="util full-w mb-8" id="ocTransferBtn">🚚 Перемещение</button>
+    <div class="footer-note mt-6" id="ocImportHint">
+      Существующие позиции: обновится только остаток (название, код и связь
+      с учётом не трогаются). Новые позиции добавятся в 1С.
+      Модель проставится автоматически по метке в названии.
+    </div>
+    <div class="modal-actions mt-10">
+      <button class="confirm-no" id="ocImportClose">Отмена</button>
+      <button class="confirm-yes accent" id="ocImportRun">Импортировать</button>
+    </div>
+  </div>
+</div>
+
+<!-- Импорт количеств на склад: только код + количество -->
+<div class="modal-overlay" id="whImportOverlay">
+  <div class="modal-box wide pos-rel">
+    <button class="modal-x" id="whImportX" title="Закрыть">✕</button>
+    <p class="modal-title">Импорт на склад</p>
+    <div class="footer-note mb-8">
+      Файл <b>.xlsx</b> со столбцами <b>Код</b> и <b>Количество</b>. Обновятся
+      только количества у позиций с совпавшим кодом — названия, разделы и
+      модели не изменятся. Позиции, которых нет в файле, не трогаются.
+    </div>
+    <input type="file" id="whImportFile" accept=".xlsx" class="file-input">
+    <div class="footer-note mt-6" id="whImportInfo"></div>
+    <div class="modal-actions mt-10">
+      <button class="confirm-no" id="whImportClose">Отмена</button>
+      <button class="confirm-yes accent" id="whImportRun">Импортировать</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="whTransferOverlay">
+  <div class="modal-box wide">
+    <p id="whTransferTitle" class="modal-title">Список</p>
+    <textarea id="whTransferArea" class="paste-textarea"></textarea>
+    <div class="footer-note mt-6" id="whTransferHint"></div>
+    <div class="modal-actions mt-10">
+      <button class="confirm-no" id="whTransferClose">Закрыть</button>
+      <button class="confirm-yes accent" id="whTransferAction">Скопировать</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка: обмен с сервером (короткий тап по облачку) -->
+<div class="modal-overlay" id="manualSyncOverlay">
+  <div class="modal-box">
+    <p class="modal-title">Обмен с сервером</p>
+    <div class="sync-status-line" id="manualSyncInfo"></div>
+    <div class="modal-actions stack">
+      <button class="confirm-yes accent full-w" id="manualSyncBtn">⟳ Синхронизировать</button>
+      <button class="confirm-no bg-neutral full-w" id="manualPushBtn">⇧ Перезаписать сервер моими данными</button>
+      <button class="confirm-no bg-neutral full-w" id="manualPullBtn">⇩ Перезаписать мои данные серверными</button>
+      <button class="confirm-no full-w" id="manualSyncClose">Закрыть</button>
+    </div>
+    <div class="sync-help mt-6" id="manualSyncHint"></div>
+  </div>
+</div>
+
+<!-- Модалка: синхронизация и аккаунт (долгое нажатие на облачко) -->
+<div class="modal-overlay" id="syncOverlay">
+  <div class="modal-box wide">
+    <p class="modal-title">Синхронизация и аккаунт</p>
+    <div class="sync-status-line" id="syncStatusLine">Не настроено</div>
+    <div class="field-label">Аккаунт</div>
+    <div class="sync-status-line" id="syncAccountLine">—</div>
+    <div class="field-label">Режим синхронизации</div>
+    <label class="role-toggle">
+      <input type="checkbox" id="syncAutoToggle">
+      <span>Автоматическая: правки уходят на сервер сами (через 20 секунд после последней), при возврате в приложение подтягивается версия с сервера</span>
+    </label>
+    <div class="field-label">Резервная копия</div>
+    <div class="flex-row gap-8">
+      <button class="util flex-1" style="flex:1" id="backupSaveBtn">💾 Сохранить копию</button>
+      <button class="util flex-1" style="flex:1" id="backupLoadBtn">📂 Восстановить</button>
+    </div>
+    <input type="file" id="backupFileInput" accept=".json" class="hide-init">
+    <div class="modal-actions mt-6">
+      <button class="confirm-no bg-danger-soft" id="syncLogoutBtn">Выйти из аккаунта</button>
+      <button class="confirm-no" id="syncClose">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка: история сохранений (когда и что синхронизировалось) -->
+<div class="modal-overlay" id="syncHistoryOverlay">
+  <div class="modal-box wide">
+    <p class="modal-title">История сохранений</p>
+    <div class="sync-status-line mb-8">
+      Что и когда менялось: добавленные позиции, изменённое количество, обмен с сервером.
+      Правки, сделанные в пределах минуты, показываются одной записью. Хранится только на этом устройстве.
+    </div>
+    <div id="syncHistoryList" class="sync-history-list"></div>
+    <div class="modal-actions mt-10">
+      <button class="confirm-yes accent full-w" id="syncHistoryClose">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="../auth.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>

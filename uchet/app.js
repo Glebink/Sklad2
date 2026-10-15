@@ -512,7 +512,7 @@ document.addEventListener("click", function (e) {
 });
 document.addEventListener("pointerup", handleTabPress);   // страховка для тачскрина
 
-// Номер версии файлов — держим руками синхронно с CACHE_NAME в sw.js
+// Номер версии файлов — держим руками синхронно с CACHE_NAME в ../sw.js (общий для всего сервиса)
 // (при каждом поднятии кэша меняем и тут). Просто отображается в углу
 // шапки — чтобы проверить, долетело ли обновление до устройства.
 //
@@ -520,19 +520,19 @@ document.addEventListener("pointerup", handleTabPress);   // страховка 
 // Раньше был сплошной счётчик (…v98, v99, v100), с версии v1.0 — этот
 // формат. Версия нигде не сравнивается как число, только показывается и
 // пишется в резервную копию, так что смена формата ничего не ломает.
-const APP_VERSION = "v1.6";
+const APP_VERSION = "v2.0";
 {
   const el = document.getElementById("appVersionBadge");
   if (el) el.textContent = APP_VERSION;
 }
 
-const DATA_BY_DATE_KEY = "potreblenie_data_by_date_v3";
-const LAST_DATE_KEY = "potreblenie_last_date_v1";
-const WAREHOUSE_KEY = "potreblenie_warehouse_v1";
+const DATA_BY_DATE_KEY = "sklad2_data_by_date_v3";
+const LAST_DATE_KEY = "sklad2_last_date_v1";
+const WAREHOUSE_KEY = "sklad2_warehouse_v1";
 // Остатки второго склада («Бестужевская») — храним отдельно, в основной
 // список 1С они не подмешиваются. Нужны для будущего сравнения остатков
 // между складами.
-const BEST_STOCK_KEY = "potreblenie_best_stock_v1";
+const BEST_STOCK_KEY = "sklad2_best_stock_v1";
 function loadBestStock() {
   try {
     const raw = localStorage.getItem(BEST_STOCK_KEY);
@@ -545,7 +545,7 @@ function saveBestStock(data) {
 let bestStock = loadBestStock();
 
 // Список на перемещение — что нужно привезти со второго склада.
-const TRANSFER_KEY = "potreblenie_transfer_list_v1";
+const TRANSFER_KEY = "sklad2_transfer_list_v1";
 function loadTransferList() {
   try {
     const raw = localStorage.getItem(TRANSFER_KEY);
@@ -879,7 +879,6 @@ function renderSection(section) {
     const key = countKey(section, item);
     if (counts[key] === undefined) counts[key] = 0;
     const isChecked = !!checked[key];
-    const guest = isGuestMode();
     // Модель берём со склада по коду — показываем той же серой подписью
     // в углу, что и на вкладке «Склад».
     const whInfoForModel = item.code ? warehouseInfoFor(item.code) : null;
@@ -893,7 +892,7 @@ function renderSection(section) {
       <td class="name">
         ${escapeHtml(item.name)}
         ${modelLabel ? `<span class="ca-model-badge">${escapeHtml(modelLabel)}</span>` : ""}
-        ${guest ? "" : `<button class="ca-del-badge" data-section="${section}" data-index="${i}" title="Удалить строку">🗑</button>`}
+        <button class="ca-del-badge" data-section="${section}" data-index="${i}" title="Удалить строку">🗑</button>
       </td>
       <td class="check">
         <button class="chk-toggle${isChecked ? " on" : ""}" data-section="${section}" data-index="${i}" title="Отметить как учтено">${isChecked ? "✓" : ""}</button>
@@ -901,15 +900,14 @@ function renderSection(section) {
       <td class="count count-merged">
         <div class="count-tier count-tier-num">
           <input type="number" min="0" value="${counts[key]}" class="countInput"
-            data-section="${section}" data-index="${i}"${guest ? " readonly tabindex=\"-1\"" : ""}>
+            data-section="${section}" data-index="${i}">
         </div>
-        ${guest ? "" : `
         <div class="count-tier count-tier-plus">
           <button class="btn plus" data-section="${section}" data-index="${i}" title="Тап: +1. Зажать: указать количество">+</button>
         </div>
         <div class="count-tier count-tier-minus">
           <button class="btn minus" data-section="${section}" data-index="${i}" title="Тап: −1. Зажать: указать количество">–</button>
-        </div>`}
+        </div>
       </td>
     `;
     tbody.appendChild(tr);
@@ -1650,7 +1648,7 @@ let printLabelRowSeq = 0;
 /* Черновик формы печати: набранные позиции сохраняются на устройстве,
    чтобы можно было закрыть окно (или выйти из приложения) и вернуться к
    тому же списку. Очищается только после самой печати. */
-const PRINT_DRAFT_KEY = "potreblenie_print_draft_v1";
+const PRINT_DRAFT_KEY = "sklad2_print_draft_v1";
 function savePrintDraft() {
   const rows = Array.from(document.querySelectorAll("#printLabelRows .print-label-row")).map((r) => ({
     name: r.querySelector(".plr-name").value,
@@ -1890,7 +1888,7 @@ function runConsumptionExport() {
 /* ==================== Фильтр склада по модели ====================
    Всё / YGW 5.0 / YGW 4.0 / 9Bot. Только просмотр: данные не меняются,
    синхронизация не запускается, выбор запоминается на устройстве. */
-const WH_FILTER_KEY = "potreblenie_wh_filter_v1";
+const WH_FILTER_KEY = "sklad2_wh_filter_v1";
 let whFilterModel = (function () {
   try { return localStorage.getItem(WH_FILTER_KEY) || "all"; } catch (e) { return "all"; }
 })();
@@ -2407,7 +2405,7 @@ function updateSortArrows(table, section) {
    затирали результат — со стороны это выглядело как «сортировка не
    срабатывает». Поэтому выбор храним отдельно и переприменяем после
    каждого получения данных (см. reapplySavedSort). */
-const SORT_STATE_KEY = "potreblenie_sort_state_v1";
+const SORT_STATE_KEY = "sklad2_sort_state_v1";
 function saveSortState() {
   try { localStorage.setItem(SORT_STATE_KEY, JSON.stringify(sortState)); } catch (e) {}
 }
@@ -2509,7 +2507,7 @@ let currentTab = "consumption";
 function updateAddPanelVisibility() {
   const panel = document.getElementById("addPanelConsumption");
   if (!panel) return;
-  panel.style.display = (currentTab === "consumption" && !isGuestMode()) ? "flex" : "none";
+  panel.style.display = currentTab === "consumption" ? "flex" : "none";
   syncStickyTopHeight();
 }
 
@@ -3327,8 +3325,8 @@ document.getElementById("whImportRun").addEventListener("click", () => {
 
 /* ==================== Резервная копия ====================
    Выгружает все данные приложения в один файл и восстанавливает из него.
-   Токен GitHub и пароль настроек НЕ выгружаются — файл можно спокойно
-   хранить в почте или облаке. */
+   Файл содержит только данные приложения (без логина и пароля) — его можно
+   спокойно хранить в почте или облаке. */
 const BACKUP_KEYS = [
   "potreblenie_data_by_date_v3",
   "potreblenie_warehouse_v1",
@@ -3338,10 +3336,15 @@ const BACKUP_KEYS = [
   "potreblenie_sort_state_v1",
   "potreblenie_sync_history_v1"
 ];
+// Имена ключей в файле копии остаются прежними (potreblenie_*) — так копии
+// взаимозаменяемы со старым складом. В самом браузере ключи у склада2 свои
+// (sklad2_*): склад и склад2 лежат на одном адресе github.io и иначе делили
+// бы одно хранилище.
+function bkToLocal(k) { return k.replace(/^potreblenie_/, "sklad2_"); }
 function makeBackup() {
   const data = {};
   BACKUP_KEYS.forEach((k) => {
-    const v = localStorage.getItem(k);
+    const v = localStorage.getItem(bkToLocal(k));
     if (v !== null) data[k] = v;
   });
   return { app: "sklad", version: APP_VERSION, savedAt: new Date().toISOString(), data };
@@ -3371,7 +3374,7 @@ async function restoreBackup(file) {
   if (!confirm(`Восстановить данные из копии от ${when}?\n\nВСЕ текущие данные на этом устройстве будут заменены.`)) return;
   Object.keys(backup.data).forEach((k) => {
     if (BACKUP_KEYS.indexOf(k) === -1) return;   // чужие ключи не трогаем
-    try { localStorage.setItem(k, backup.data[k]); } catch (e) {}
+    try { localStorage.setItem(bkToLocal(k), backup.data[k]); } catch (e) {}
   });
   alert("Данные восстановлены. Приложение перезагрузится.");
   location.reload();
@@ -3474,7 +3477,7 @@ whTransferAction.addEventListener("click", () => {
 
 /* ==================== ВКЛАДКА 1C: справочник номенклатуры ====================
    Только код + наименование. Отдельное хранилище, не связано со складом. */
-const ONEC_KEY = "potreblenie_onec_v1";
+const ONEC_KEY = "sklad2_onec_v1";
 
 function loadOneC() {
   try {
@@ -3806,7 +3809,7 @@ function jumpToWarehouse(code, fromSection, fromIndex) {
    выбор: всё / детали / расходники / по остатку / временные коды AB.
    Фильтр только для просмотра: данные не меняются, синхронизация не
    запускается. Выбор запоминается на устройстве. */
-const OC_FILTER_KEY = "potreblenie_oc_filter_v1";
+const OC_FILTER_KEY = "sklad2_oc_filter_v1";
 let ocFilter = loadOcFilter();
 function loadOcFilter() {
   try {
@@ -4192,10 +4195,10 @@ function buildOneCExport(section, mode) {
   if (rows.length === 0) return "";
   const body = rows.map(({ item, info, diff }) => {
     const d = diff === null ? "—" : (diff > 0 ? "+" + diff : String(diff));
-    const color = diff === null ? "#888" : (diff > 0 ? "#16a34a" : (diff < 0 ? "#c62828" : "#888"));
+    const color = diff === null ? "var(--muted)" : (diff > 0 ? "var(--ok-ink)" : (diff < 0 ? "var(--bad-ink)" : "var(--muted)"));
     return `<tr>
       <td>${escapeHtml(item.code || "—")}</td>
-      <td>${escapeHtml(item.name)}${info ? `<br><span style="color:#0f766e;font-size:11px">${escapeHtml(info.name)}</span>` : ""}</td>
+      <td>${escapeHtml(item.name)}${info ? `<br><span style="color:var(--ok-ink);font-size:11px">${escapeHtml(info.name)}</span>` : ""}</td>
       <td style="text-align:center">${info ? info.qty : "—"}</td>
       <td style="text-align:center">${item.qty || 0}</td>
       <td style="text-align:center; color:${color}; font-weight:700">${d}</td>
@@ -4488,7 +4491,7 @@ function buildWarehouseExport(section) {
     const oc = oneCInfoFor(item.code);
     return `<tr>
       <td>${escapeHtml(item.code || "—")}</td>
-      <td>${escapeHtml(item.name)}${oc ? `<br><span style="color:#0f766e;font-size:11px">${escapeHtml(oc.name)}</span>` : ""}</td>
+      <td>${escapeHtml(item.name)}${oc ? `<br><span style="color:var(--ok-ink);font-size:11px">${escapeHtml(oc.name)}</span>` : ""}</td>
       <td style="text-align:center">${item.qty || 0}</td>
       <td style="text-align:center">${oc ? oc.qty : "—"}</td>
     </tr>`;
@@ -4675,91 +4678,55 @@ function updateOneCTotals(section) {
   setTotal(`total-oc-${section}-whqty`, wh);
 }
 
-/* ==================== Синхронизация через GitHub Gist ====================
-   Данные (dataByDate, warehouse, onec, currentDate) хранятся дополнительно
-   в приватном Gist пользователя. При изменениях — отправляем туда (с
-   задержкой, чтобы не слать запрос на каждое нажатие). При открытии —
-   подтягиваем актуальную версию, чтобы на любом устройстве было видно
-   одно и то же. Правило при конфликте — побеждает последнее сохранение
-   (кто последний нажал/подождал синхронизации, тот и главный). */
-const SYNC_TOKEN_KEY = "potreblenie_sync_token_v1";
-const SYNC_GIST_ID_KEY = "potreblenie_sync_gist_id_v1";
-// Роль устройства: "главное" всегда побеждает при конфликте и не спрашивает
-// подтверждения; "подчинённое" при конфликте всегда молча берёт версию с
-// сервера и вдобавок сам периодически проверяет сервер, пока открыто.
-const SYNC_PRIMARY_KEY = "potreblenie_sync_primary_v1";
-/* ==================== Заморозка синхронизации ====================
-   Синхронизация с сервером приостановлена: приложение работает полностью
-   локально, и НИЧЕГО не может перетереть то, что вы ввели.
+/* ==================== Синхронизация через Supabase ====================
+   Данные лежат в таблице sklad_kv: одна строка на ключ (учёт по датам, склад,
+   1С, список перемещения, остатки Бестужевской). Локальная копия в localStorage
+   остаётся основной — приложение работает и без связи.
 
-   Зачем: загрузка с сервера (pullFromGist) применяла присланные данные
-   безусловно, без сверки времени изменения. GitHub Gist умеет ответить на
-   чтение сразу после записи ещё СТАРЫМ содержимым (задержка репликации), и
-   тогда только что добавленная позиция затиралась версией, где её ещё нет.
-   В истории сохранений это выглядело как «+ позиция» (отправлено), а следом
-   «− позиция» (загружено с сервера) — вещь пропадала «будто и не добавлял».
+   Как не потерять данные. Для каждого ключа запоминаем «метку» последней
+   синхронизации: время изменения строки на сервере (updated_at) и хэш значения.
+     • на сервере не менялось, у нас менялось — отправляем (запись только если
+       updated_at строки всё ещё прежний, иначе это гонка и мы не затираем);
+     • на сервере менялось, у нас нет — забираем;
+     • менялось и там, и тут — «расхождение»: ничего не трогаем и спрашиваем
+       (тап по облачку: оставить мои данные или серверные);
+     • совпадают — просто запоминаем метку.
+   Сервер к тому же хранит последние 20 версий каждого ключа (sklad_kv_log). */
+const SYNC_KEYS = BACKUP_KEYS.slice(0, 5);   // в бэкапе они названы по-старому (potreblenie_*)
+const SYNC_FIELD = {
+  potreblenie_data_by_date_v3: "dataByDate",
+  potreblenie_warehouse_v1: "warehouse",
+  potreblenie_onec_v1: "onec",
+  potreblenie_transfer_list_v1: "transferList",
+  potreblenie_best_stock_v1: "bestStock"
+};
+const SYNC_LABEL = {
+  potreblenie_data_by_date_v3: "Учёт",
+  potreblenie_warehouse_v1: "Склад",
+  potreblenie_onec_v1: "1С",
+  potreblenie_transfer_list_v1: "Список перемещения",
+  potreblenie_best_stock_v1: "Остатки Бестужевской"
+};
+const SYNC_META_KEY = "sklad2_sync_meta_v1";     // { ключ: { at: updated_at сервера, h: хэш значения } }
+const SYNC_AUTO_KEY = "sklad2_sync_auto_v1";     // "0" — автосинхронизация выключена
+// Ждём 20 секунд ПОСЛЕ ПОСЛЕДНЕГО действия, прежде чем отправлять правки (debounce).
+// При сворачивании вкладки отправка идёт сразу (см. flushSyncNow).
+const SYNC_DEBOUNCE_MS = 20000;
+const LOCAL_UPDATED_AT_KEY = "sklad2_local_updated_v1";
+const SYNC_LAST_SYNCED_AT_KEY = "sklad2_last_synced_v1";
 
-   Пока флаг включён, автоматических отправок и загрузок нет вообще: ни по
-   таймеру, ни при возврате в приложение, ни при появлении сети. Локальные
-   данные как писались в localStorage сразу при каждом изменении, так и
-   пишутся — на это заморозка не влияет.
-
-   Снимается переключателем в настройках синхронизации (долгое нажатие на
-   облачко). По умолчанию — заморожено. */
-const SYNC_FROZEN_KEY = "potreblenie_sync_frozen_v1";
-// true — приложение САМО ничего не отправляет и не загружает (режим по умолчанию).
-// Обмен идёт только по нажатию кнопки. Ключ остался прежним, чтобы у уже
-// настроенных устройств ничего не переключилось при обновлении.
-function isAutoSyncOff() { return localStorage.getItem(SYNC_FROZEN_KEY) !== "0"; }
+function isAutoSyncOff() { return localStorage.getItem(SYNC_AUTO_KEY) === "0"; }
 function setAutoSyncOff(off) {
-  try { localStorage.setItem(SYNC_FROZEN_KEY, off ? "1" : "0"); } catch (e) {}
+  try { localStorage.setItem(SYNC_AUTO_KEY, off ? "0" : "1"); } catch (e) {}
 }
-// Автоматика разрешена: и настроено, и режим не ручной. Этим гейтом закрыты
-// ВСЕ автоматические пути — таймер, возврат в приложение, появление сети,
-// опрос сервера, старт приложения.
+// Автоматика разрешена: выполнен вход и режим не ручной.
 function isAutoSyncActive() { return isSyncConfigured() && !isAutoSyncOff(); }
-function isPrimaryDevice() { return localStorage.getItem(SYNC_PRIMARY_KEY) === "1"; }
-const SYNC_SETTINGS_PW_KEY = "potreblenie_sync_settings_pw_v1";
-function getSyncPassword() { return localStorage.getItem(SYNC_SETTINGS_PW_KEY) || ""; }
-function setSyncPassword(pw) { localStorage.setItem(SYNC_SETTINGS_PW_KEY, pw); }
-function changeSyncPassword() {
-  const current = getSyncPassword();
-  if (current) {
-    const entered = prompt("Текущий пароль:");
-    if (entered === null) return;
-    if (entered !== current) { alert("Неверный пароль."); return; }
-  }
-  const next = prompt(current ? "Новый пароль:" : "Задайте пароль для настроек синхронизации:");
-  if (next === null) return;
-  if (!next.trim()) { alert("Пароль не может быть пустым."); return; }
-  setSyncPassword(next.trim());
-  alert("Пароль сохранён.");
-}
-function verifySyncPassword() {
-  const stored = getSyncPassword();
-  if (!stored) return true; // пароль ещё не задан — доступ без проверки
-  const entered = prompt("Пароль настроек синхронизации:");
-  if (entered === null) return false;
-  if (entered !== stored) { alert("Неверный пароль."); return false; }
-  return true;
-}
-function openSyncModalGated() {
-  if (!verifySyncPassword()) return;
-  openSyncModal();
-}
-/* ==================== Ручной обмен с сервером ====================
-   Приложение само на сервер не ходит. Обмен — только по кнопке:
-     • главное устройство выгружает готовый список;
-     • второе (режим просмотра) загружает последний выгруженный.
-   Выгрузка со второго устройства намеренно недоступна — так оно не сможет
-   затереть на сервере список, собранный на главном. */
+
+/* ==================== Окно обмена с сервером ==================== */
 function manualModeStatusText() {
-  if (!isSyncConfigured()) {
-    return "Не настроено. Долгое нажатие на облачко — настройки синхронизации.";
-  }
-  return isPrimaryDevice()
-    ? "Главное устройство. Тап по облачку — выгрузить список на сервер."
-    : "Режим просмотра. Тап по облачку — загрузить список с сервера.";
+  return isAutoSyncOff()
+    ? "Автосинхронизация выключена. Тап по облачку — обмен с сервером."
+    : "Тап по облачку — обмен с сервером.";
 }
 function formatSyncMoment(ts) {
   if (!ts) return "—";
@@ -4768,33 +4735,20 @@ function formatSyncMoment(ts) {
   return pad(d.getDate()) + "." + pad(d.getMonth() + 1) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes());
 }
 function openManualSync() {
-  const primary = isPrimaryDevice();
-  document.getElementById("manualSyncRole").textContent =
-    primary ? "Это устройство: главное" : "Это устройство: второе (только просмотр)";
-  // Сбрасываем состояние прошлого обмена (текст ошибки, блокировку кнопок).
   const info = document.getElementById("manualSyncInfo");
   info.classList.remove("err");
   info.textContent =
     "Последний обмен с сервером: " + formatSyncMoment(getLastSyncedAt())
-    + (primary && isDirty() ? " · есть невыгруженные правки" : "");
+    + (isDirty() ? " · есть неотправленные правки" : "");
   manualSyncBusy(false);
-  // Со второго устройства выгружать нельзя — прячем кнопку целиком.
-  document.getElementById("manualPushBtn").hidden = !primary;
-  document.getElementById("manualSyncHint").textContent = primary
-    ? "Выгрузка заменяет список на сервере текущим. Загрузка заменит данные на этом устройстве версией с сервера."
-    : "Загрузка заменит данные на этом устройстве последним списком, выгруженным с главного устройства.";
+  document.getElementById("manualSyncHint").textContent =
+    "«Синхронизировать» объединяет всё без потерь и останавливается, если данные расходятся. "
+    + "Перезапись нужна, чтобы при расхождении выбрать одну из версий.";
   openModal("manualSyncOverlay");
 }
-function quickSyncAction() {
-  if (!isSyncConfigured()) { openSyncModalGated(); return; }
-  openManualSync();
-}
-
-/* Результат обмена показываем ПРЯМО В ОКНЕ. Раньше окно закрывалось сразу, и
-   при ошибке оставался только восклицательный знак на облачке — причина была
-   не видна вообще. */
+function quickSyncAction() { openManualSync(); }
 function manualSyncBusy(on) {
-  ["manualPushBtn", "manualPullBtn", "manualSyncClose"].forEach((id) => {
+  ["manualSyncBtn", "manualPushBtn", "manualPullBtn", "manualSyncClose"].forEach((id) => {
     const b = document.getElementById(id);
     if (b) b.disabled = on;
   });
@@ -4805,99 +4759,37 @@ function showManualResult(text, isErr) {
   el.textContent = text;
   el.classList.toggle("err", !!isErr);
 }
-// К тексту ошибки добавляем ID Gist — по нему сразу видно, смотрят ли оба
-// устройства в один и тот же список.
-function manualErrorText(fallback) {
-  const { gistId } = getSyncConfig();
-  return (lastSyncErrorText || fallback) + (gistId ? "\nGist: " + gistId : "\nID Gist не указан");
-}
-
-async function manualPush() {
+async function manualRun(policy, waitText) {
   manualSyncBusy(true);
-  showManualResult("Выгружаем список на сервер…", false);
-  setSyncStatus("syncing", "Выгружаем список на сервер…");
-  const ok = await pushToGistNow(true);
+  showManualResult(waitText, false);
+  const r = await syncNow(policy, { manual: true });
   manualSyncBusy(false);
-  if (ok) {
-    showManualResult("Готово — список выгружен на сервер.", false);
-    setTimeout(() => closeModal("manualSyncOverlay"), 1400);
-  } else {
-    showManualResult(manualErrorText("Не удалось выгрузить"), true);
-  }
+  showManualResult(r.text, !r.ok);
+  if (r.ok) setTimeout(() => closeModal("manualSyncOverlay"), 1400);
 }
-async function manualPull() {
-  // Загрузка заменяет данные устройства. Если здесь есть свои правки, ещё не
-  // ушедшие на сервер, — предупреждаем, иначе они пропадут молча.
-  if (isDirty() && !confirm("На этом устройстве есть правки, которых нет на сервере.\n\n"
-      + "Загрузка заменит их версией с сервера. Продолжить?")) return;
-  manualSyncBusy(true);
-  showManualResult("Загружаем список с сервера…", false);
-  setSyncStatus("syncing", "Загружаем список с сервера…");
-  const ok = await pullFromGist(false, false, true);
-  manualSyncBusy(false);
-  if (ok) {
-    showManualResult("Готово — список загружен с сервера.", false);
-    setTimeout(() => closeModal("manualSyncOverlay"), 1400);
-    return;
-  }
-  showManualResult(manualErrorText("Не удалось загрузить"), true);
-  // Отказ мог быть защитой от устаревшего ответа сервера — предлагаем настоять.
-  const { token, gistId } = getSyncConfig();
-  if (!token || !gistId) return;
-  let remote = null;
-  try {  // ещё раз читаем сервер — понять, был ли это отказ защиты
-    const data = await githubGistRequest("GET", "https://api.github.com/gists/" + gistId, token);
-    const file = data.files && data.files[SYNC_FILENAME];
-    remote = (file && file.content) ? JSON.parse(file.content) : null;
-  } catch (e) { return; }
-  const verdict = shouldApplyRemote(remote);
-  if (verdict.apply || verdict.same) return;
-  if (confirm("Версия на сервере " + verdict.reason
-      + ".\n\nВсё равно загрузить её и ЗАМЕНИТЬ данные на этом устройстве?")) {
-    manualSyncBusy(true);
-    const forced = await pullFromGist(false, true, true);
-    manualSyncBusy(false);
-    if (forced) {
-      showManualResult("Готово — список загружен с сервера.", false);
-      setTimeout(() => closeModal("manualSyncOverlay"), 1400);
-    } else {
-      showManualResult(manualErrorText("Не удалось загрузить"), true);
-    }
-  }
+function manualSync() { return manualRun("safe", "Обмениваемся с сервером…"); }
+function manualPush() {
+  if (!confirm("Данные на сервере будут ЗАМЕНЕНЫ данными этого устройства.\n\nПродолжить?")) return;
+  return manualRun("mine", "Выгружаем данные на сервер…");
 }
+function manualPull() {
+  if (!confirm("Данные на этом устройстве будут ЗАМЕНЕНЫ данными с сервера"
+      + (isDirty() ? " (в том числе неотправленные правки пропадут)" : "") + ".\n\nПродолжить?")) return;
+  return manualRun("server", "Загружаем данные с сервера…");
+}
+document.getElementById("manualSyncBtn").addEventListener("click", manualSync);
 document.getElementById("manualPushBtn").addEventListener("click", manualPush);
 document.getElementById("manualPullBtn").addEventListener("click", manualPull);
 document.getElementById("manualSyncClose").addEventListener("click", () => closeModal("manualSyncOverlay"));
 document.getElementById("manualSyncOverlay").addEventListener("click", (e) => {
   if (e.target.id === "manualSyncOverlay") closeModal("manualSyncOverlay");
 });
-// Гостевой режим: синхронизация настроена, но это устройство не главное —
-// на вкладке «Учёт» скрываем +/- и добавление, оставляем только список с поиском.
-function isGuestMode() { return isSyncConfigured() && !isPrimaryDevice(); }
-function updateGuestModeUI() {
+function refreshAfterSyncChange() {
   updateAddPanelVisibility();
   renderAll();
 }
-const SECONDARY_POLL_MS = 30000; // как часто подчинённое устройство само проверяет сервер
-let secondaryPollTimer = null;
-const SYNC_FILENAME = "sklad-sync-data.json";
-// История сохранений — отдельный файл в том же Gist (Gist поддерживает
-// несколько файлов). Так она переживает переустановку приложения и очистку
-// браузера, и видна на всех устройствах одинаково.
-const SYNC_HISTORY_FILENAME = "sklad-sync-history.json";
-// Ждём 60 секунд ПОСЛЕ ПОСЛЕДНЕГО действия, прежде чем отправлять данные на
-// сервер (debounce, не троттлинг): если действия идут одно за другим быстрее,
-// чем раз в минуту, отправка откладывается до паузы. Не зависит от того,
-// остаётесь вы в приложении или закрываете его — при уходе (см. flushSyncNow)
-// несохранённые правки всё равно отправляются немедленно.
-const SYNC_DEBOUNCE_MS = 20000;
-// "Отметки времени", по которым мы понимаем, кто последний менял данные —
-// это устройство или сервер (см. подробное объяснение в конце файла / в чате).
-const LOCAL_UPDATED_AT_KEY = "potreblenie_local_updated_v1";
-const SYNC_LAST_SYNCED_AT_KEY = "potreblenie_last_synced_v1";
 
 let syncTimer = null;
-let syncInFlight = false;
 let syncQueued = false; // изменение пришло, пока предыдущая отправка ещё была в процессе — досылаем её сразу после
 let applyingRemote = false;
 
@@ -4918,7 +4810,8 @@ function markSyncedTo(updatedAt, dataSnapshot, kind) {
   const t = updatedAt || Date.now();
   try {
     localStorage.setItem(SYNC_LAST_SYNCED_AT_KEY, String(t));
-    localStorage.setItem(LOCAL_UPDATED_AT_KEY, String(t));
+    // Правка, сделанная во время обмена, новее t — её «грязной» отметки не сбрасываем.
+    if (getLocalUpdatedAt() <= t) localStorage.setItem(LOCAL_UPDATED_AT_KEY, String(t));
   } catch (e) {}
   if (dataSnapshot) {
     const firstSync = !loadSyncLastState();
@@ -4941,15 +4834,9 @@ function updateDirtyIndicator() {
   btn.classList.toggle("dirty", isDirty());
 }
 
-function getSyncConfig() {
-  return {
-    token: localStorage.getItem(SYNC_TOKEN_KEY) || "",
-    gistId: localStorage.getItem(SYNC_GIST_ID_KEY) || ""
-  };
-}
-function isSyncConfigured() {
-  return !!getSyncConfig().token;
-}
+// Вход выполнен (или сессия сохранена на устройстве) — обмен с сервером возможен.
+let syncUserOk = false;
+function isSyncConfigured() { return syncUserOk; }
 
 // Текст последней ошибки обмена. Нужен, чтобы окно обмена показало ПРИЧИНУ,
 // а не только восклицательный знак на облачке.
@@ -4981,14 +4868,14 @@ function buildSyncPayload() {
 }
 
 /* ==================== История сохранений ====================
-   Отдельный локальный журнал (не уходит в Gist): при каждой успешной
+   Отдельный локальный журнал (не уходит на сервер): при каждой успешной
    отправке на сервер или загрузке с сервера сравниваем новые данные с
    теми, что были на момент предыдущей синхронизации, и запоминаем время
    + краткое описание того, что изменилось (какие позиции добавлены,
    удалены, у каких изменилось количество). Хранится только на этом
    устройстве и нужна, чтобы можно было понять, что и когда сохранилось. */
-const SYNC_LAST_STATE_KEY = "potreblenie_sync_laststate_v1";
-const SYNC_HISTORY_KEY = "potreblenie_sync_history_v1";
+const SYNC_LAST_STATE_KEY = "sklad2_sync_laststate_v1";
+const SYNC_HISTORY_KEY = "sklad2_sync_history_v1";
 const SYNC_HISTORY_LIMIT = 40;
 
 function loadSyncLastState() {
@@ -5043,29 +4930,6 @@ function logSyncFailure(kind, dataSnapshot, errorMessage) {
   lines.push("Ошибка: " + errorMessage);
   addSyncHistoryEntry(kind, lines, "failed");
 }
-// Объединяет историю, полученную с сервера (от другого устройства), с тем,
-// что уже есть локально. Записи считаются одинаковыми по паре время+тип —
-// этого достаточно, коллизии между разными устройствами практически
-// невозможны (миллисекундная точность).
-function mergeRemoteHistory(historyFileContent) {
-  if (!historyFileContent) return;
-  let remoteList;
-  try { remoteList = JSON.parse(historyFileContent); } catch (e) { return; }
-  if (!Array.isArray(remoteList) || remoteList.length === 0) return;
-  const seen = new Set(syncHistory.map((e) => e.time + "|" + e.kind));
-  let added = false;
-  remoteList.forEach((entry) => {
-    const sig = entry.time + "|" + entry.kind;
-    if (!seen.has(sig)) { syncHistory.push(entry); seen.add(sig); added = true; }
-  });
-  if (added) {
-    syncHistory.sort((a, b) => b.time - a.time);
-    if (syncHistory.length > SYNC_HISTORY_LIMIT) syncHistory.length = SYNC_HISTORY_LIMIT;
-    saveSyncHistoryList();
-    renderSyncHistory();
-  }
-}
-
 // Ключ позиции для сравнения "было/стало" — так же, как countKey: по коду,
 // если он есть, иначе по названию.
 function itemDiffKey(item) {
@@ -5201,37 +5065,6 @@ function renderSyncHistory() {
   }).join("");
 }
 
-/* ==================== Сверка версий перед применением данных с сервера ====
-   ПРИЧИНА ПРОПАЖ. Раньше присланные сервером данные применялись безусловно.
-   GitHub Gist может ответить на чтение сразу после записи ещё СТАРЫМ
-   содержимым (задержка репликации между репликами API). Тогда только что
-   добавленная позиция затиралась версией, где её ещё нет:
-       ⇧ сохранено на сервер   + Рамка номера задняя
-       ⇩ загружено с сервера   − Рамка номера задняя
-   Опорная точка — updatedAt последней версии, к которой мы точно
-   синхронизировались (её мы либо сами отправили, либо приняли с сервера).
-   Если сервер отдаёт updatedAt СТАРШЕ этой отметки — это заведомо
-   устаревший ответ, и применять его нельзя. */
-function shouldApplyRemote(remotePayload) {
-  if (!remotePayload || typeof remotePayload !== "object") {
-    return { apply: false, same: false, reason: "сервер не прислал данные приложения" };
-  }
-  const remoteAt = Number(remotePayload.updatedAt) || 0;
-  const lastSynced = getLastSyncedAt();
-  if (!lastSynced) return { apply: true, same: false, reason: "" };   // ещё ни разу не синхронизировались
-  if (!remoteAt) {
-    return { apply: false, same: false, reason: "у данных с сервера нет отметки времени" };
-  }
-  if (remoteAt === lastSynced) {
-    return { apply: false, same: true, reason: "на сервере та же версия, что уже есть здесь" };
-  }
-  if (remoteAt < lastSynced) {
-    return { apply: false, same: false,
-             reason: "сервер вернул версию старше той, что уже сохранена здесь — похоже на устаревший ответ" };
-  }
-  return { apply: true, same: false, reason: "" };
-}
-
 /* ==================== Журнал локальных сохранений ====================
    В историю попадают не только обмены с сервером, но и обычная работа на
    устройстве: добавили позицию, изменили количество, поправили склад/1С.
@@ -5249,7 +5082,7 @@ function shouldApplyRemote(remotePayload) {
    Сортировка сюда не попадает — она сохраняется мимо scheduleSync(). */
 const LOCAL_LOG_GROUP_MS = 60000;      // окно группировки — одна минута
 const LOCAL_LOG_DEBOUNCE_MS = 1200;    // подряд идущие тапы сводим в одну запись
-const LOCAL_LOG_BASELINE_KEY = "potreblenie_local_log_baseline_v1";
+const LOCAL_LOG_BASELINE_KEY = "sklad2_local_log_baseline_v1";
 let localLogTimer = null;
 let localLogLastState = null;
 
@@ -5320,6 +5153,14 @@ function applySyncPayload(payload) {
       onec = payload.onec;
       try { localStorage.setItem(ONEC_KEY, JSON.stringify(onec)); } catch (e) {}
     }
+    if (Array.isArray(payload.transferList)) {
+      transferList = payload.transferList;
+      try { localStorage.setItem(TRANSFER_KEY, JSON.stringify(transferList)); } catch (e) {}
+    }
+    if (payload.bestStock && Array.isArray(payload.bestStock.rows)) {
+      bestStock = payload.bestStock;
+      saveBestStock(bestStock);
+    }
     if (payload.currentDate) {
       currentDate = payload.currentDate;
       try { localStorage.setItem(LAST_DATE_KEY, currentDate); } catch (e) {}
@@ -5350,205 +5191,182 @@ function applySyncPayload(payload) {
     renderAll();
     renderWarehouseAll();
     renderOneCAll();
+    try { renderTransferList(); } catch (e) {}
   } finally {
     applyingRemote = false;
   }
 }
 
-// Раньше при сетевой ошибке (телефон на секунду потерял связь) синхронизация
-// сразу сдавалась и показывала «Не удалось сохранить/загрузить». Теперь один
-// раз тихо повторяем запрос после паузы — но только саму сетевую ошибку
-// (fetch бросает TypeError, если вообще не достучался до сервера); реальный
-// ответ сервера с кодом ошибки (401/404/…) не ретраим — повтор всё равно не
-// поможет.
-async function githubGistRequest(method, url, token, body, _retried) {
-  let res;
-  try {
-    res = await fetch(url, {
-      method,
-      headers: {
-        "Authorization": "token " + token,
-        "Accept": "application/vnd.github+json",
-        "Content-Type": "application/json"
-      },
-      body: body ? JSON.stringify(body) : undefined
-    });
-  } catch (networkErr) {
-    if (!_retried) {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      return githubGistRequest(method, url, token, body, true);
-    }
-    throw new Error("Нет соединения с сервером");
+/* ==================== Обмен с Supabase ==================== */
+function loadSyncMeta() {
+  try { const m = JSON.parse(localStorage.getItem(SYNC_META_KEY)); return m && typeof m === "object" ? m : {}; }
+  catch (e) { return {}; }
+}
+function saveSyncMeta(m) {
+  try { localStorage.setItem(SYNC_META_KEY, JSON.stringify(m)); } catch (e) {}
+}
+// Одинаковый текст для одинаковых данных независимо от порядка ключей
+// (Postgres хранит jsonb со своим порядком ключей) — по нему считаем хэш.
+function canonJson(v) {
+  if (Array.isArray(v)) return "[" + v.map(canonJson).join(",") + "]";
+  if (v && typeof v === "object") {
+    return "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + canonJson(v[k])).join(",") + "}";
   }
-  if (!res.ok) {
-    // Показываем и то, что ответил сам GitHub: без этого «Неверный токен»
-    // выглядит как поломка приложения, хотя чаще всего у токена просто
-    // истёк срок (GitHub выдаёт их на 30/60/90 дней) или его отозвали.
-    let detail = "";
-    try {
-      const body = await res.json();
-      if (body && body.message) detail = String(body.message);
-    } catch (e) { /* тело бывает пустым или не JSON — не страшно */ }
-    let msg = "Ошибка " + res.status;
-    if (res.status === 401) {
-      msg = "GitHub не принял токен. Обычно это значит, что у токена истёк срок "
-          + "или его отозвали. Создайте новый токен с правом gist и впишите его "
-          + "в настройках облака (данные на устройстве при этом никуда не денутся)";
-    }
-    if (res.status === 403) msg = "GitHub отказал в доступе: у токена нет права gist либо превышен лимит запросов";
-    if (res.status === 404) msg = "Gist не найден: проверьте ID, либо у токена нет права gist";
-    if (detail) msg += "\nОтвет GitHub: " + detail;
-    throw new Error(msg);
+  return JSON.stringify(v);
+}
+async function hashValue(v) {
+  const s = canonJson(v);
+  if (window.crypto && crypto.subtle && window.TextEncoder) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+    return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
   }
-  return res.json();
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+  return "d" + h.toString(16) + "_" + s.length;
+}
+function readLocalValue(rk) {
+  const raw = localStorage.getItem(bkToLocal(rk));
+  if (raw === null) return undefined;
+  try { return JSON.parse(raw); } catch (e) { return undefined; }
+}
+// Присланное с сервера значение должно быть нужной формы — иначе не применяем.
+function isValidRemote(rk, v) {
+  if (rk === "potreblenie_data_by_date_v3") return !!v && typeof v === "object" && !Array.isArray(v);
+  if (rk === "potreblenie_warehouse_v1" || rk === "potreblenie_onec_v1") {
+    return !!v && Array.isArray(v.parts) && Array.isArray(v.consumables);
+  }
+  if (rk === "potreblenie_transfer_list_v1") return Array.isArray(v);
+  if (rk === "potreblenie_best_stock_v1") return !!v && Array.isArray(v.rows);
+  return false;
+}
+function syncErrText(e) {
+  const m = String((e && e.message) || e || "");
+  if (/failed to fetch|network|load failed/i.test(m)) return "Нет связи с сервером";
+  if (e && (e.status === 401 || /jwt|expired/i.test(m))) return "Сессия закончилась. Войдите снова";
+  if (e && (e.code === "42501" || e.status === 403)) return "Нет прав на запись";
+  return m || "неизвестная ошибка";
 }
 
-async function pullFromGist(silent, force, manual) {
-  // Автоматически — только когда автоматика разрешена. Вручную (manual) —
-  // всегда: это осознанное нажатие кнопки пользователем.
-  if (!manual && !isAutoSyncActive()) return false;
-  const { token, gistId } = getSyncConfig();
-  if (!token || !gistId) {
-    // Раньше здесь был молчаливый отказ: на втором устройстве с незаполненным
-    // ID Gist кнопка просто «ничего не делала».
-    if (manual) setSyncStatus("err", !token ? "Не указан GitHub-токен"
-                                            : "Не указан ID Gist — впишите тот же ID, что на главном устройстве");
-    return false;
+// policy: "safe" — без потерь, расхождения не трогаем; "mine" — данные этого
+// устройства главнее; "server" — данные сервера главнее.
+async function runSync(policy) {
+  const sbc = Auth.sb;
+  const meta = loadSyncMeta();
+  const res = { pushed: [], pulled: [], conflicts: [], skipped: [] };
+
+  // 1) что есть на сервере (только ключи и время)
+  const head = await sbc.from("sklad_kv").select("key, updated_at").in("key", SYNC_KEYS);
+  if (head.error) throw head.error;
+  const remoteAt = {};
+  (head.data || []).forEach((r) => { remoteAt[r.key] = r.updated_at; });
+
+  // 2) что есть у нас
+  const local = {};
+  for (const rk of SYNC_KEYS) {
+    const v = readLocalValue(rk);
+    if (v !== undefined) local[rk] = { v, h: await hashValue(v) };
   }
-  if (!silent) setSyncStatus("syncing", "Загрузка с сервера…");
-  try {
-    const data = await githubGistRequest("GET", "https://api.github.com/gists/" + gistId, token);
-    mergeRemoteHistory(data.files && data.files[SYNC_HISTORY_FILENAME] && data.files[SYNC_HISTORY_FILENAME].content);
-    const file = data.files && data.files[SYNC_FILENAME];
-    if (!file || !file.content) {
-      setSyncStatus("err", "В Gist пока нет данных приложения");
-      return false;
-    }
-    const payload = JSON.parse(file.content);
-    const verdict = shouldApplyRemote(payload);
-    if (!verdict.apply && !force) {
-      if (verdict.same) {
-        setSyncStatus("ok", "Уже актуально: " + new Date().toLocaleTimeString().slice(0, 5));
-      } else {
-        // Локальные данные НЕ трогаем. Раньше именно здесь они и терялись.
-        setSyncStatus("ok", "Данные с сервера пропущены — " + verdict.reason);
-        addSyncHistoryEntry("pull", ["Загрузка пропущена: " + verdict.reason,
-                                     "Локальные данные оставлены без изменений"], "skipped");
-      }
-      return false;
-    }
+
+  // 3) значения с сервера читаем только там, где они нужны для решения
+  const need = SYNC_KEYS.filter((rk) => {
+    if (!remoteAt[rk]) return false;
+    const m = meta[rk];
+    return policy === "server" || !local[rk] || !m || m.at !== remoteAt[rk];
+  });
+  const remote = {};
+  if (need.length) {
+    const full = await sbc.from("sklad_kv").select("key, value, updated_at").in("key", need);
+    if (full.error) throw full.error;
+    for (const r of (full.data || [])) remote[r.key] = { value: r.value, at: r.updated_at, h: await hashValue(r.value) };
+  }
+
+  // 4) решаем по каждому ключу
+  const toPush = [], toPull = [];
+  for (const rk of SYNC_KEYS) {
+    const L = local[rk], at = remoteAt[rk], m = meta[rk], R = remote[rk];
+    if (!at) { if (L) toPush.push({ rk, insert: true }); continue; }   // на сервере ещё нет — ничего не теряем
+    const cur = R ? R.at : at;
+    if (R && L && R.h === L.h) { meta[rk] = { at: R.at, h: L.h }; continue; }   // совпадают
+    if (R && !isValidRemote(rk, R.value)) { res.skipped.push(rk); continue; }
+    if (!L) { if (R && policy !== "mine") toPull.push(rk); continue; }   // у нас этого ключа нет
+    const remoteChanged = !m || m.at !== cur;
+    const localChanged = !m || m.h !== L.h;
+    if (policy === "mine") toPush.push({ rk, at: cur, force: true });
+    else if (policy === "server") { if (R) toPull.push(rk); }
+    else if (remoteChanged && localChanged) res.conflicts.push(rk);
+    else if (remoteChanged) { if (R) toPull.push(rk); }
+    else if (localChanged) toPush.push({ rk, at: cur });
+  }
+
+  // 5) забираем с сервера
+  if (toPull.length) {
+    const payload = {};
+    toPull.forEach((rk) => { payload[SYNC_FIELD[rk]] = remote[rk].value; });
     applySyncPayload(payload);
-    markSyncedTo(payload.updatedAt, payload, "pull");
-    setSyncStatus("ok", "Синхронизировано: " + new Date().toLocaleTimeString().slice(0, 5));
-    return true;
-  } catch (e) {
-    setSyncStatus("err", "Не удалось загрузить: " + e.message);
-    logSyncFailure("pull", null, e.message);
-    return false;
+    toPull.forEach((rk) => { meta[rk] = { at: remote[rk].at, h: remote[rk].h }; res.pulled.push(rk); });
   }
+
+  // 6) отправляем на сервер
+  for (const p of toPush) {
+    const L = local[p.rk];
+    let r;
+    if (p.insert) r = await sbc.from("sklad_kv").insert({ key: p.rk, value: L.v }).select("updated_at");
+    else if (p.force) r = await sbc.from("sklad_kv").update({ value: L.v }).eq("key", p.rk).select("updated_at");
+    else r = await sbc.from("sklad_kv").update({ value: L.v }).eq("key", p.rk).eq("updated_at", p.at).select("updated_at");
+    if (r.error) {
+      if (r.error.code === "23505") { res.conflicts.push(p.rk); continue; }   // строку успели создать
+      throw r.error;
+    }
+    if (!r.data || !r.data.length) { res.conflicts.push(p.rk); continue; }    // строку успели изменить
+    meta[p.rk] = { at: r.data[0].updated_at, h: L.h };
+    res.pushed.push(p.rk);
+  }
+  saveSyncMeta(meta);
+  return res;
 }
 
-// Отправляет данные на сервер. ПЕРЕД отправкой проверяет: не сохранил ли
-// кто-то (например, вы же с другого устройства) более новую версию данных
-// с момента, когда мы в последний раз читали сервер. Если сохранил — не
-// затираем её молча, а показываем пользователю модалку с выбором.
-async function pushToGistNow(manual) {
-  if (!manual && !isAutoSyncActive()) return false;
-  const { token, gistId } = getSyncConfig();
-  if (!token) { setSyncStatus("err", "Не указан GitHub-токен"); return false; }
-  if (syncInFlight) {
-    // Отправка уже идёт (например, только что стартовала по таймеру), а тут
-    // подоспело ещё одно изменение. Раньше это изменение просто терялось —
-    // теперь запоминаем и досылаем сразу же, как только текущая отправка
-    // завершится (см. finally ниже).
-    syncQueued = true;
-    return;
+let syncBusy = false;
+async function syncNow(policy, opts) {
+  opts = opts || {};
+  if (!isSyncConfigured() || !window.Auth) return { ok: false, text: "Нужен вход в аккаунт" };
+  if (syncBusy) {
+    syncQueued = true;   // правка пришла во время обмена — повторим сразу после него
+    return { ok: false, busy: true, text: "Обмен уже идёт, повторите через несколько секунд" };
   }
-  syncInFlight = true;
-  setSyncStatus("syncing", "Сохранение на сервер…");
-  const payload = buildSyncPayload();
+  syncBusy = true;
+  const startedAt = Date.now();
+  const names = (list) => list.map((k) => SYNC_LABEL[k] || k).join(", ");
+  setSyncStatus("syncing", "Обмен с сервером…");
+  let out;
   try {
-    if (!gistId) {
-      // Гиста ещё нет — создаём первый раз, конфликтовать не с чем.
-      const created = await githubGistRequest("POST", "https://api.github.com/gists", token, {
-        description: "Учёт деталей — Склад (данные приложения)",
-        public: false,
-        files: {
-          [SYNC_FILENAME]: { content: JSON.stringify(payload) },
-          [SYNC_HISTORY_FILENAME]: { content: JSON.stringify(syncHistory) }
-        }
-      });
-      localStorage.setItem(SYNC_GIST_ID_KEY, created.id);
-      const gistInput = document.getElementById("syncGistIdInput");
-      if (gistInput) gistInput.value = created.id;
-      markSyncedTo(payload.updatedAt, payload, "push");
+    const r = await runSync(policy || "safe");
+    if (r.conflicts.length) {
+      out = { ok: false, conflict: true,
+        text: "Данные расходятся с сервером: " + names(r.conflicts) + ". Тап по облачку — выбрать, чьи данные оставить." };
+      setSyncStatus("err", out.text);
+    } else {
+      markSyncedTo(startedAt, (r.pushed.length || r.pulled.length) ? buildSyncPayload() : null,
+                   r.pulled.length && !r.pushed.length ? "pull" : "push");
+      const parts = [];
+      if (r.pushed.length) parts.push("отправлено: " + names(r.pushed));
+      if (r.pulled.length) parts.push("загружено: " + names(r.pulled));
+      if (r.skipped.length) parts.push("пропущено (неверный формат на сервере): " + names(r.skipped));
+      out = { ok: true, text: parts.length ? "Готово — " + parts.join("; ") : "Всё актуально" };
       setSyncStatus("ok", "Синхронизировано: " + new Date().toLocaleTimeString().slice(0, 5));
-      return true;
     }
-    // Сверяем версию на сервере с той, что мы видели в последний раз.
-    const remote = await githubGistRequest("GET", "https://api.github.com/gists/" + gistId, token);
-    mergeRemoteHistory(remote.files && remote.files[SYNC_HISTORY_FILENAME] && remote.files[SYNC_HISTORY_FILENAME].content);
-    const remoteFile = remote.files && remote.files[SYNC_FILENAME];
-    const remotePayload = (remoteFile && remoteFile.content) ? JSON.parse(remoteFile.content) : null;
-    const lastSynced = getLastSyncedAt();
-    const remoteChangedSinceUs = remotePayload && remotePayload.updatedAt && remotePayload.updatedAt !== lastSynced;
-    // Проверка перед отправкой тоже читает сервер — и точно так же может
-    // получить устаревший ответ. Без сверки подчинённое устройство ниже
-    // приняло бы эту старую копию и затёрло свежие локальные данные.
-    const verdict = shouldApplyRemote(remotePayload);
-    if (remoteChangedSinceUs && !verdict.apply) {
-      addSyncHistoryEntry("pull", ["Ответ сервера пропущен: " + verdict.reason,
-                                   "Отправляем локальную версию"], "skipped");
-    }
-    // «Сервер действительно новее» — только если сверка это подтвердила.
-    if (remoteChangedSinceUs && verdict.apply) {
-      if (isPrimaryDevice()) {
-        // Главное устройство: не спрашиваем — наша версия побеждает всегда.
-        await githubGistRequest("PATCH", "https://api.github.com/gists/" + gistId, token, {
-          files: {
-            [SYNC_FILENAME]: { content: JSON.stringify(payload) },
-            [SYNC_HISTORY_FILENAME]: { content: JSON.stringify(syncHistory) }
-          }
-        });
-        markSyncedTo(payload.updatedAt, payload, "push");
-        setSyncStatus("ok", "Синхронизировано (главное устройство): " + new Date().toLocaleTimeString().slice(0, 5));
-        return true;
-      } else {
-        // Подчинённое устройство: не спрашиваем — молча берём версию с сервера.
-        applyingRemote = true;
-        try {
-          applySyncPayload(remotePayload);
-        } finally {
-          applyingRemote = false;
-        }
-        markSyncedTo(remotePayload.updatedAt, remotePayload, "pull");
-        setSyncStatus("ok", "Обновлено с сервера (автоматически): " + new Date().toLocaleTimeString().slice(0, 5));
-        return true;
-      }
-    }
-
-    await githubGistRequest("PATCH", "https://api.github.com/gists/" + gistId, token, {
-      files: {
-        [SYNC_FILENAME]: { content: JSON.stringify(payload) },
-        [SYNC_HISTORY_FILENAME]: { content: JSON.stringify(syncHistory) }
-      }
-    });
-    markSyncedTo(payload.updatedAt, payload, "push");
-    setSyncStatus("ok", "Синхронизировано: " + new Date().toLocaleTimeString().slice(0, 5));
-    return true;
   } catch (e) {
-    setSyncStatus("err", "Не удалось сохранить: " + e.message);
-    logSyncFailure("push", payload, e.message);
-    return false;
+    const t = syncErrText(e);
+    out = { ok: false, text: "Не удалось выполнить обмен: " + t };
+    setSyncStatus("err", out.text);
+    if (!/Нет связи/.test(t)) logSyncFailure("push", null, t);
   } finally {
-    syncInFlight = false;
-    // Пока мы отправляли этот запрос, пришло ещё одно изменение — досылаем
-    // его сейчас же.
+    syncBusy = false;
     if (syncQueued) {
       syncQueued = false;
-      pushToGistNow(manual);
+      if (isAutoSyncActive()) setTimeout(() => syncNow("safe", { auto: true }), 300);
     }
   }
+  return out;
 }
 
 function scheduleSync() {
@@ -5557,66 +5375,83 @@ function scheduleSync() {
   markLocalChange();                   // запоминаем: на этом устройстве есть свежая правка
   if (!isAutoSyncActive()) return;     // ручной режим — отправляем только по кнопке
   if (syncTimer) clearTimeout(syncTimer);
-  syncTimer = setTimeout(() => { syncTimer = null; pushToGistNow(); }, SYNC_DEBOUNCE_MS);
+  syncTimer = setTimeout(() => { syncTimer = null; syncNow("safe", { auto: true }); }, SYNC_DEBOUNCE_MS);
 }
 
 // Немедленно (без ожидания debounce) пытается отправить несохранённые правки.
-// Используется, когда пользователь сворачивает/закрывает вкладку — лучше
-// попытаться отправить сразу, чем ждать и потерять правки.
+// Используется, когда пользователь сворачивает/закрывает вкладку.
 function flushSyncNow() {
-  if (!isAutoSyncActive()) return;
-  if (!isDirty()) return;
+  if (!isAutoSyncActive() || !isDirty()) return;
   if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; }
-  if (!syncInFlight) pushToGistNow();
+  if (!syncBusy) syncNow("safe", { auto: true });
 }
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") {
     flushSyncNow();
   } else if (document.visibilityState === "visible") {
-    // Возврат в приложение: если не открыто ни одной модалки — тихо
-    // подтягиваем актуальную версию с сервера. Подчинённое устройство делает
-    // это всегда (даже если у него остались свои правки — сервер главнее),
-    // главное — только если у него самого нет неотправленных правок. Если
-    // же неотправленные правки есть (например, прошлая попытка не удалась
-    // из-за сети) — пробуем отправить их снова, а не просто молчим до
-    // следующей правки.
+    // Возврат в приложение: тихо сверяемся с сервером (только если не открыта модалка).
     const modalOpen = document.querySelector(".modal-overlay.open");
-    if (isAutoSyncActive() && !syncInFlight && !modalOpen) {
-      if (!isPrimaryDevice() || !isDirty()) pullFromGist(true);
-      else pushToGistNow();
-    }
+    if (isAutoSyncActive() && !syncBusy && !modalOpen) syncNow("safe", { auto: true });
   }
 });
 window.addEventListener("pagehide", flushSyncNow);
-// Браузер сообщает о восстановлении связи (телефон был оффлайн) — если
-// остались неотправленные правки, пробуем сразу же, не дожидаясь новой
-// правки или следующего сворачивания вкладки.
+// Связь восстановилась — если остались неотправленные правки, пробуем сразу.
 window.addEventListener("online", () => {
-  if (isAutoSyncActive() && isDirty() && !syncInFlight) pushToGistNow();
+  if (isAutoSyncActive() && isDirty() && !syncBusy) syncNow("safe", { auto: true });
 });
 
-// Подчинённое устройство само периодически проверяет сервер, пока страница
-// открыта — чтобы обновления с главного устройства подтягивались без
-// необходимости сворачивать/открывать вкладку заново.
-function setupSecondaryPolling() {
-  if (secondaryPollTimer) { clearInterval(secondaryPollTimer); secondaryPollTimer = null; }
-  if (!isAutoSyncActive() || isPrimaryDevice()) return;
-  secondaryPollTimer = setInterval(() => {
-    if (document.visibilityState !== "visible") return;
-    if (syncInFlight || applyingRemote) return;
-    const modalOpen = document.querySelector(".modal-overlay.open");
-    if (modalOpen) return;
-    pullFromGist(true);
-  }, SECONDARY_POLL_MS);
+/* ==================== Живое обновление (Supabase Realtime) ====================
+   Сервер сообщает о каждой записи в sklad_kv — правка с другого устройства
+   доезжает без перезагрузки. На сообщение отвечаем обычной «безопасной»
+   сверкой (она сама решит, что забрать, а что оставить). Если открыто окно или
+   идёт ввод — ждём, чтобы не выдернуть форму из-под рук. */
+let rtChannel = null, rtTimer = null, rtWasDown = false;
+function scheduleRemoteSync() {
+  if (rtTimer) clearTimeout(rtTimer);
+  rtTimer = setTimeout(function tick() {
+    rtTimer = null;
+    if (!isAutoSyncActive()) return;
+    if (document.querySelector(".modal-overlay.open") || isTypingNow() || syncBusy) { rtTimer = setTimeout(tick, 3000); return; }
+    syncNow("safe", { auto: true });
+  }, 1500);
+}
+function startRealtime() {
+  if (rtChannel || !window.Auth) return;
+  try {
+    rtChannel = Auth.sb.channel("sklad_kv_changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "sklad_kv" }, (msg) => {
+        const row = msg && msg.new;
+        if (!row || SYNC_KEYS.indexOf(row.key) === -1) return;
+        const m = loadSyncMeta()[row.key];
+        if (m && m.at === row.updated_at) return;      // это наша собственная запись
+        scheduleRemoteSync();
+      })
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          if (rtWasDown) { rtWasDown = false; scheduleRemoteSync(); }   // связь вернулась — догоняем пропущенное
+        } else if (status === "CLOSED" || status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          rtWasDown = true;
+        }
+      });
+  } catch (e) { rtChannel = null; }
+}
+function stopRealtime() {
+  if (rtTimer) { clearTimeout(rtTimer); rtTimer = null; }
+  if (rtChannel) { try { Auth.sb.removeChannel(rtChannel); } catch (e) {} rtChannel = null; }
 }
 
+/* ==================== Окно «Синхронизация и аккаунт» ==================== */
+async function refreshAccountLine() {
+  const el = document.getElementById("syncAccountLine");
+  if (!el || !window.Auth) return;
+  const u = await Auth.getUser();
+  el.textContent = u ? String(u.email || "").replace(/@zayavki\.app$/, "")
+                     : (isSyncConfigured() ? "нет связи (работа офлайн)" : "вход не выполнен");
+}
 function openSyncModal() {
-  const { token, gistId } = getSyncConfig();
-  document.getElementById("syncTokenInput").value = token;
-  document.getElementById("syncGistIdInput").value = gistId;
-  document.getElementById("syncPrimaryToggle").checked = isPrimaryDevice();
-  const frozenToggle = document.getElementById("syncFrozenToggle");
-  if (frozenToggle) frozenToggle.checked = isAutoSyncOff();
+  const auto = document.getElementById("syncAutoToggle");
+  if (auto) auto.checked = !isAutoSyncOff();
+  refreshAccountLine();
   openModal("syncOverlay");
 }
 function closeSyncModal() {
@@ -5634,7 +5469,7 @@ function closeSyncModal() {
     timer = setTimeout(() => {
       longFired = true; timer = null;
       if (navigator.vibrate) navigator.vibrate(15);
-      openSyncModalGated();
+      openSyncModal();
     }, LONG_PRESS_MS);
   });
   btn.addEventListener("pointermove", (e) => {
@@ -5649,75 +5484,21 @@ function closeSyncModal() {
   btn.addEventListener("pointercancel", clearTimer);
   btn.addEventListener("contextmenu", (e) => e.preventDefault());
 })();
-document.getElementById("syncPwBtn").addEventListener("click", changeSyncPassword);
 document.getElementById("syncClose").addEventListener("click", closeSyncModal);
 document.getElementById("syncOverlay").addEventListener("click", (e) => {
   if (e.target.id === "syncOverlay") closeSyncModal();
 });
-document.getElementById("syncPrimaryToggle").addEventListener("change", (e) => {
-  localStorage.setItem(SYNC_PRIMARY_KEY, e.target.checked ? "1" : "0");
-  setupSecondaryPolling();
-  updateGuestModeUI();
+document.getElementById("syncAutoToggle").addEventListener("change", (e) => {
+  setAutoSyncOff(!e.target.checked);
+  updateDirtyIndicator();
+  setSyncStatus(isSyncConfigured() ? "idle" : "off", isSyncConfigured() ? manualModeStatusText() : "Нужен вход в аккаунт.");
+  if (e.target.checked && isSyncConfigured()) syncNow("safe", { auto: true });
 });
-/* Переключатель «работать только на этом устройстве». Снимать заморозку
-   стоит, только когда действительно нужны два устройства: сейчас загрузка с
-   сервера применяется без сверки времени и может затереть свежие локальные
-   правки (см. комментарий у SYNC_FROZEN_KEY). */
-{
-  const frozenToggle = document.getElementById("syncFrozenToggle");
-  if (frozenToggle) {
-    frozenToggle.addEventListener("change", (e) => {
-      setAutoSyncOff(e.target.checked);
-      setupSecondaryPolling();
-      updateGuestModeUI();
-      updateDirtyIndicator();
-      if (e.target.checked) {
-        setSyncStatus(isSyncConfigured() ? "idle" : "off", manualModeStatusText());
-      } else if (isSyncConfigured()) {
-        setSyncStatus("idle", "Автоматическая синхронизация включена: приложение будет само "
-          + "отправлять правки и подтягивать версию с сервера.");
-      } else {
-        setSyncStatus("off", "Не настроено. Укажите токен, чтобы включить синхронизацию.");
-      }
-    });
-  }
-}
-document.getElementById("syncSaveBtn").addEventListener("click", async () => {
-  const token = document.getElementById("syncTokenInput").value.trim();
-  const gistId = document.getElementById("syncGistIdInput").value.trim();
-  if (!token) { alert("Укажите токен."); return; }
-  localStorage.setItem(SYNC_TOKEN_KEY, token);
-  if (gistId) localStorage.setItem(SYNC_GIST_ID_KEY, gistId);
-  else localStorage.removeItem(SYNC_GIST_ID_KEY);
-  // Если на этом устройстве есть несохранённые правки (например, только что
-  // добавили позицию) — ни в коем случае не тянем данные с сервера первым
-  // делом, это молча стёрло бы их. Раньше именно так и происходило: указан
-  // gistId → сразу pullFromGist() поверх свежих локальных изменений.
-  // Теперь: есть несохранённые правки → отправляем их (push сам покажет
-  // модалку выбора, если на сервере тем временем что-то ещё изменилось).
-  // Нечего терять (uже всё синхронизировано или это первое подключение
-  // к существующему Gist) → можно спокойно подтянуть версию с сервера.
-  // Нажатие кнопки — осознанное действие, поэтому обмен разрешён и в ручном
-  // режиме (manual = true). Второе устройство при этом только ЗАБИРАЕТ список:
-  // выгружать ему нечего и незачем, иначе оно могло бы затереть на сервере
-  // список, собранный на главном.
-  if (!isPrimaryDevice()) {
-    if (gistId) await pullFromGist(false, false, true);
-    else alert("Укажите ID Gist — второе устройство только загружает список с сервера.");
-  } else if (gistId && !isDirty()) {
-    const ok = await pullFromGist(false, false, true);
-    if (!ok) await pushToGistNow(true);
-  } else {
-    await pushToGistNow(true);
-  }
-  setupSecondaryPolling();
-  updateGuestModeUI();
+document.getElementById("syncLogoutBtn").addEventListener("click", () => {
+  if (!confirm("Выйти из аккаунта? Данные на этом устройстве останутся, но обмен с сервером остановится до нового входа.")) return;
+  closeSyncModal();
+  if (window.Auth) Auth.logout();
 });
-/* Ручная загрузка. Если автоматика отказалась применять версию с сервера
-   (она старше локальной), кнопка честно об этом спрашивает — на случай,
-   когда сервер намеренно откатили и загрузить старую версию нужно. */
-// Та же кнопка, что и в окне обмена, — поведение одно на оба места.
-document.getElementById("syncPullBtn").addEventListener("click", manualPull);
 document.getElementById("syncHistoryBtn").addEventListener("click", () => {
   renderSyncHistory();
   openModal("syncHistoryOverlay");
@@ -5727,19 +5508,6 @@ document.getElementById("syncHistoryClose").addEventListener("click", () => {
 });
 document.getElementById("syncHistoryOverlay").addEventListener("click", (e) => {
   if (e.target.id === "syncHistoryOverlay") closeModal("syncHistoryOverlay");
-});
-document.getElementById("syncForgetBtn").addEventListener("click", () => {
-  if (!confirm("Отключить синхронизацию на этом устройстве? Токен и ID Gist будут забыты (сами данные в Gist останутся).")) return;
-  localStorage.removeItem(SYNC_TOKEN_KEY);
-  localStorage.removeItem(SYNC_GIST_ID_KEY);
-  localStorage.removeItem(SYNC_PRIMARY_KEY);
-  document.getElementById("syncTokenInput").value = "";
-  document.getElementById("syncGistIdInput").value = "";
-  document.getElementById("syncPrimaryToggle").checked = false;
-  setSyncStatus("off", "Не настроено");
-  updateDirtyIndicator();
-  setupSecondaryPolling();
-  updateGuestModeUI();
 });
 
 /* ==================== Выпадающее меню действий (⋮) — Экспорт/История ==================== */
@@ -5757,6 +5525,20 @@ document.addEventListener("click", (e) => {
   panel.classList.remove("open");
 });
 
+/* ==================== Меню разделов (Учёт потребления / Заявки на закупку) ==================== */
+(function () {
+  const btn = document.getElementById("modMenuBtn");
+  const panel = document.getElementById("modMenuPanel");
+  if (!btn || !panel) return;
+  try { localStorage.setItem("sklad2_last_module", "uchet"); } catch (e) {}
+  btn.addEventListener("click", (e) => { e.stopPropagation(); panel.classList.toggle("open"); });
+  document.addEventListener("click", (e) => {
+    if (!panel.classList.contains("open")) return;
+    if (e.target.closest("#modMenuPanel") || e.target.closest("#modMenuBtn")) return;
+    panel.classList.remove("open");
+  });
+})();
+
 /* ==================== Старт ==================== */
 loadSortState();
 reapplySavedSort();
@@ -5773,36 +5555,32 @@ localLogLastState = snapshotForLog();
 // после обновления приложения) — помечаем это как локальную правку, чтобы
 // очищенные названия и проставленные модели ушли на сервер, а не остались
 // только на этом устройстве.
-if (migrationTouchedAtStartup && isPrimaryDevice()) markLocalChange();
-// Устройство, настроенное ДО появления ролей, считаем главным: именно на нём
-// вы работали. Иначе после обновления оно молча стало бы «вторым» и перешло
-// в режим просмотра — без панели добавления и кнопок +/-.
-if (isSyncConfigured() && localStorage.getItem(SYNC_PRIMARY_KEY) === null) {
-  try { localStorage.setItem(SYNC_PRIMARY_KEY, "1"); } catch (e) {}
-}
-if (isAutoSyncOff()) {
-  setSyncStatus(isSyncConfigured() ? "idle" : "off", manualModeStatusText());
-} else if (isSyncConfigured()) {
-  if (!isPrimaryDevice()) {
-    // Подчинённое устройство: сервер всегда главнее — просто подтягиваем.
-    setSyncStatus("syncing", "Загрузка с сервера…");
-    pullFromGist();
-  } else if (isDirty()) {
-    // На этом устройстве остались правки, которые не успели уйти на сервер
-    // в прошлый раз (например, вкладку закрыли слишком быстро). Раньше в
-    // этом месте всегда делался pullFromGist(), который бы их молча стёр —
-    // теперь сначала пробуем их отправить (с проверкой конфликтов внутри).
-    setSyncStatus("syncing", "Отправляем несохранённые изменения…");
-    pushToGistNow();
-  } else {
-    setSyncStatus("syncing", "Загрузка с сервера…");
-    pullFromGist();
-  }
+if (migrationTouchedAtStartup) markLocalChange();
+// Вход: общий экран входа (auth.js) закрывает страницу, пока нет сессии.
+// После входа включается обмен с сервером.
+setSyncStatus("off", "Нужен вход в аккаунт.");
+if (window.Auth) {
+  Auth.gate({
+    onLogin: () => {
+      syncUserOk = true;
+      updateDirtyIndicator();
+      setSyncStatus("idle", manualModeStatusText());
+      refreshAccountLine();
+      if (!isAutoSyncOff()) syncNow("safe", { auto: true });
+      startRealtime();
+    },
+    onLogout: () => {
+      syncUserOk = false;
+      stopRealtime();
+      if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; }
+      updateDirtyIndicator();
+      setSyncStatus("off", "Нужен вход в аккаунт.");
+    }
+  });
 } else {
-  setSyncStatus("off", "Не настроено. Нажмите на ⚙, чтобы включить синхронизацию.");
+  setSyncStatus("err", "Не загрузилась библиотека входа — обмен с сервером недоступен.");
 }
-setupSecondaryPolling();
-updateGuestModeUI();
+refreshAfterSyncChange();
 
 /* ==================== Поля количества: авто-ширина + курсор в конец ====================
    Ширина поля растёт вслед за введённым числом (не обрезает 1000+), а при
@@ -5917,7 +5695,7 @@ if ("serviceWorker" in navigator) {
       reloadForUpdateWhenSafe();
     });
 
-    navigator.serviceWorker.register("sw.js").then((reg) => {
+    navigator.serviceWorker.register("../sw.js").then((reg) => {
       const check = () => reg.update().catch(() => {});
       check();                                   // сразу при запуске
       setInterval(check, SW_UPDATE_CHECK_MS);    // и дальше периодически

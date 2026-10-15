@@ -1,51 +1,56 @@
-// Держать одинаковым с APP_VERSION в app.js. Нумерация с шагом 0.1:
-// sklad-cache-v1.0, v1.1, v1.2 и так далее.
-const CACHE_NAME = "sklad-cache-v1.6";
-const ASSETS = [
-  "./index.html",
-  "./style.css",
-  "./app.js",
-  "./manifest.json",
-  "./icon-192.png",
-  "./icon-512.png"
+// Общий service worker сервиса «Склад» (Учёт потребления + Заявки на закупку).
+// Версия держится одинаковой с APP_VERSION в uchet/app.js и zayavki/app.js.
+const CACHE_NAME = "sklad2-cache-v2.0";
+const SHELL = [
+  "./", "index.html", "manifest.json", "auth.js", "auth.css", "icon-192.png", "icon-512.png",
+  "uchet/", "uchet/index.html", "uchet/style.css", "uchet/app.js",
+  "zayavki/", "zayavki/index.html", "zayavki/style.css", "zayavki/app.js"
 ];
+const LIB = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    // cache: "reload" — тянем файлы МИМО обычного HTTP-кэша браузера.
-    // GitHub Pages отдаёт их с max-age=600, и без этого свежая версия могла
-    // до 10 минут не доезжать: браузер отдавал бы копию из своего кэша.
-    // Заодно этот запрос обновляет и сам HTTP-кэш, поэтому после
-    // перезагрузки страницы новые файлы подхватятся сразу.
     caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll(ASSETS.map((url) => new Request(url, { cache: "reload" })))
-    )
+      Promise.all([
+        // cache: "reload" — мимо HTTP-кэша браузера (GitHub Pages отдаёт файлы с max-age=600)
+        ...SHELL.map((u) => cache.add(new Request(u, { cache: "reload" })).catch(() => {})),
+        cache.add(LIB).catch(() => {})
+      ])
+    ).then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
-      )
-    )
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Стратегия: сначала сеть (чтобы подтягивать свежую версию при обновлении
-// файла на GitHub), при отсутствии сети — отдаём из кеша.
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
+  const req = event.request;
+  if (req.method !== "GET") return;
+  const url = new URL(req.url);
+  // Supabase (данные, фото, вход) не кэшируем
+  if (url.hostname.endsWith("supabase.co")) return;
+  // Библиотека с CDN и шрифты: из кэша, если есть
+  if (url.origin !== self.location.origin) {
+    event.respondWith(
+      caches.match(req).then((hit) => hit || fetch(req).then((res) => {
+        if (res.ok && url.hostname === "cdn.jsdelivr.net") {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((c) => c.put(req, copy));
+        }
+        return res;
+      }))
+    );
+    return;
+  }
+  // Файлы приложения: сначала сеть (чтобы обновления доходили), без сети — из кэша
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-        return response;
-      })
-      .catch(() => caches.match(event.request))
+    fetch(req).then((res) => {
+      if (res.ok) { const copy = res.clone(); caches.open(CACHE_NAME).then((c) => c.put(req, copy)); }
+      return res;
+    }).catch(() => caches.match(req).then((hit) => hit || caches.match(url.pathname.includes("/zayavki/") ? "zayavki/index.html" : "uchet/index.html")))
   );
 });
