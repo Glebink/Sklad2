@@ -1327,3 +1327,17 @@ body.no-ticket #viewConsumption, body.no-ticket #addPanelConsumption, body.no-ti
   body.has-list .topbar { max-width: none; margin-left: 0; margin-right: 0; }
   body.no-ticket .ticket-empty { display: block; }
 }
+
+/* единый каркас для всех вкладок: на всю ширину, без центрирования колонкой в 1400 px */
+.page, .sticky-top, .topbar { max-width: none !important; margin-left: 0 !important; margin-right: 0 !important; }
+body:not(.has-list) .page { max-width: none; }
+/* дата принадлежит заявке — на «Складе» и «1С» её не показываем */
+body:not(.has-list) #datePickerBox { display: none; }
+/* выпадающие списки в панелях — в стиле остальных полей */
+.add-panel select {
+  -webkit-appearance: none; appearance: none; min-height: 40px; box-sizing: border-box;
+  border: 1px solid var(--border); border-radius: 8px; background-color: var(--surface); color: var(--fg);
+  padding: 0 28px 0 10px; font: inherit;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%2364748b' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat; background-position: right 10px center; background-size: 9px 6px;
+}
