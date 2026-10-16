@@ -1341,3 +1341,19 @@ body:not(.has-list) #datePickerBox { display: none; }
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%2364748b' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
   background-repeat: no-repeat; background-position: right 10px center; background-size: 9px 6px;
 }
+
+/* кнопки (дата, вкладки, ⋮, версия) живут в верхней панели рядом с переключателем разделов */
+.topbar-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.topbar .app-header { gap: 8px; min-width: 0; }
+.topbar .date-picker { min-width: 0; }
+.topbar #appVersionBadge { align-self: flex-start; }
+body.no-ticket .sticky-top { display: none; }
+@media (max-width: 899px) {
+  .topbar { gap: 6px; }
+  .topbar-left, .topbar .app-header { gap: 6px; }
+  .brand-label, .brand-caret { display: none; }
+  .brand-btn { padding: 4px; }
+  .topbar .date-picker { padding: 0 8px; height: 44px; }
+  body.has-ticket .topbar #appVersionBadge { display: none; }
+  body.has-ticket .topbar .mod-menu-wrap { display: none; }
+}

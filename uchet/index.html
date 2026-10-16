@@ -23,9 +23,10 @@
 <button id="topBtn" title="Наверх">↑</button>
 
 <header class="topbar" id="topbar">
+  <div class="topbar-left">
   <div class="menu-wrap mod-menu-wrap">
     <button class="brand-btn" id="modMenuBtn" aria-haspopup="true" aria-label="Разделы">
-      <span class="brand-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg></span>Учёт
+      <span class="brand-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg></span><span class="brand-label">Учёт</span>
       <svg class="brand-caret" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
     </button>
     <div class="mod-panel" id="modMenuPanel">
@@ -33,15 +34,6 @@
       <a class="mod-item" href="../zayavki/">Заявки на закупку</a>
     </div>
   </div>
-  <button class="iconbtn profile-btn" id="profileBtn" title="Аккаунт и синхронизация" aria-label="Аккаунт и синхронизация">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
-    <span class="sync-dot" id="syncDot"></span>
-  </button>
-</header>
-
-<div class="page">
-
-<div class="sticky-top" id="stickyTop">
   <div class="app-header">
     <button class="iconbtn ticket-back" id="ticketBackBtn" title="К списку заявок" aria-label="К списку заявок">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
@@ -71,7 +63,16 @@
     </div>
     <span id="appVersionBadge" title="Версия файлов (номер кэша)"></span>
   </div>
+  </div>
+  <button class="iconbtn profile-btn" id="profileBtn" title="Аккаунт и синхронизация" aria-label="Аккаунт и синхронизация">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+    <span class="sync-dot" id="syncDot"></span>
+  </button>
+</header>
 
+<div class="page">
+
+<div class="sticky-top" id="stickyTop">
   <div class="add-panel search-bar hide-init" id="whSearchBar"></div>
   <div class="add-panel search-bar" id="caSearchBar"></div>
   <div class="add-panel search-bar hide-init" id="ocSearchBar"></div>

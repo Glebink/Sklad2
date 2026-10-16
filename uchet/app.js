@@ -2595,7 +2595,7 @@ function updateAddPanelVisibility() {
   if (!panel) return;
   panel.style.display = (currentTab === "consumption" && currentDate) ? "flex" : "none";
   updateLayoutClasses();
-  syncStickyTopHeight();
+  syncStickyTopHeight(true);   // раскладка могла смениться (выбрали/сняли заявку) — пересчитываем даже при фокусе в поле
 }
 
 /* Показывает строку поиска нужной вкладки, остальные прячет и очищает */
@@ -4443,9 +4443,9 @@ function isTypingNow() {
   const el = document.activeElement;
   return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT");
 }
-function syncStickyTopHeight() {
+function syncStickyTopHeight(force) {
   if (!stickyTopEl || !stickyTopPlaceholder) return;
-  if (isTypingNow()) return; // не пересчитываем во время анимации клавиатуры
+  if (!force && isTypingNow()) return; // не пересчитываем во время анимации клавиатуры
   const tb = document.getElementById("topbar");
   stickyTopPlaceholder.style.height = (stickyTopEl.offsetHeight + (tb ? tb.offsetHeight : 0)) + "px";
 }
