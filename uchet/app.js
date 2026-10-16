@@ -2836,7 +2836,9 @@ function renderTransferList() {
     const mineItem = (t.code ? findOcItemByCode(t.code) : null) || findOcItemByName(t.name);
     if (mineItem) t.mine = onec[mineItem.section][mineItem.index].qty || 0;
   });
-  saveTransferList();
+  // Цифры производные (считаются из 1С и Бестужевской при каждом показе), поэтому
+  // здесь НЕ сохраняем: иначе простое открытие окна меняло бы данные и давало
+  // ложный конфликт синхронизации. Сохранятся вместе со следующей реальной правкой.
 
   summary.textContent = transferList.length
     ? `Позиций в списке: ${transferList.length}.`
