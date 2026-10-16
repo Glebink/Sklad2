@@ -1922,7 +1922,7 @@ document.getElementById("ticketNewBtn").addEventListener("click", createTicket);
 document.getElementById("ticketBackBtn").addEventListener("click", () => selectTicket(null));
 document.getElementById("ticketCards").addEventListener("click", (e) => {
   const c = e.target.closest(".t-card");
-  if (c) selectTicket(c.dataset.key);
+  if (c) selectTicket(c.dataset.key === currentDate ? null : c.dataset.key);   // повторный тап снимает выбор
 });
 document.getElementById("ticketSearchBtn").addEventListener("click", () => {
   ticketSearchOpen = !ticketSearchOpen;

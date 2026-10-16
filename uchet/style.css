@@ -1268,7 +1268,7 @@
   #headMenuPanel button.util .mi { flex: 0 0 auto; }
 
 /* ==================== Макет как в заявках: верхняя панель + левый столбец заявок ==================== */
-:root { --topbar-h: 60px; --list-w: 340px; --edge: max(16px, calc((100vw - 1400px) / 2)); --top0: max(6px, env(safe-area-inset-top)); }
+:root { --topbar-h: 60px; --list-w: clamp(300px, 24vw, 440px); --edge: 16px; --top0: max(6px, env(safe-area-inset-top)); }
 .topbar {
   position: fixed; top: var(--top0); left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right));
   z-index: 160; height: var(--topbar-h); padding-bottom: 8px; box-sizing: border-box;
@@ -1321,8 +1321,9 @@ body.no-ticket #viewConsumption, body.no-ticket #addPanelConsumption, body.no-ti
 }
 /* компьютер: три зоны */
 @media (min-width: 900px) {
-  body.has-list .u-list { display: block; position: fixed; top: calc(var(--top0) + var(--topbar-h)); bottom: 16px; left: var(--edge); width: var(--list-w); overflow-y: auto; padding-bottom: 8px; box-sizing: border-box; }
+  body.has-list .u-list { display: block; position: fixed; top: calc(var(--top0) + var(--topbar-h)); bottom: 16px; left: var(--edge); width: var(--list-w); overflow-y: auto; scrollbar-gutter: stable; padding: 0 12px 8px 0; box-sizing: border-box; }
   body.has-list .sticky-top { left: calc(var(--edge) + var(--list-w) + 16px); right: var(--edge); max-width: none; margin-left: 0; margin-right: 0; }
-  body.has-list .page { padding-left: calc(var(--list-w) + 16px); box-sizing: border-box; }
+  body.has-list .page { padding-left: calc(var(--list-w) + 16px); box-sizing: border-box; max-width: none; }
+  body.has-list .topbar { max-width: none; margin-left: 0; margin-right: 0; }
   body.no-ticket .ticket-empty { display: block; }
 }
