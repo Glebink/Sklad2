@@ -1266,3 +1266,63 @@
   .app-header .tabs-trigger { height: 44px; border-radius: 10px; }
   #headMenuPanel button.util { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; }
   #headMenuPanel button.util .mi { flex: 0 0 auto; }
+
+/* ==================== Макет как в заявках: верхняя панель + левый столбец заявок ==================== */
+:root { --topbar-h: 60px; --list-w: 340px; --edge: max(16px, calc((100vw - 1400px) / 2)); --top0: max(6px, env(safe-area-inset-top)); }
+.topbar {
+  position: fixed; top: var(--top0); left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right));
+  z-index: 160; height: var(--topbar-h); padding-bottom: 8px; box-sizing: border-box;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+@media (min-width: 1400px) { .topbar { max-width: 1400px; margin-left: auto; margin-right: auto; } }
+.topbar::before { content: ""; position: fixed; left: 0; right: 0; top: 0; height: calc(var(--top0) + var(--topbar-h)); background: var(--bg); z-index: -1; }
+.brand-btn { display: flex; align-items: center; gap: 10px; padding: 4px 8px 4px 4px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--accent-soft); font: inherit; font-weight: 700; font-size: 16px; color: var(--fg); cursor: pointer; }
+.brand-btn:active { background: var(--line); }
+.brand-mark { width: 34px; height: 34px; border-radius: 8px; background: var(--accent); display: flex; align-items: center; justify-content: center; }
+.brand-caret { flex: 0 0 auto; width: 22px; height: 22px; padding: 3px; box-sizing: border-box; border-radius: 50%; background: var(--accent); color: var(--accent-fg); }
+.mod-menu-wrap { position: relative; }
+.mod-panel { z-index: 220; }
+button.iconbtn.profile-btn { position: relative; width: 44px; height: 44px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line-strong); color: var(--fg); }
+button.iconbtn.profile-btn:active { background: var(--s-new-bg); }
+.sticky-top { top: calc(var(--top0) + var(--topbar-h)); }
+.app-header .date-picker { cursor: default; }
+.app-header button.iconbtn.ticket-back { display: none; width: 44px; height: 44px; border-radius: 10px; flex: 0 0 auto; }
+
+/* левый столбец */
+.u-list { display: none; }
+.u-list .t-tools { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.u-list .tool-btn { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: inherit; cursor: pointer; }
+.u-list .tool-btn.on { background: var(--accent-soft); color: var(--accent-ink); border-color: var(--accent); }
+.t-search { display: block; margin-bottom: 10px; }
+.t-search[hidden] { display: none; }
+.t-search input { width: 100%; min-height: 44px; box-sizing: border-box; border: 1px solid var(--line-strong); border-radius: 8px; padding: 0 12px; background: var(--surface); color: var(--fg); font: inherit; }
+.t-cards { display: flex; flex-direction: column; gap: 10px; }
+.t-card { display: block; width: 100%; text-align: left; font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; cursor: pointer; }
+.t-card.sel { border: 2px solid var(--accent); padding: 13px; }
+.t-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.t-row .mono { font-family: var(--mono, ui-monospace, monospace); font-weight: 500; }
+.t-date, .t-sub { color: var(--muted); font-size: 13px; }
+.t-sub { margin-top: 4px; }
+.t-hit { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 13px; }
+.t-hit-name { min-width: 0; }
+.t-hit-meta { flex: none; color: var(--muted); white-space: nowrap; }
+.t-hit-more { margin-top: 6px; font-size: 12px; color: var(--muted); }
+.t-empty { text-align: center; color: var(--muted); padding: 32px 16px; }
+.ticket-empty { display: none; text-align: center; color: var(--muted); padding: 64px 16px; }
+
+/* без выбранной заявки рабочее поле пустое */
+body.no-ticket #viewConsumption, body.no-ticket #addPanelConsumption, body.no-ticket #caSearchBar, body.no-ticket #datePickerBox { display: none !important; }
+
+/* телефон: список и заявка — два экрана */
+@media (max-width: 899px) {
+  body.has-list.no-ticket .u-list { display: block; }
+  body.no-ticket .app-header { justify-content: space-between; }
+  body.has-ticket .app-header button.iconbtn.ticket-back { display: inline-flex; align-items: center; justify-content: center; }
+}
+/* компьютер: три зоны */
+@media (min-width: 900px) {
+  body.has-list .u-list { display: block; position: fixed; top: calc(var(--top0) + var(--topbar-h)); bottom: 16px; left: var(--edge); width: var(--list-w); overflow-y: auto; padding-bottom: 8px; box-sizing: border-box; }
+  body.has-list .sticky-top { left: calc(var(--edge) + var(--list-w) + 16px); right: var(--edge); max-width: none; margin-left: 0; margin-right: 0; }
+  body.has-list .page { padding-left: calc(var(--list-w) + 16px); box-sizing: border-box; }
+  body.no-ticket .ticket-empty { display: block; }
+}

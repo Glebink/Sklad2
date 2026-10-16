@@ -22,22 +22,32 @@
 <button id="backBtn" title="Вернуться на склад к этой позиции">←</button>
 <button id="topBtn" title="Наверх">↑</button>
 
+<header class="topbar" id="topbar">
+  <div class="menu-wrap mod-menu-wrap">
+    <button class="brand-btn" id="modMenuBtn" aria-haspopup="true" aria-label="Разделы">
+      <span class="brand-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg></span>Учёт
+      <svg class="brand-caret" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="mod-panel" id="modMenuPanel">
+      <a class="mod-item active" href="./">Учёт потребления</a>
+      <a class="mod-item" href="../zayavki/">Заявки на закупку</a>
+    </div>
+  </div>
+  <button class="iconbtn profile-btn" id="profileBtn" title="Аккаунт и синхронизация" aria-label="Аккаунт и синхронизация">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+    <span class="sync-dot" id="syncDot"></span>
+  </button>
+</header>
+
 <div class="page">
 
 <div class="sticky-top" id="stickyTop">
   <div class="app-header">
-    <div class="menu-wrap mod-menu-wrap">
-      <button class="iconbtn mod-btn" id="modMenuBtn" title="Разделы" aria-label="Разделы" aria-haspopup="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-      </button>
-      <div class="mod-panel" id="modMenuPanel">
-        <a class="mod-item active" href="./">Учёт потребления</a>
-        <a class="mod-item" href="../zayavki/">Заявки на закупку</a>
-      </div>
-    </div>
-    <div class="date-picker" id="datePickerBox">
+    <button class="iconbtn ticket-back" id="ticketBackBtn" title="К списку заявок" aria-label="К списку заявок">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+    </button>
+    <div class="date-picker" id="datePickerBox" title="Дата заявки">
       <span id="dateDisplayText">—</span>
-      <input type="date" id="reportDate">
     </div>
     <div class="menu-wrap tabs-menu-wrap">
       <button class="tabs-trigger" id="tabsCurrentBtn">
@@ -52,13 +62,11 @@
     <div class="menu-wrap head-menu-wrap">
       <button class="iconbtn head-btn" id="headMenuBtn" title="Меню" aria-label="Меню" aria-haspopup="true">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
-        <span class="sync-dot" id="syncDot"></span>
       </button>
       <div class="menu-panel list" id="headMenuPanel">
         <button class="util primary" id="exportBtn"><svg class="mi" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3"/></svg>Экспорт</button>
         <button class="util" id="syncHistoryBtn" title="История сохранений"><svg class="mi" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8m0-5v5h5M12 7v5l3 2"/></svg>История</button>
         <button class="util" id="printLabelBtn" title="Печать этикетки (ручной ввод)"><svg class="mi" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z"/></svg>Печать</button>
-        <button class="util" id="syncMenuBtn" title="Синхронизация и аккаунт"><svg class="mi" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17 8.5 4.5 4.5 0 0 1 17.5 18z"/></svg>Синхронизация<span class="sync-pill" id="syncMenuStatus"></span></button>
       </div>
     </div>
     <span id="appVersionBadge" title="Версия файлов (номер кэша)"></span>
@@ -84,6 +92,24 @@
     <div class="suggest-box" id="addSuggestBox"></div>
   </div>
 </div>
+
+
+<!-- Левый столбец: заявки на учёт (на телефоне — отдельный экран, как в заявках) -->
+<section class="u-list" id="ticketList">
+  <div class="t-tools">
+    <button class="tool-btn" id="ticketSearchBtn" aria-label="Поиск по деталям в заявках" title="Поиск по деталям в заявках">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    </button>
+    <button class="tool-btn" id="ticketNewBtn" aria-label="Новая заявка на учёт" title="Новая заявка на учёт">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+  </div>
+  <label class="t-search" id="ticketSearchBox" hidden>
+    <input type="search" id="ticketSearchInput" placeholder="Название или код детали, №, дата" autocomplete="off">
+  </label>
+  <div class="t-cards" id="ticketCards"></div>
+</section>
+<div class="ticket-empty" id="ticketEmpty">Выберите заявку на учёт слева или создайте новую кнопкой «+».</div>
 
 <!-- ===================== ВКЛАДКА: УЧЁТ ===================== -->
 <div class="view active" id="viewConsumption">
@@ -619,7 +645,7 @@
 <!-- Модалка: синхронизация и аккаунт (меню ⋮ → Синхронизация) -->
 <div class="modal-overlay" id="syncOverlay">
   <div class="modal-box wide">
-    <p class="modal-title">Синхронизация и аккаунт</p>
+    <p class="modal-title">Аккаунт и синхронизация</p>
     <div class="sync-status-line" id="syncStatusLine">Не настроено</div>
     <div class="sync-status-line" id="manualSyncInfo"></div>
     <div class="modal-actions stack">

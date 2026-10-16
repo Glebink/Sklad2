@@ -561,15 +561,20 @@ let transferList = loadTransferList();
 
 const MONTHS_FULL_GEN = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
 
-function todayStr() { return new Date().toISOString().slice(0, 10); }
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
 function formatShort(dateStr) {
   if (!dateStr) return "—";
+  dateStr = String(dateStr).slice(0, 10);   // у заявки на учёт ключ может быть «2026-10-16#2»
   const [y, m, d] = dateStr.split("-").map(Number);
   if (!y || !m || !d) return dateStr;
   return `${String(d).padStart(2,"0")}.${String(m).padStart(2,"0")}`;
 }
 function formatFull(dateStr) {
   if (!dateStr) return "";
+  dateStr = String(dateStr).slice(0, 10);
   const [y, m, d] = dateStr.split("-").map(Number);
   if (!y || !m || !d) return dateStr;
   return `${d} ${MONTHS_FULL_GEN[m - 1]} ${y}`;
@@ -636,7 +641,39 @@ let dataByDate = loadDataByDate();
 let warehouse = loadWarehouse(); // { parts: [{code,name,qty,model}], consumables: [...] }
 // Дата при каждом открытии приложения — всегда сегодняшняя (а не та, на которой
 // остановились в прошлый раз): открыли на следующий день — календарь сам на нём.
-let currentDate = todayStr();
+/* Учёт ведётся ЗАЯВКАМИ: каждая — запись в dataByDate с ключом «ГГГГ-ММ-ДД» (первая за день)
+   или «ГГГГ-ММ-ДД#2», «#3»… (следующие). Номер заявки не хранится: это порядковый номер среди
+   всех заявок по возрастанию даты, поэтому на всех устройствах он одинаков. Не выбрана
+   заявка (currentDate = null) — рабочее поле пустое. */
+let currentDate = null;
+const TICKET_KEY_RE = /^\d{4}-\d{2}-\d{2}(#\d+)?$/;
+function emptyEntry() { return { sections: { parts: [], consumables: [] }, counts: {}, checked: {} }; }
+function ticketCmp(a, b) {
+  const da = a.slice(0, 10), db = b.slice(0, 10);
+  if (da !== db) return da < db ? -1 : 1;
+  const na = a.indexOf("#") >= 0 ? parseInt(a.split("#")[1], 10) : 1;
+  const nb = b.indexOf("#") >= 0 ? parseInt(b.split("#")[1], 10) : 1;
+  return na - nb;
+}
+function ticketKeys() { return Object.keys(dataByDate).filter((k) => TICKET_KEY_RE.test(k)).sort(ticketCmp); }
+function ticketNumberMap() { const m = {}; ticketKeys().forEach((k, i) => { m[k] = i + 1; }); return m; }
+function entryItemCount(e) {
+  const s = (e && e.sections) || {};
+  return ((s.parts || []).length) + ((s.consumables || []).length);
+}
+// Пустые заявки за прошедшие дни (создали и забыли) убираем, чтобы не копились номера.
+(function cleanupEmptyTickets() {
+  const t = todayStr();
+  let changed = false;
+  Object.keys(dataByDate).forEach((k) => {
+    if (TICKET_KEY_RE.test(k) && k.slice(0, 10) < t && entryItemCount(dataByDate[k]) === 0) { delete dataByDate[k]; changed = true; }
+  });
+  if (changed) { try { localStorage.setItem(DATA_BY_DATE_KEY, JSON.stringify(dataByDate)); } catch (e) {} }
+})();
+try {
+  const sel = sessionStorage.getItem("sklad2_sel_ticket");
+  if (sel && dataByDate[sel]) currentDate = sel;
+} catch (e) {}
 
 function entryFor(date) {
   if (!dataByDate[date]) {
@@ -647,17 +684,24 @@ function entryFor(date) {
   return dataByDate[date];
 }
 
-let sections = entryFor(currentDate).sections;
-let counts = entryFor(currentDate).counts;
-let checked = entryFor(currentDate).checked;
+let sections, counts, checked;
+// Привязывает рабочие переменные к выбранной заявке (или к пустой заглушке, если заявка не выбрана).
+function bindCurrent() {
+  if (currentDate && !dataByDate[currentDate]) currentDate = null;   // заявку удалили на другом устройстве
+  const e = currentDate ? entryFor(currentDate) : emptyEntry();
+  sections = e.sections; counts = e.counts; checked = e.checked;
+}
+bindCurrent();
 
 function persistCurrent() {
+  if (!currentDate) return;
   dataByDate[currentDate] = { sections, counts, checked };
   saveDataByDate();
 }
 // Локально, без синхронизации — используется при переключении даты
 // (сохраняем то, что уже было введено, но само переключение — не правка).
 function persistCurrentLocalOnly() {
+  if (!currentDate) return;
   dataByDate[currentDate] = { sections, counts, checked };
   try { localStorage.setItem(DATA_BY_DATE_KEY, JSON.stringify(dataByDate)); } catch (e) {}
 }
@@ -921,7 +965,7 @@ function renderSection(section) {
 function renderAll() {
   renderSection("parts");
   renderSection("consumables");
-  document.getElementById("dateDisplayText").textContent = formatShort(currentDate);
+  document.getElementById("dateDisplayText").textContent = currentDate ? formatShort(currentDate) : "—";
 }
 
 function itemAt(section, index) { return sections[section][index]; }
@@ -1790,35 +1834,107 @@ document.getElementById("printLabelGo").addEventListener("click", () => {
   printManualLabels(entries);
 });
 
-/* ==================== Переключение даты ==================== */
-const dateInput = document.getElementById("reportDate");
-dateInput.value = currentDate;
-dateInput.addEventListener("change", () => {
-  const newDate = dateInput.value;
-  if (!newDate || newDate === currentDate) return;
-  persistCurrentLocalOnly();
-  currentDate = newDate;
-  localStorage.setItem(LAST_DATE_KEY, currentDate);
-  const entry = entryFor(currentDate);
-  sections = entry.sections;
-  counts = entry.counts;
-  checked = entry.checked;
-  caHistory.reset();
-  renderAll();
-});
 
-/* --- Надёжное открытие календаря по клику/тапу в любом месте плашки с датой --- */
-const datePickerBox = document.getElementById("datePickerBox");
-datePickerBox.addEventListener("click", () => {
-  try {
-    if (typeof dateInput.showPicker === "function") {
-      dateInput.showPicker();
-    } else {
-      dateInput.focus();
-    }
-  } catch (err) {
-    dateInput.focus();
-  }
+/* ==================== Левый столбец: заявки на учёт ==================== */
+let ticketQuery = "", ticketSearchOpen = false;
+function pluralRu(n, a, b, c) {
+  const m = n % 10, h = n % 100;
+  return n + " " + (m === 1 && h !== 11 ? a : (m >= 2 && m <= 4 && (h < 10 || h >= 20) ? b : c));
+}
+function ticketDateLong(key) {
+  const [y, m, d] = key.slice(0, 10).split("-");
+  return d + "." + m + "." + String(y).slice(2);
+}
+function updateLayoutClasses() {
+  const cons = currentTab === "consumption";
+  document.body.classList.toggle("has-list", cons);
+  document.body.classList.toggle("no-ticket", cons && !currentDate);
+  document.body.classList.toggle("has-ticket", cons && !!currentDate);
+}
+function ticketMatches(key, e, q) {
+  // возвращает null (не подходит), [] (подходит по номеру/дате) или список найденных позиций
+  const num = ticketNumberMap()[key];
+  const head = ("№" + num + " " + num + " " + ticketDateLong(key) + " " + formatShort(key)).toLowerCase();
+  const found = [];
+  ["parts", "consumables"].forEach((s) => {
+    ((e.sections && e.sections[s]) || []).forEach((it) => {
+      const hay = ((it.name || "") + " " + (it.code || "")).toLowerCase();
+      if (hay.indexOf(q) !== -1) found.push({ it, s });
+    });
+  });
+  if (found.length) return found;
+  return head.indexOf(q) !== -1 ? [] : null;
+}
+function renderTicketList() {
+  const box = document.getElementById("ticketCards");
+  if (!box) return;
+  const nums = ticketNumberMap();
+  const q = ticketQuery.trim().toLowerCase();
+  const keys = ticketKeys().slice().reverse();   // новые сверху
+  const out = [];
+  keys.forEach((k) => {
+    const e = dataByDate[k];
+    let found = [];
+    if (q) { const r = ticketMatches(k, e, q); if (r === null) return; found = r; }
+    const cnt = entryItemCount(e);
+    const shown = found.slice(0, 6).map((f) => {
+      const qty = (e.counts || {})[countKey(f.s, f.it)] || 0;
+      return `<div class="t-hit"><span class="t-hit-name">${escapeHtml(f.it.name || "")}</span>`
+        + `<span class="t-hit-meta">${f.it.code ? escapeHtml(f.it.code) + " · " : ""}${qty} шт</span></div>`;
+    }).join("");
+    const more = found.length > 6 ? `<div class="t-hit-more">и ещё ${found.length - 6}</div>` : "";
+    out.push(`<button class="t-card${k === currentDate ? " sel" : ""}" data-key="${escapeHtml(k)}">`
+      + `<div class="t-row"><span class="mono">№ ${nums[k]}</span><span class="t-date">${ticketDateLong(k)}</span></div>`
+      + `<div class="t-sub">${pluralRu(cnt, "позиция", "позиции", "позиций")}</div>${shown}${more}</button>`);
+  });
+  box.innerHTML = out.length ? out.join("")
+    : `<div class="t-empty">${q ? "Ничего не найдено" : "Заявок на учёт нет. Создайте кнопкой «+»."}</div>`;
+}
+function afterTicketChange() {
+  caHistory.reset();
+  selectedCA.parts.clear(); selectedCA.consumables.clear();
+  renderAll();
+  renderTicketList();
+  updateAddPanelVisibility();
+  try { window.scrollTo(0, 0); } catch (e) {}
+}
+function selectTicket(key) {
+  if (key === currentDate) { afterTicketChange(); return; }
+  persistCurrentLocalOnly();
+  currentDate = key && dataByDate[key] ? key : null;
+  bindCurrent();
+  try { if (currentDate) sessionStorage.setItem("sklad2_sel_ticket", currentDate); else sessionStorage.removeItem("sklad2_sel_ticket"); } catch (e) {}
+  afterTicketChange();
+}
+function createTicket() {
+  persistCurrentLocalOnly();
+  const d = todayStr();
+  let key = d, n = 1;
+  while (dataByDate[key]) { n++; key = d + "#" + n; }
+  dataByDate[key] = emptyEntry();
+  currentDate = key;
+  bindCurrent();
+  saveDataByDate();
+  try { sessionStorage.setItem("sklad2_sel_ticket", currentDate); } catch (e) {}
+  afterTicketChange();
+}
+document.getElementById("ticketNewBtn").addEventListener("click", createTicket);
+document.getElementById("ticketBackBtn").addEventListener("click", () => selectTicket(null));
+document.getElementById("ticketCards").addEventListener("click", (e) => {
+  const c = e.target.closest(".t-card");
+  if (c) selectTicket(c.dataset.key);
+});
+document.getElementById("ticketSearchBtn").addEventListener("click", () => {
+  ticketSearchOpen = !ticketSearchOpen;
+  const box = document.getElementById("ticketSearchBox");
+  box.hidden = !ticketSearchOpen;
+  document.getElementById("ticketSearchBtn").classList.toggle("on", ticketSearchOpen);
+  if (ticketSearchOpen) document.getElementById("ticketSearchInput").focus();
+  else { ticketQuery = ""; document.getElementById("ticketSearchInput").value = ""; renderTicketList(); }
+});
+document.getElementById("ticketSearchInput").addEventListener("input", (e) => {
+  ticketQuery = e.target.value;
+  renderTicketList();
 });
 
 /* ==================== Экспорт в PDF (через печать) ==================== */
@@ -2477,7 +2593,8 @@ let currentTab = "consumption";
 function updateAddPanelVisibility() {
   const panel = document.getElementById("addPanelConsumption");
   if (!panel) return;
-  panel.style.display = currentTab === "consumption" ? "flex" : "none";
+  panel.style.display = (currentTab === "consumption" && currentDate) ? "flex" : "none";
+  updateLayoutClasses();
   syncStickyTopHeight();
 }
 
@@ -4329,7 +4446,8 @@ function isTypingNow() {
 function syncStickyTopHeight() {
   if (!stickyTopEl || !stickyTopPlaceholder) return;
   if (isTypingNow()) return; // не пересчитываем во время анимации клавиатуры
-  stickyTopPlaceholder.style.height = stickyTopEl.offsetHeight + "px";
+  const tb = document.getElementById("topbar");
+  stickyTopPlaceholder.style.height = (stickyTopEl.offsetHeight + (tb ? tb.offsetHeight : 0)) + "px";
 }
 window.addEventListener("resize", syncStickyTopHeight);
 // Оставлено под старым именем, чтобы не переписывать остальные места
@@ -4737,8 +4855,10 @@ document.getElementById("manualSyncBtn").addEventListener("click", manualSync);
 document.getElementById("manualPushBtn").addEventListener("click", manualPush);
 document.getElementById("manualPullBtn").addEventListener("click", manualPull);
 function refreshAfterSyncChange() {
+  bindCurrent();
   updateAddPanelVisibility();
   renderAll();
+  renderTicketList();
 }
 
 let syncTimer = null;
@@ -4798,14 +4918,9 @@ function setSyncStatus(state, text) {
   else if (state === "ok") lastSyncErrorText = "";
   const dot = document.getElementById("syncDot");
   const line = document.getElementById("syncStatusLine");
-  const pill = document.getElementById("syncMenuStatus");
   if (dot) {
     dot.classList.toggle("err", state === "err" || state === "off");
     dot.classList.toggle("busy", state === "syncing");
-  }
-  if (pill) {
-    pill.textContent = state === "err" ? "ошибка" : state === "off" ? "нет входа" : state === "syncing" ? "обмен…" : "";
-    pill.classList.toggle("err", state === "err" || state === "off");
   }
   if (line) {
     line.textContent = text || "";
@@ -5117,14 +5232,7 @@ function applySyncPayload(payload) {
       bestStock = payload.bestStock;
       saveBestStock(bestStock);
     }
-    if (payload.currentDate) {
-      currentDate = payload.currentDate;
-      try { localStorage.setItem(LAST_DATE_KEY, currentDate); } catch (e) {}
-    }
-    const entry = entryFor(currentDate);
-    sections = entry.sections;
-    counts = entry.counts;
-    checked = entry.checked;
+    bindCurrent();   // выбранная заявка остаётся своей на каждом устройстве
     // С сервера могли прийти позиции со старыми названиями (метка версии
     // ещё в тексте) — сразу прогоняем автопростановку модели, иначе
     // результат локальной миграции затирался каждым получением данных.
@@ -5143,8 +5251,9 @@ function applySyncPayload(payload) {
     whHistory.reset();
     ocHistory.reset();
     rebuildCrossIndexes();
-    dateInput.value = currentDate;
     renderAll();
+    renderTicketList();
+    updateAddPanelVisibility();
     renderWarehouseAll();
     renderOneCAll();
     try { renderTransferList(); } catch (e) {}
@@ -5576,7 +5685,7 @@ function openSyncModal() {
 function closeSyncModal() {
   closeModal("syncOverlay");
 }
-document.getElementById("syncMenuBtn").addEventListener("click", openSyncModal);
+document.getElementById("profileBtn").addEventListener("click", openSyncModal);
 document.getElementById("syncClose").addEventListener("click", closeSyncModal);
 document.getElementById("syncOverlay").addEventListener("click", (e) => {
   if (e.target.id === "syncOverlay") closeSyncModal();
@@ -5636,6 +5745,8 @@ document.addEventListener("click", (e) => {
 loadSortState();
 reapplySavedSort();
 renderAll();
+renderTicketList();
+updateAddPanelVisibility();
 renderWarehouseAll();
 renderOneCAll();
 
