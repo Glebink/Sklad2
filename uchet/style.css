@@ -1105,6 +1105,7 @@
     width: 48px;
     text-align: center;
   }
+  .add-panel.one-row #newItemQty { width: 60px; }
   .add-panel.one-row button.util {
     flex: 0 0 auto;
     width: 44px;

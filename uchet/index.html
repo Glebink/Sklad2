@@ -85,7 +85,7 @@
       <input type="text" id="newItemName" placeholder="начните вводить название" autocomplete="off">
       <button type="button" class="add-clear" id="newItemClear" title="Очистить">✕</button>
     </div>
-    <input type="number" id="newItemQty" min="1" placeholder="1" title="Количество (если пусто — 1)">
+    <input type="text" id="newItemQty" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="1" title="Количество (если пусто — 1)">
     <button class="util primary" id="addItemBtn" title="Добавить">+</button>
     <!-- Подсказки — прямой потомок панели, а не обёртки поля: обёртке нужен
          position:relative под крестик, и подсказки иначе сузились бы до
@@ -299,6 +299,17 @@
 </div>
 
 <div id="printArea"></div>
+
+<!-- Подтверждение создания заявки на учёт -->
+<div class="modal-overlay" id="newTicketOverlay">
+  <div class="modal-box">
+    <p id="newTicketText">Создать заявку на учёт?</p>
+    <div class="modal-actions">
+      <button class="confirm-no" id="newTicketNo">Отмена</button>
+      <button class="confirm-yes accent" id="newTicketYes">Создать</button>
+    </div>
+  </div>
+</div>
 
 <!-- Модалка подтверждения удаления -->
 <div class="modal-overlay" id="confirmOverlay">

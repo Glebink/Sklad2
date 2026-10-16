@@ -1389,10 +1389,22 @@ newItemInput.addEventListener("input", () => {
     addPicked = r;
     newItemInput.value = r.name;
     updateNewItemClear();
+    newItemQtyInput.focus();   // после выбора из списка сразу ввод количества
   }, { ocQty: true });
 });
 
 registerSuggestZone(addSuggestBox, [newItemInput]);
+
+/* Поле количества: только цифры; пустое = 1 (серая подсказка, не мешает вводу);
+   при входе в поле содержимое выделяется, чтобы набор заменял его, а не дописывался. */
+const newItemQtyInput = document.getElementById("newItemQty");
+newItemQtyInput.addEventListener("input", () => {
+  const d = newItemQtyInput.value.replace(/\D+/g, "");
+  if (d !== newItemQtyInput.value) newItemQtyInput.value = d;
+});
+newItemQtyInput.addEventListener("focus", () => {
+  setTimeout(() => { try { newItemQtyInput.select(); } catch (e) {} }, 0);
+});
 
 document.getElementById("addItemBtn").addEventListener("click", () => {
   // Раздел определяет выбранная из подсказок позиция; ввод вручную — «Детали».
@@ -1918,7 +1930,20 @@ function createTicket() {
   try { sessionStorage.setItem("sklad2_sel_ticket", currentDate); } catch (e) {}
   afterTicketChange();
 }
-document.getElementById("ticketNewBtn").addEventListener("click", createTicket);
+document.getElementById("ticketNewBtn").addEventListener("click", () => {
+  const n = ticketKeys().length + 1;
+  document.getElementById("newTicketText").textContent =
+    "Создать новую заявку на учёт № " + n + " за " + formatFull(todayStr()) + "?";
+  openModal("newTicketOverlay");
+});
+document.getElementById("newTicketNo").addEventListener("click", () => closeModal("newTicketOverlay"));
+document.getElementById("newTicketOverlay").addEventListener("click", (e) => {
+  if (e.target.id === "newTicketOverlay") closeModal("newTicketOverlay");
+});
+document.getElementById("newTicketYes").addEventListener("click", () => {
+  closeModal("newTicketOverlay");
+  createTicket();
+});
 document.getElementById("ticketBackBtn").addEventListener("click", () => selectTicket(null));
 document.getElementById("ticketCards").addEventListener("click", (e) => {
   const c = e.target.closest(".t-card");
