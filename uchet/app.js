@@ -5205,10 +5205,132 @@ function syncErrText(e) {
 
 // policy: "safe" — без потерь, расхождения не трогаем; "mine" — данные этого
 // устройства главнее; "server" — данные сервера главнее.
+
+/* ==================== Автоматическое слияние правок ====================
+   Если данные изменились и здесь, и на сервере, пробуем объединить их «по трём
+   сторонам»: БАЗА (то, что было при последнем обмене), МОИ и СЕРВЕРНЫЕ.
+   Правки разных позиций складываются; количества, которые изменили оба,
+   складываются как разницы (база 10, у меня 9, на сервере 8 → 7). Позиция,
+   удалённая одной стороной и не тронутая другой, удаляется. Правка важнее
+   удаления: изменённая позиция не пропадает. Если базы нет или формат
+   неожиданный — слияние не делаем, остаётся вопрос «чьи данные оставить». */
+const SYNC_BASE_KEY = "sklad2_sync_base_v1";
+function loadSyncBase() {
+  try { const b = JSON.parse(localStorage.getItem(SYNC_BASE_KEY)); return b && typeof b === "object" ? b : {}; }
+  catch (e) { return {}; }
+}
+function saveSyncBase(b) {
+  try { localStorage.setItem(SYNC_BASE_KEY, JSON.stringify(b)); }
+  catch (e) { try { localStorage.removeItem(SYNC_BASE_KEY); } catch (e2) {} }   // не влезло — слияния не будет, остаётся ручной выбор
+}
+function mEq(a, b) { return canonJson(a) === canonJson(b); }
+function mClone(v) { return v === undefined ? undefined : JSON.parse(JSON.stringify(v)); }
+// Одно поле: кто поменял относительно базы — того и значение. Оба — числа: складываем разницы.
+function mergeField(b, l, r, numeric) {
+  if (mEq(l, r)) return l;
+  if (mEq(l, b)) return r;
+  if (mEq(r, b)) return l;
+  if (numeric && typeof l === "number" && typeof r === "number") return Math.max(0, l + r - (typeof b === "number" ? b : 0));
+  return l;   // оба поменяли по-разному, не числа — остаётся моё
+}
+function mergeObj(b, l, r, numericKeys) {
+  b = b || {};
+  const out = {};
+  const keys = new Set([].concat(Object.keys(b), Object.keys(l), Object.keys(r)));
+  keys.forEach((k) => {
+    const inL = k in l, inR = k in r;
+    if (!inL && !inR) return;
+    if (inL && !inR) { if (k in b && mEq(l[k], b[k])) return; out[k] = l[k]; return; }
+    if (!inL && inR) { if (k in b && mEq(r[k], b[k])) return; out[k] = r[k]; return; }
+    out[k] = mergeField(b[k], l[k], r[k], numericKeys && numericKeys.indexOf(k) !== -1);
+  });
+  return out;
+}
+// Список позиций. Порядок — как на сервере, мои новые дописываются в конец.
+function mergeItemList(section, bl, ll, rl, mergeItem) {
+  const idOf = (it) => countKey(section, it);
+  const map = (arr) => { const m = new Map(); (arr || []).forEach((it) => { const k = idOf(it); if (!m.has(k)) m.set(k, it); }); return m; };
+  const bm = map(bl), lm = map(ll), rm = map(rl);
+  const out = [];
+  (rl || []).forEach((r) => {
+    const k = idOf(r);
+    if (lm.has(k)) { out.push(mergeItem(bm.get(k), lm.get(k), r)); return; }
+    if (bm.has(k) && mEq(bm.get(k), r)) return;     // я удалил, на сервере не трогали — удаляем
+    out.push(r);                                      // новая на сервере или там правили — оставляем
+  });
+  (ll || []).forEach((l) => {
+    const k = idOf(l);
+    if (rm.has(k)) return;
+    if (bm.has(k) && mEq(bm.get(k), l)) return;     // на сервере удалили, у меня не трогали — удаляем
+    out.push(l);                                      // моя новая или я правил — оставляем
+  });
+  return out;
+}
+function mergeStockItem(b, l, r) { return mergeObj(b, l, r, ["qty"]); }
+function mergeDayEntry(b, l, r) {
+  b = b || { sections: { parts: [], consumables: [] }, counts: {}, checked: {} };
+  const out = mergeObj(b, l, r, null);
+  const sb = b.sections || {}, sl = l.sections || {}, sr = r.sections || {};
+  out.sections = {};
+  ["parts", "consumables"].forEach((s) => {
+    out.sections[s] = mergeItemList(s, sb[s], sl[s], sr[s], (bi, li, ri) => mergeObj(bi, li, ri, null));
+  });
+  const alive = new Set();
+  ["parts", "consumables"].forEach((s) => out.sections[s].forEach((it) => alive.add(countKey(s, it))));
+  const counts = {}, chk = {};
+  const ck = new Set([].concat(Object.keys(b.counts || {}), Object.keys(l.counts || {}), Object.keys(r.counts || {})));
+  ck.forEach((k) => {
+    if (!alive.has(k)) return;
+    const lc = (l.counts || {})[k], rc = (r.counts || {})[k], bc = (b.counts || {})[k];
+    const v = mergeField(bc, lc, rc, true);
+    if (v !== undefined) counts[k] = v;
+  });
+  const kk = new Set([].concat(Object.keys(b.checked || {}), Object.keys(l.checked || {}), Object.keys(r.checked || {})));
+  kk.forEach((k) => {
+    if (!alive.has(k)) return;
+    const v = mergeField((b.checked || {})[k], (l.checked || {})[k], (r.checked || {})[k], false);
+    if (v !== undefined) chk[k] = v;
+  });
+  out.counts = counts; out.checked = chk;
+  return out;
+}
+// Возвращает слитое значение или null, если слить нельзя.
+function mergeSyncValue(rk, B, L, R) {
+  try {
+    if (B === undefined || B === null || L === undefined || R === undefined) return null;
+    if (rk === "potreblenie_data_by_date_v3") {
+      const out = {};
+      const dates = new Set([].concat(Object.keys(B), Object.keys(L), Object.keys(R)));
+      dates.forEach((d) => {
+        const inL = d in L, inR = d in R, inB = d in B;
+        if (inL && inR) { out[d] = mEq(L[d], R[d]) ? L[d] : (mEq(L[d], B[d]) ? R[d] : (mEq(R[d], B[d]) ? L[d] : mergeDayEntry(B[d], L[d], R[d]))); return; }
+        if (inL) { if (inB && mEq(L[d], B[d])) return; out[d] = L[d]; return; }
+        if (inR) { if (inB && mEq(R[d], B[d])) return; out[d] = R[d]; }
+      });
+      return out;
+    }
+    if (rk === "potreblenie_warehouse_v1" || rk === "potreblenie_onec_v1") {
+      const out = mergeObj(B, L, R, null);
+      ["parts", "consumables"].forEach((s) => {
+        out[s] = mergeItemList(s, B[s], L[s], R[s], mergeStockItem);
+      });
+      return out;
+    }
+    if (rk === "potreblenie_transfer_list_v1") {
+      return mergeItemList("t", B, L, R, (b, l, r) => r);
+    }
+    if (rk === "potreblenie_best_stock_v1") {
+      return ((L && L.savedAt) || 0) > ((R && R.savedAt) || 0) ? L : R;   // это выгрузка целиком: берём более свежую
+    }
+  } catch (e) {}
+  return null;
+}
+
 async function runSync(policy) {
   const sbc = Auth.sb;
   const meta = loadSyncMeta();
-  const res = { pushed: [], pulled: [], conflicts: [], skipped: [] };
+  const res = { pushed: [], pulled: [], conflicts: [], skipped: [], merged: [], raced: false };
+  const base = loadSyncBase(), bases = {};
 
   // 1) что есть на сервере (только ключи и время)
   const head = await sbc.from("sklad_kv").select("key, updated_at").in("key", SYNC_KEYS);
@@ -5237,21 +5359,26 @@ async function runSync(policy) {
   }
 
   // 4) решаем по каждому ключу
-  const toPush = [], toPull = [];
+  const toPush = [], toPull = [], toMerge = [];
   for (const rk of SYNC_KEYS) {
     const L = local[rk], at = remoteAt[rk], m = meta[rk], R = remote[rk];
     if (!at) { if (L) toPush.push({ rk, insert: true }); continue; }   // на сервере ещё нет — ничего не теряем
     const cur = R ? R.at : at;
-    if (R && L && R.h === L.h) { meta[rk] = { at: R.at, h: L.h }; continue; }   // совпадают
+    if (R && L && R.h === L.h) { meta[rk] = { at: R.at, h: L.h }; bases[rk] = L.v; continue; }   // совпадают
     if (R && !isValidRemote(rk, R.value)) { res.skipped.push(rk); continue; }
     if (!L) { if (R && policy !== "mine") toPull.push(rk); continue; }   // у нас этого ключа нет
     const remoteChanged = !m || m.at !== cur;
     const localChanged = !m || m.h !== L.h;
     if (policy === "mine") toPush.push({ rk, at: cur, force: true });
     else if (policy === "server") { if (R) toPull.push(rk); }
-    else if (remoteChanged && localChanged) res.conflicts.push(rk);
+    else if (remoteChanged && localChanged) {
+      const mv = (R && m) ? mergeSyncValue(rk, base[rk], L.v, R.value) : null;
+      if (mv === null || mv === undefined) res.conflicts.push(rk);
+      else toMerge.push({ rk, value: mv, at: cur });
+    }
     else if (remoteChanged) { if (R) toPull.push(rk); }
     else if (localChanged) toPush.push({ rk, at: cur });
+    else if (m && m.h === L.h && m.at === cur) bases[rk] = L.v;   // ничего не менялось — запоминаем базу для будущих слияний
   }
 
   // 5) забираем с сервера
@@ -5259,7 +5386,18 @@ async function runSync(policy) {
     const payload = {};
     toPull.forEach((rk) => { payload[SYNC_FIELD[rk]] = remote[rk].value; });
     applySyncPayload(payload);
-    toPull.forEach((rk) => { meta[rk] = { at: remote[rk].at, h: remote[rk].h }; res.pulled.push(rk); });
+    toPull.forEach((rk) => { meta[rk] = { at: remote[rk].at, h: remote[rk].h }; bases[rk] = remote[rk].value; res.pulled.push(rk); });
+  }
+
+  // 5б) сливаем правки с обеих сторон: применяем результат у себя и отправляем на сервер
+  if (toMerge.length) {
+    const payload = {};
+    for (const mg of toMerge) {
+      payload[SYNC_FIELD[mg.rk]] = mg.value;
+      local[mg.rk] = { v: mg.value, h: await hashValue(mg.value) };
+    }
+    applySyncPayload(payload);
+    toMerge.forEach((mg) => { toPush.push({ rk: mg.rk, at: mg.at, merged: true }); res.merged.push(mg.rk); });
   }
 
   // 6) отправляем на сервер
@@ -5270,14 +5408,17 @@ async function runSync(policy) {
     else if (p.force) r = await sbc.from("sklad_kv").update({ value: L.v }).eq("key", p.rk).select("updated_at");
     else r = await sbc.from("sklad_kv").update({ value: L.v }).eq("key", p.rk).eq("updated_at", p.at).select("updated_at");
     if (r.error) {
-      if (r.error.code === "23505") { res.conflicts.push(p.rk); continue; }   // строку успели создать
+      if (r.error.code === "23505") { res.raced = true; continue; }   // строку успели создать — повторим обмен
       throw r.error;
     }
-    if (!r.data || !r.data.length) { res.conflicts.push(p.rk); continue; }    // строку успели изменить
+    if (!r.data || !r.data.length) { res.raced = true; continue; }    // строку успели изменить — повторим обмен
     meta[p.rk] = { at: r.data[0].updated_at, h: L.h };
+    bases[p.rk] = L.v;
     res.pushed.push(p.rk);
   }
   saveSyncMeta(meta);
+  Object.keys(bases).forEach((k) => { base[k] = mClone(bases[k]); });
+  saveSyncBase(base);
   return res;
 }
 
@@ -5295,7 +5436,15 @@ async function syncNow(policy, opts) {
   setSyncStatus("syncing", "Обмен с сервером…");
   let out;
   try {
-    const r = await runSync(policy || "safe");
+    // Если сервер успели изменить между чтением и записью, повторяем обмен (до 3 раз):
+    // при повторе правки сольются или подтянутся, спрашивать пользователя не нужно.
+    let r = await runSync(policy || "safe");
+    for (let i = 0; i < 3 && r.raced; i++) {
+      const r2 = await runSync(policy || "safe");
+      ["pushed", "pulled", "merged", "skipped"].forEach((f) => { r2[f] = r[f].concat(r2[f]); });
+      r = r2;
+    }
+    if (r.raced) throw new Error("данные на сервере часто меняются, повторим позже");
     if (r.conflicts.length) {
       const meta0 = loadSyncMeta();
       const firstTime = r.conflicts.every((k) => !meta0[k]);
@@ -5310,6 +5459,7 @@ async function syncNow(policy, opts) {
       markSyncedTo(startedAt, (r.pushed.length || r.pulled.length) ? buildSyncPayload() : null,
                    r.pulled.length && !r.pushed.length ? "pull" : "push");
       const parts = [];
+      if (r.merged.length) parts.push("объединено с правками другого устройства: " + names(r.merged));
       if (r.pushed.length) parts.push("отправлено: " + names(r.pushed));
       if (r.pulled.length) parts.push("загружено: " + names(r.pulled));
       if (r.skipped.length) parts.push("пропущено (неверный формат на сервере): " + names(r.skipped));
