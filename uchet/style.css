@@ -1414,3 +1414,15 @@ body.shift-ro.ca-search-collapsed[data-tab="consumption"]:not(.no-ticket) .ca-se
 /* Минималистичная шапка: без карточки (рамка, тень, подложка), цвет фона страницы */
 .sticky-top { background: var(--bg); border: none; box-shadow: none; border-radius: 0; padding: 0 0 6px; }
 .sticky-top .add-panel { margin: 0; padding: 6px 0; }
+
+@media (min-width: 900px) {
+  /* Учёт на ПК: колонка кода вдвое уже, наименование шире */
+  #viewConsumption table { table-layout: fixed; width: 100%; }
+  #viewConsumption thead th:nth-child(1) { width: 56px; }
+  #viewConsumption thead th:nth-child(2) { width: 17%; }
+  #viewConsumption thead th:nth-child(4) { width: 56px; }
+  #viewConsumption thead th:nth-child(5) { width: 96px; }
+  #body-parts td.code, #body-consumables td.code { width: auto; min-width: 0; font-size: 18px; letter-spacing: .02em; overflow-wrap: anywhere; white-space: normal; }
+  /* Строка ввода: вдвое уже и по центру правой части (над таблицей) */
+  .sticky-top .add-panel.one-row, .sticky-top .add-panel.search-bar { width: 50%; margin-left: auto; margin-right: auto; }
+}
