@@ -2059,26 +2059,6 @@ document.addEventListener("click", (e) => {
   if (!e.target.closest(".oc-menu-wrap") && !e.target.closest(".oc-menu-panel")) closeAllOcMenus();
 });
 
-function handleWarehouseQtyEdit(e) {
-  const input = e.target.closest(".whQtyInput");
-  if (!input) return;
-  const section = input.dataset.section;
-  const index = parseInt(input.dataset.index, 10);
-  let val = parseInt(input.value, 10);
-  if (isNaN(val) || val < 0) val = 0;
-  if (warehouse[section][index].qty === val) { renderWarehouseSection(section); return; }
-  pushWhHistory();
-  warehouse[section][index].qty = val;
-  saveWarehouse();
-  renderWarehouseSection(section);
-}
-document.getElementById("wh-body-parts").addEventListener("change", handleWarehouseQtyEdit);
-document.getElementById("wh-body-consumables").addEventListener("change", handleWarehouseQtyEdit);
-["wh-body-parts","wh-body-consumables"].forEach((id) => {
-  document.getElementById(id).addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && e.target.classList.contains("whQtyInput")) e.target.blur();
-  });
-});
 
 /* ==================== Переключатель модели (3 положения) ====================
    Общие функции для .model-switch: читаем/ставим значение и подсвечиваем
@@ -3699,12 +3679,7 @@ function renderOneCSection(section) {
         ${item.model ? `<span class="ca-model-badge">${escapeHtml(String(item.model).replace(/^YGW\s*/i, ""))}</span>` : ""}
         ${whInfo ? "" : `<button class="oc-addwh oc-addwh-badge" data-section="${section}" data-index="${i}" title="Добавить эту позицию на склад">+</button>`}
       </td>
-      <td class="count-merged wh-merged oc-qty-cell">
-        <div class="count-tier count-tier-num">
-          <input type="number" min="0" value="${item.qty || 0}" class="ocQtyInput"
-            data-section="${section}" data-index="${i}">
-        </div>
-      </td>
+      <td class="wh-oc-qty">${item.qty || 0}</td>
       <td class="buttons oc-buttons">
         <div class="menu-wrap oc-menu-wrap">
           <button class="iconbtn oc-menu-btn" data-section="${section}" data-index="${i}" title="Действия">⋮</button>
@@ -3850,27 +3825,6 @@ function handleOneCClick(e) {
 document.getElementById("oc-body-parts").addEventListener("click", handleOneCClick);
 document.getElementById("oc-body-consumables").addEventListener("click", handleOneCClick);
 
-function handleOneCQtyEdit(e) {
-  const input = e.target.closest(".ocQtyInput");
-  if (!input) return;
-  const section = input.dataset.section;
-  const index = parseInt(input.dataset.index, 10);
-  let val = parseInt(input.value, 10);
-  if (isNaN(val) || val < 0) val = 0;
-  if (onec[section][index].qty === val) { renderOneCSection(section); return; }
-  pushOcHistory();
-  onec[section][index].qty = val;
-  saveOneC();
-  renderOneCSection(section);
-}
-document.getElementById("oc-body-parts").addEventListener("change", handleOneCQtyEdit);
-document.getElementById("oc-body-consumables").addEventListener("change", handleOneCQtyEdit);
-["oc-body-parts","oc-body-consumables"].forEach((id) => {
-  document.getElementById(id).addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && e.target.classList.contains("ocQtyInput")) e.target.blur();
-  });
-});
-
 /* --- удаление позиции 1C --- */
 function openConfirmOneC(section, index) {
   const item = onec[section][index];
@@ -3887,7 +3841,6 @@ function openOcEdit(section, index) {
   document.getElementById("ocEditSection").value = section;
   document.getElementById("ocEditCode").value = item.code || "";
   document.getElementById("ocEditName").value = item.name;
-  document.getElementById("ocEditQty").value = item.qty || 0;
   setModelSwitch(document.getElementById("ocEditModel"), item.model || "");
   openModal("ocEditOverlay");
 }
@@ -3905,8 +3858,6 @@ document.getElementById("ocEditSave").addEventListener("click", () => {
   const newSection = document.getElementById("ocEditSection").value;
   const code = document.getElementById("ocEditCode").value.trim();
   const name = document.getElementById("ocEditName").value.trim();
-  let qty = parseInt(document.getElementById("ocEditQty").value, 10);
-  if (isNaN(qty) || qty < 0) qty = 0;
   if (!name) { closeOcEdit(); return; }
   const sectionChanged = newSection !== section;
   // проверка дубля кода в целевом разделе
@@ -3917,7 +3868,8 @@ document.getElementById("ocEditSave").addEventListener("click", () => {
   }
   const model = getModelSwitch(document.getElementById("ocEditModel"));
   pushOcHistory();
-  const updated = { code, name, qty, model };
+  // остаток не правится вручную — только импортом из 1С
+  const updated = Object.assign({}, onec[section][index], { code, name, model });
   if (sectionChanged) {
     onec[section].splice(index, 1);
     onec[newSection].push(updated);
@@ -5399,7 +5351,7 @@ if (isShift()) {
 /* ==================== Поля количества: авто-ширина + курсор в конец ====================
    Ширина поля растёт вслед за введённым числом (не обрезает 1000+), а при
    тапе по уже заполненному полю курсор сразу встаёт после последней цифры. */
-const QTY_INPUT_SELECTOR = ".countInput, .whQtyInput, .ocQtyInput";
+const QTY_INPUT_SELECTOR = ".countInput";
 function autoSizeQtyInput(input) {
   const len = String(input.value || "").length;
   input.style.width = Math.max(len + 1.4, 2.4) + "ch";

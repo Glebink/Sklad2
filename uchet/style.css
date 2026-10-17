@@ -1451,7 +1451,6 @@ td.wh-empty { text-align: center; color: var(--muted); padding: 18px 8px; }
 #ocFilterPanel .oc-stock-row { display: flex; gap: 6px; align-items: center; border-top: 1px solid var(--border); padding-top: 8px; }
 #ocFilterPanel .oc-stock-row .util { flex: 1 1 auto; }
 #ocFilterPanel #ocFilterQty { width: 64px; flex: none; text-align: center; }
-td.oc-qty-cell { width: 72px; }
 #viewOneC td.name:has(.oc-addwh-badge) { padding-bottom: 30px; }   /* «+» внизу не налезает на модель в углу */
 #viewOneC td.buttons.oc-buttons { width: 56px; }
 @media (min-width: 900px) {
@@ -1465,5 +1464,4 @@ td.oc-qty-cell { width: 72px; }
 @media (max-width: 899px) {
   #viewOneC td.code { font-size: 11.5px; width: 104px; white-space: normal; overflow-wrap: anywhere; }
   #viewOneC td.name { padding-right: 46px; }
-  td.oc-qty-cell { width: 44px; }
 }
