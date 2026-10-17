@@ -1848,7 +1848,6 @@ function openPrintLabelModal() {
 function closePrintLabelModal() {
   closeModal("printLabelOverlay");
 }
-document.getElementById("printLabelBtn").addEventListener("click", openPrintLabelModal);
 document.getElementById("printLabelCancel").addEventListener("click", closePrintLabelModal);
 document.getElementById("printLabelOverlay").addEventListener("click", (e) => {
   if (e.target.id !== "printLabelOverlay") return;
@@ -2484,10 +2483,14 @@ function switchTab(target) {
     document.getElementById(btnId).classList.toggle("active", on);
     document.getElementById(viewId).classList.toggle("active", on);
   });
-  const label = document.getElementById("tabsCurrentLabel");
+  const label = document.querySelector("#modMenuBtn .brand-label");
   if (label) label.textContent = TAB_LABELS[target];
   const panel = document.getElementById("tabsMenuPanel");
   if (panel) panel.classList.remove("open");
+  const modPanel = document.getElementById("modMenuPanel");
+  if (modPanel) modPanel.classList.remove("open");
+  const modBtn = document.getElementById("modUchetBtn");
+  if (modBtn) modBtn.setAttribute("aria-expanded", "false");
 
   // 2) Остальное — в защищённом блоке: даже если что-то упадёт,
   //    вкладка уже переключилась и экран не «залипнет».
@@ -2512,15 +2515,12 @@ function tabTargetFromId(id) {
   if (id === "tabOneCBtn") return "onec";
   return "consumption";
 }
-document.getElementById("tabsCurrentBtn").addEventListener("click", (e) => {
+// «Учёт потребления» в меню разделов раскрывает вложенный выбор: Учёт / Склад / 1С.
+document.getElementById("modUchetBtn").addEventListener("click", (e) => {
   e.stopPropagation();
-  document.getElementById("tabsMenuPanel").classList.toggle("open");
-});
-document.addEventListener("click", (e) => {
-  const panel = document.getElementById("tabsMenuPanel");
-  if (!panel.classList.contains("open")) return;
-  if (e.target.closest("#tabsMenuPanel") || e.target.closest("#tabsCurrentBtn")) return;
-  panel.classList.remove("open");
+  const sub = document.getElementById("tabsMenuPanel");
+  const open = sub.classList.toggle("open");
+  e.currentTarget.setAttribute("aria-expanded", open ? "true" : "false");
 });
 
 
@@ -5845,21 +5845,6 @@ document.getElementById("syncHistoryClose").addEventListener("click", () => {
 });
 document.getElementById("syncHistoryOverlay").addEventListener("click", (e) => {
   if (e.target.id === "syncHistoryOverlay") closeModal("syncHistoryOverlay");
-});
-
-/* ==================== Выпадающее меню действий (⋮) — Экспорт/История ==================== */
-document.getElementById("headMenuBtn").addEventListener("click", (e) => {
-  e.stopPropagation();
-  document.getElementById("headMenuPanel").classList.toggle("open");
-});
-document.querySelectorAll("#headMenuPanel button").forEach((btn) => {
-  btn.addEventListener("click", () => document.getElementById("headMenuPanel").classList.remove("open"));
-});
-document.addEventListener("click", (e) => {
-  const panel = document.getElementById("headMenuPanel");
-  if (!panel.classList.contains("open")) return;
-  if (e.target.closest("#headMenuPanel") || e.target.closest("#headMenuBtn")) return;
-  panel.classList.remove("open");
 });
 
 /* ==================== Меню разделов (Учёт потребления / Заявки на закупку) ==================== */
