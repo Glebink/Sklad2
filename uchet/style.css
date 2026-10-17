@@ -1464,10 +1464,26 @@ td.wh-empty { text-align: center; color: var(--muted); padding: 18px 8px; }
   .brand-btn { width: 252px; white-space: nowrap; }
   .brand-btn .brand-caret { margin-left: auto; }
 }
+/* «Учёт»: число — весь прямоугольник над «−/+» (без рамки-окна внутри) */
+td.count-merged .count-tier-num { padding: 0; }
+td.count-merged .count-tier-num input.countInput {
+  display: block; width: 100% !important; min-width: 0; margin: 0;
+  border: 0; border-radius: 0; background: transparent; box-shadow: none;
+  text-align: center; font-weight: 700; padding: 0 2px;
+}
+td.count-merged .count-tier-num input.countInput:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+@media (max-width: 899px) {
+  td.count-merged .count-tier-num input.countInput { height: 32px; font-size: 18px !important; }
+}
 /* «Учёт» на ПК: строки ниже (ширина колонок не меняется) — больше строк на экране без прокрутки */
 @media (min-width: 900px) {
-  #viewConsumption td { padding-top: 2px; padding-bottom: 2px; }
-  #viewConsumption td.count-merged .count-tier-num { padding: 4px 4px; }
-  #viewConsumption td.count-merged .count-tier-num input.countInput { height: 30px; font-size: 19px !important; padding: 2px; }
-  #viewConsumption td.count-merged .count-tier-pm .btn { padding: 5px 0; font-size: 17px; }
+  #viewConsumption td { padding-top: 1px; padding-bottom: 1px; }
+  #viewConsumption td.count-merged .count-tier-num { padding: 0; }
+  #viewConsumption td.count-merged .count-tier-num input.countInput { height: 32px; font-size: 20px !important; padding: 0 2px; }
+  #viewConsumption td.count-merged .count-tier-pm .btn { padding: 3px 0; font-size: 16px; line-height: 1; }
+  #viewConsumption .ca-del-badge { width: 20px; height: 20px; bottom: 3px; font-size: 11px; }
+  #viewConsumption .model-badges { top: 3px; font-size: 10px; }
 }
+/* «Учёт»: название не заезжает под подпись моделей в правом верхнем углу */
+#viewConsumption td.name:has(.model-badges) { padding-right: 64px; }
+@media (max-width: 899px) { #viewConsumption td.name:has(.model-badges) { padding-right: 56px; } }
