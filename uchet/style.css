@@ -1437,3 +1437,7 @@ body.shift-ro.ca-search-collapsed[data-tab="consumption"]:not(.no-ticket) .ca-se
 @media (min-width: 900px) {
   #viewConsumption, #viewWarehouse, #viewOneC { width: 85%; margin-left: auto; margin-right: auto; }
 }
+
+/* История сохранений: аккаунт рядом с цветной точкой; кнопка истории в списке заявок */
+.sync-history-by { position: absolute; right: 22px; bottom: 5px; font-size: 12px; color: var(--muted); }
+.u-list .t-tools .history-btn { margin-left: auto; margin-right: 8px; }

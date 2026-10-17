@@ -4730,7 +4730,8 @@ function runWarehouseExport() {
 }
 
 /* Кнопка в шапке работает в контексте активной вкладки */
-document.getElementById("exportBtn").addEventListener("click", () => {
+const exportBtnEl = document.getElementById("exportBtn");
+if (exportBtnEl) exportBtnEl.addEventListener("click", () => {
   if (document.getElementById("tabWarehouseBtn").classList.contains("active")) {
     runWarehouseExport();
   } else if (document.getElementById("tabOneCBtn").classList.contains("active")) {
@@ -5094,7 +5095,7 @@ function saveSyncHistoryList() {
 let syncHistory = loadSyncHistory();
 
 function addSyncHistoryEntry(kind, lines, status) {
-  syncHistory.unshift({ time: Date.now(), kind, lines, status: status || "ok" });
+  syncHistory.unshift({ time: Date.now(), kind, lines, status: status || "ok", by: MY_LOGIN || "" });
   if (syncHistory.length > SYNC_HISTORY_LIMIT) syncHistory.length = SYNC_HISTORY_LIMIT;
   saveSyncHistoryList();
   renderSyncHistory();
@@ -5250,6 +5251,7 @@ function renderSyncHistory() {
     return "<div class=\"sync-history-entry\">"
       + "<div class=\"sync-history-head\"><b>" + formatHistoryTime(entry.time) + "</b><span>" + kindLabel + "</span></div>"
       + "<pre class=\"sync-history-body\">" + body + "</pre>"
+      + (entry.by ? `<span class="sync-history-by">${escapeHtml(authorLabel(entry.by))}</span>` : "")
       + `<span class="sync-history-dot ${dotClass}" title="${dotTitle}"></span>`
       + "</div>";
   }).join("");
@@ -5303,6 +5305,7 @@ function flushLocalLog() {
   const now = Date.now();
   const top = syncHistory[0];
   const inGroup = top && top.kind === "local"
+                  && (top.by || "") === (MY_LOGIN || "")
                   && (now - (top.groupStart || top.time)) < LOCAL_LOG_GROUP_MS;
 
   let baseline;
@@ -5321,7 +5324,7 @@ function flushLocalLog() {
     top.lines = lines;                 // пересчитали группу целиком
     top.time = now;
   } else {
-    syncHistory.unshift({ time: now, groupStart: now, kind: "local", lines, status: "local" });
+    syncHistory.unshift({ time: now, groupStart: now, kind: "local", lines, status: "local", by: MY_LOGIN || "" });
     if (syncHistory.length > SYNC_HISTORY_LIMIT) syncHistory.length = SYNC_HISTORY_LIMIT;
   }
   saveSyncHistoryList();
