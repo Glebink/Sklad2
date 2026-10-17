@@ -1808,15 +1808,9 @@ function renderWarehouseSection(section) {
     const ocInfo = oneCInfoFor(item.code);
     return `<tr data-key="${escapeHtml(key)}" data-index="${i}"${picked.has(key) ? ' class="row-picked"' : ""}>
       <td class="num">${i + 1}</td>
-      <td class="code wh-code">${item.code ? `<span class="code-text" data-code="${escapeHtml(item.code)}">${formatCodeDisplay(item.code)}</span>` : "—"}${item.model ? `<span class="wh-model-badge">${escapeHtml(item.model)}</span>` : ""}</td>
-      <td class="name"><div class="main-name">${escapeHtml(item.name)}</div>${ocInfo ? altNameHtml(item.code, ocInfo, true) : ""}</td>
-      <td class="count-merged wh-merged">
-        <div class="count-tier count-tier-num">
-          <input type="number" min="0" value="${item.qty || 0}" class="whQtyInput"
-            data-section="${section}" data-index="${i}">
-        </div>
-        <div class="count-tier count-tier-oc">${ocInfo ? ocInfo.qty : "—"}</div>
-      </td>
+      <td class="code">${item.code ? `<span class="code-text" data-code="${escapeHtml(item.code)}">${formatCodeDisplay(item.code)}</span>` : "—"}</td>
+      <td class="name"><div class="main-name">${escapeHtml(item.name)}</div>${ocInfo ? altNameHtml(item.code, ocInfo, true) : ""}${item.model ? `<span class="ca-model-badge">${escapeHtml(item.model)}</span>` : ""}</td>
+      <td class="wh-oc-qty">${ocInfo ? ocInfo.qty : "—"}</td>
       <td class="buttons wh-buttons">
         <div class="menu-wrap wh-menu-wrap">
           <button class="iconbtn wh-menu-btn" data-section="${section}" data-index="${i}" title="Действия">⋮</button>
