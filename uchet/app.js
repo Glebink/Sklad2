@@ -1279,7 +1279,7 @@ function searchStore(store, query) {
       const name = (item.name || "").toLowerCase();
       const code = (item.code || "").toLowerCase();
       if (nameMatchesQuery(name, q) || code.includes(q)) {
-        results.push({ section, code: item.code || "", name: item.name, model: item.model || "" });
+        results.push({ section, code: item.code || "", name: item.name, model: item.model || "", model2: item.model2 || "" });
       }
     });
   });
@@ -1310,7 +1310,7 @@ function renderSuggestionsFrom(box, query, onPick, store, emptyText, opts) {
     // а float цепляется за ту строку, в которой объявлен. Иначе у названий,
     // переносящихся на две строки, число уезжало бы на вторую.
     return `<div class="suggest-item" data-idx="${idx}">${ocQty}
-       <span class="code">${escapeHtml(r.code || "—")}</span> — ${escapeHtml(r.name)}${r.model ? `<span class="suggest-model">${escapeHtml(r.model)}</span>` : ""}
+       <span class="code">${escapeHtml(r.code || "—")}</span> — ${escapeHtml(r.name)}${modelsOf(r).map((m) => `<span class="suggest-model">${escapeHtml(m)}</span>`).join("")}
      </div>`;
   }).join("");
   box.classList.add("open");
