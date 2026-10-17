@@ -2661,6 +2661,30 @@ SEARCH_TABS.forEach(({ key, bodyPrefix, getStore }) => {
   applySearchFns[key] = apply;
   input.addEventListener("input", apply);
 });
+/* Поиск по заявке в «Учёте» свёрнут до одной кнопки с лупой; по нажатию раскрывается вся строка,
+   а когда поле пустое и фокус ушёл — снова сворачивается. */
+(function () {
+  const bar = document.getElementById("caSearchBar");
+  const input = searchInputs.ca;
+  if (!bar || !input) return;
+  const btn = document.createElement("button");
+  btn.type = "button"; btn.id = "caSearchToggle"; btn.className = "iconbtn ca-search-toggle";
+  btn.title = "Поиск по заявке"; btn.setAttribute("aria-label", "Поиск по заявке");
+  btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
+  bar.parentNode.insertBefore(btn, bar);
+  document.body.dataset.tab = "consumption";
+  document.body.classList.add("ca-search-collapsed");
+  const setOpen = (o) => {
+    document.body.classList.toggle("ca-search-collapsed", !o);
+    if (o) setTimeout(() => { try { input.focus(); } catch (e) {} }, 0);
+    try { syncStickyTopHeight(true); } catch (e) {}
+  };
+  btn.addEventListener("click", () => setOpen(true));
+  input.addEventListener("blur", () => setTimeout(() => {
+    if (!input.value && !bar.contains(document.activeElement)) setOpen(false);
+  }, 250));
+  window.caSearchCollapse = () => setOpen(false);
+})();
 function applyCaSearch() { applySearchFns.ca(); }
 function applyWhSearch() { applySearchFns.wh(); }
 function applyOcSearch() { applySearchFns.oc(); }
@@ -2682,6 +2706,7 @@ function updateAddPanelVisibility() {
 /* Показывает строку поиска нужной вкладки, остальные прячет и очищает */
 function showSearchBarFor(tab) {
   currentTab = tab;
+  document.body.dataset.tab = tab;
   const map = {
     consumption: "ca",
     warehouse: "wh",

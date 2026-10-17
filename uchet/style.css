@@ -1381,3 +1381,13 @@ body.shift-ro .btn.plus, body.shift-ro .count-tier-plus, body.shift-ro .btn.minu
 @media (min-width: 900px) {
   #body-parts td.code, #body-consumables td.code { width: auto; min-width: 170px; font-size: 17px; font-weight: 700; color: var(--fg); }
 }
+
+/* Поиск по заявке: свёрнут до лупы, по нажатию раскрывается строка */
+.ca-search-toggle { display: none; align-self: flex-start; margin: 10px 0 0; }
+body.ca-search-collapsed[data-tab="consumption"]:not(.no-ticket) .ca-search-toggle { display: inline-flex; }
+body.ca-search-collapsed #caSearchBar { display: none !important; }
+/* Кнопка «+» по высоте полей ввода */
+.add-panel.one-row { align-items: stretch; }
+.add-panel.one-row button.util { height: auto; align-self: stretch; }
+.add-panel.one-row .add-name-wrap { align-items: stretch; }
+body:not(.ca-search-collapsed) .ca-search-toggle, body:not([data-tab="consumption"]) .ca-search-toggle, body.no-ticket .ca-search-toggle { display: none !important; }
