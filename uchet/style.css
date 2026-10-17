@@ -1459,3 +1459,8 @@ td.wh-empty { text-align: center; color: var(--muted); padding: 18px 8px; }
   white-space: nowrap; pointer-events: none;
 }
 .oc-import-btn { margin-left: auto; }
+/* Кнопка раздела («Учёт» / «Склад» / «1С») на ПК — того же размера, что и «Заявки на закупку» */
+@media (min-width: 900px) {
+  .brand-btn { width: 252px; white-space: nowrap; }
+  .brand-btn .brand-caret { margin-left: auto; }
+}

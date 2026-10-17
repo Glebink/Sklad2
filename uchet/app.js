@@ -2088,14 +2088,30 @@ function setModelSwitch(el, value) {
   });
 }
 function getModelSwitch(el) { return el.dataset.value || ""; }
+// Переключатель с data-multi="2": можно отметить до двух моделей (порядок нажатия:
+// первая — основная модель, вторая — model2); повторное нажатие снимает отметку.
+function setModelsSwitch(el, models) {
+  const list = (models || []).filter(Boolean).slice(0, 2);
+  el.dataset.value = list.join("|");
+  el.querySelectorAll(".ms-opt").forEach((btn) => {
+    btn.classList.toggle("active", list.indexOf(btn.dataset.model || "") !== -1);
+  });
+}
+function getModelsSwitch(el) { return (el.dataset.value || "").split("|").filter(Boolean); }
 document.querySelectorAll(".model-switch").forEach((el) => {
   el.addEventListener("click", (e) => {
     const btn = e.target.closest(".ms-opt");
     if (!btn) return;
     e.preventDefault();
-    setModelSwitch(el, btn.dataset.model || "");
+    const m = btn.dataset.model || "";
+    if (el.dataset.multi) {
+      let list = getModelsSwitch(el);
+      if (list.indexOf(m) !== -1) list = list.filter((x) => x !== m);
+      else { list.push(m); if (list.length > 2) list.shift(); }
+      setModelsSwitch(el, list);
+    } else setModelSwitch(el, m);
   });
-  setModelSwitch(el, "");
+  if (el.dataset.multi) setModelsSwitch(el, []); else setModelSwitch(el, "");
 });
 
 /* --- Редактирование позиции склада (код/название/кол-во) --- */
@@ -2107,8 +2123,7 @@ function openWhEdit(section, index) {
   document.getElementById("whEditCode").value = item.code;
   document.getElementById("whEditName").value = item.name;
   document.getElementById("whEditQty").value = item.qty || 0;
-  setModelSwitch(document.getElementById("whEditModel"), item.model || "");
-  setModelSwitch(document.getElementById("whEditModel2"), item.model2 || "");
+  setModelsSwitch(document.getElementById("whEditModel"), modelsOf(item));
   setModelSwitch(document.getElementById("whEditCat"), whCatOf(item));
   const box = document.getElementById("whEditSuggestBox");
   if (box) { box.classList.remove("open"); box.innerHTML = ""; }
@@ -2132,7 +2147,7 @@ document.getElementById("whEditSave").addEventListener("click", () => {
   const name = document.getElementById("whEditName").value.trim();
   let qty = parseInt(document.getElementById("whEditQty").value, 10);
   if (isNaN(qty) || qty < 0) qty = 0;
-  const model = getModelSwitch(document.getElementById("whEditModel"));
+  const [model = "", model2 = ""] = getModelsSwitch(document.getElementById("whEditModel"));
   if (!name) { closeWhEdit(); return; }
   const sectionChanged = newSection !== section;
 
@@ -2151,7 +2166,6 @@ document.getElementById("whEditSave").addEventListener("click", () => {
   pushWhHistory();
   const oldItem = warehouse[section][index];
   const oldKey = countKey(section, oldItem);
-  const model2 = readModel2("whEditModel2", model);
   const newItem = Object.assign({}, oldItem, { code, name, qty, model });
   if (model2) newItem.model2 = model2; else delete newItem.model2;
   const cat = getModelSwitch(document.getElementById("whEditCat"));
@@ -3513,11 +3527,6 @@ function syncModelByCode(code, model, model2) {
   });
   return changed;
 }
-// Вторая модель из переключателя: пустая или совпавшая с первой не сохраняется.
-function readModel2(id, model) {
-  const m2 = getModelSwitch(document.getElementById(id));
-  return m2 && m2 !== model ? m2 : "";
-}
 function warehouseInfoFor(code) {
   for (const c of codeVariants(code)) {
     if (warehouseIndex[c]) return warehouseIndex[c];
@@ -3870,8 +3879,7 @@ function openOcEdit(section, index) {
   document.getElementById("ocEditSection").value = section;
   document.getElementById("ocEditCode").value = item.code || "";
   document.getElementById("ocEditName").value = item.name;
-  setModelSwitch(document.getElementById("ocEditModel"), item.model || "");
-  setModelSwitch(document.getElementById("ocEditModel2"), item.model2 || "");
+  setModelsSwitch(document.getElementById("ocEditModel"), modelsOf(item));
   openModal("ocEditOverlay");
 }
 function closeOcEdit() {
@@ -3896,10 +3904,9 @@ document.getElementById("ocEditSave").addEventListener("click", () => {
       it.code === code && !(!sectionChanged && i === index));
     if (dup) { alert("Позиция с таким кодом уже есть в этом разделе 1C."); return; }
   }
-  const model = getModelSwitch(document.getElementById("ocEditModel"));
+  const [model = "", model2 = ""] = getModelsSwitch(document.getElementById("ocEditModel"));
   pushOcHistory();
   // остаток не правится вручную — только импортом из 1С
-  const model2 = readModel2("ocEditModel2", model);
   const updated = Object.assign({}, onec[section][index], { code, name, model });
   if (model2) updated.model2 = model2; else delete updated.model2;
   if (sectionChanged) {
@@ -4240,9 +4247,8 @@ function openOcToWh(section, index) {
   document.getElementById("ocToWhName").value = item.name;
   // Модель берём из позиции 1С; если там пусто — пробуем определить по
   // названию (метка wind/ygw в тексте), чтобы не выбирать руками.
-  setModelSwitch(document.getElementById("ocToWhModel"),
-    item.model || detectModelFromName(item.name) || "");
-  setModelSwitch(document.getElementById("ocToWhModel2"), item.model2 || "");
+  setModelsSwitch(document.getElementById("ocToWhModel"),
+    modelsOf(item).length ? modelsOf(item) : [detectModelFromName(item.name)]);
   openModal("ocToWhOverlay");
   setTimeout(() => {
     const n = document.getElementById("ocToWhName");
@@ -4268,8 +4274,7 @@ document.getElementById("ocToWhSave").addEventListener("click", () => {
   const code = item.code || "";
   if (code && warehouseInfoFor(code)) { alert("Позиция с таким кодом уже есть на складе."); closeOcToWh(); return; }
 
-  const model = getModelSwitch(document.getElementById("ocToWhModel"));
-  const model2 = readModel2("ocToWhModel2", model);
+  const [model = "", model2 = ""] = getModelsSwitch(document.getElementById("ocToWhModel"));
   pushWhHistory();
   const newWh = { code, name, qty, model };
   if (model2) newWh.model2 = model2;

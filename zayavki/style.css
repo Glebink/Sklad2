@@ -221,3 +221,8 @@ button.role-chip { background: transparent; cursor: pointer; }
 .mod-item { display: block; padding: 11px 14px; border-radius: 8px; color: var(--fg); text-decoration: none; font-weight: 600; font-size: 15px; white-space: nowrap; }
 .mod-item:active { background: var(--accent-soft); }
 .mod-item.active { background: var(--accent-soft); color: var(--accent-ink); }
+/* Кнопка раздела на ПК — того же размера, что и в «Учёте» */
+@media (min-width: 900px) {
+  .brand-btn { width: 252px; white-space: nowrap; }
+  .brand-btn .brand-caret { margin-left: auto; }
+}
