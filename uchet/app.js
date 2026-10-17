@@ -1347,8 +1347,11 @@ function searchStore(store, query) {
       }
     });
   });
-  return results.slice(0, 8);
+  // Порядок в подсказках: YGW 4.0 → YGW 5.0 → 9Bot → остальные (без серии); внутри группы — как в списке.
+  const rank = (m) => { const i = SUGGEST_MODEL_ORDER.indexOf(String(m || "").trim()); return i === -1 ? SUGGEST_MODEL_ORDER.length : i; };
+  return results.map((r, i) => ({ r, i })).sort((a, b) => (rank(a.r.model) - rank(b.r.model)) || (a.i - b.i)).map((x) => x.r).slice(0, 12);
 }
+const SUGGEST_MODEL_ORDER = ["YGW 4.0", "YGW 5.0", "9Bot"];
 function renderSuggestionsFrom(box, query, onPick, store, emptyText, opts) {
   const results = searchStore(store, query);
   if (!query.trim()) { box.classList.remove("open"); box.innerHTML = ""; return; }
