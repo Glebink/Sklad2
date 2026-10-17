@@ -637,6 +637,8 @@ let ROLE = null, MY_LOGIN = "";
   try { const c = window.Auth && Auth.cachedRole(); if (c) { ROLE = c.role; MY_LOGIN = c.login || ""; } } catch (e) {}
 })();
 function isShift() { return ROLE === "shift"; }
+// Удалять заявки на учёт может только аккаунт hleb (так же проверяет сервер).
+function canDeleteTickets() { return MY_LOGIN === "hleb"; }
 document.body.classList.toggle("role-shift", isShift());
 function loadCatalogLocal() {
   try {
@@ -698,7 +700,7 @@ function entryItemCount(e) {
 }
 // Пустые заявки за прошедшие дни (создали и забыли) убираем, чтобы не копились номера.
 (function cleanupEmptyTickets() {
-  if (isShift()) return;   // у сменщика заявки не удаляются
+  if (!canDeleteTickets()) return;   // заявки удаляет только hleb (сервер иначе отклонит обмен)
   const t = todayStr();
   let changed = false;
   Object.keys(dataByDate).forEach((k) => {
@@ -1186,7 +1188,7 @@ qtyAdjustInput.addEventListener("keydown", (e) => {
 
 /* ==================== Подтверждение удаления (общее для Склада; в «Учёте» удаление
    теперь происходит автоматически при списании количества до 0, см. applyQtyAdjust) ==================== */
-let pendingDelete = null; // { kind: 'reset'|'warehouse'|'onec'|'deleteAll', section, index }
+let pendingDelete = null; // { kind: 'reset'|'warehouse'|'onec'|'ticket', section, index }
 
 /* ==================== Подтверждение удаления/обнуления (общее для 3 вкладок) ====================
    Раньше у каждого вида удаления (склад, 1С, обнулить учёт, обнулить склад,
@@ -1233,16 +1235,18 @@ const DELETE_ACTIONS = {
     saveOneC();
     renderOneCAll();
   },
-  deleteAll: () => {
-    pushHistory();
-    sections.parts = [];
-    sections.consumables = [];
-    counts = {};
-    checked = {};
-    selectedCA.parts.clear();
-    selectedCA.consumables.clear();
-    persistCurrent();
-    renderAll();
+  ticket: () => {
+    const key = pendingDelete.section;          // ключ заявки
+    if (!canDeleteTickets() || !dataByDate[key]) return;
+    delete dataByDate[key];
+    if (localChecks[key]) { delete localChecks[key]; try { localStorage.setItem(CHECKS_KEY, JSON.stringify(localChecks)); } catch (e) {} }
+    if (currentDate === key) {
+      currentDate = null;
+      try { sessionStorage.removeItem("sklad2_sel_ticket"); } catch (e) {}
+    }
+    bindCurrent();
+    saveDataByDate();
+    afterTicketChange();
   },
 };
 document.getElementById("confirmYes").addEventListener("click", () => {
@@ -1252,11 +1256,6 @@ document.getElementById("confirmYes").addEventListener("click", () => {
   closeConfirm();
 });
 
-document.getElementById("deleteAllBtn").addEventListener("click", () => {
-  if (isShift()) return;
-  openConfirmDelete("deleteAll",
-    `Удалить ВСЕ позиции (детали и расходники) за ${formatFull(currentDate)}? Счётчики и сами строки будут стёрты полностью. Это можно отменить кнопкой ↶.`);
-});
 
 /* ==================== Поиск по складу/1С (автоподбор для панелей добавления/редактирования) ====================
    Раньше searchWarehouse/searchOneC и renderSuggestions/renderOneCSuggestions
@@ -1699,7 +1698,9 @@ function renderTicketList() {
     const more = found.length > 6 ? `<div class="t-hit-more">и ещё ${found.length - 6}</div>` : "";
     out.push(`<button class="t-card${k === currentDate ? " sel" : ""}" data-key="${escapeHtml(k)}">`
       + `<div class="t-row"><span class="mono">№ ${nums[k]}</span><span class="t-date">${ticketDateLong(k)}</span></div>`
-      + `<div class="t-sub">${pluralRu(cnt, "позиция", "позиции", "позиций")}</div>${shown}${more}`
+      + `<div class="t-sub">${pluralRu(cnt, "позиция", "позиции", "позиций")}</div>`
+      + (canDeleteTickets() ? `<span class="t-del" role="button" tabindex="0" data-del="${escapeHtml(k)}" title="Удалить заявку">🗑 Удалить</span>` : "")
+      + `${shown}${more}`
       + (e.by ? `<div class="t-author">${escapeHtml(authorLabel(e.by))}</div>` : "")
       + `</button>`);
   });
@@ -1760,6 +1761,17 @@ document.getElementById("newTicketYes").addEventListener("click", () => {
 });
 document.getElementById("ticketBackBtn").addEventListener("click", () => selectTicket(null));
 document.getElementById("ticketCards").addEventListener("click", (e) => {
+  const del = e.target.closest(".t-del");
+  if (del) {
+    e.stopPropagation();
+    if (!canDeleteTickets()) return;
+    const key = del.dataset.del;
+    const e2 = dataByDate[key];
+    if (!e2) return;
+    openConfirmDelete("ticket",
+      `Удалить заявку на учёт № ${ticketNumberMap()[key]} за ${formatFull(key)} (${pluralRu(entryItemCount(e2), "позиция", "позиции", "позиций")})? Удаление уйдёт на сервер и на все устройства.`, key);
+    return;
+  }
   const c = e.target.closest(".t-card");
   if (c) selectTicket(c.dataset.key === currentDate ? null : c.dataset.key);   // повторный тап снимает выбор
 });

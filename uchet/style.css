@@ -1268,7 +1268,7 @@ body.no-ticket .sticky-top { display: none; }
 
 /* Режим сменщика: только добавление и просмотр */
 body.role-shift .ca-del-badge,
-body.role-shift #undoBtn, body.role-shift #redoBtn, body.role-shift #deleteAllBtn,
+body.role-shift #undoBtn, body.role-shift #redoBtn,
 body.role-shift #tabWarehouseBtn, body.role-shift #tabOneCBtn,
 body.role-shift #headMenuBtn, body.role-shift #headMenuPanel,
 body.role-shift #backupSaveBtn, body.role-shift #backupLoadBtn, body.role-shift .shift-hide,
@@ -1487,3 +1487,7 @@ td.count-merged .count-tier-num input.countInput:focus { outline: 2px solid var(
 /* «Учёт»: название не заезжает под подпись моделей в правом верхнем углу */
 #viewConsumption td.name:has(.model-badges) { padding-right: 64px; }
 @media (max-width: 899px) { #viewConsumption td.name:has(.model-badges) { padding-right: 56px; } }
+/* Карточка заявки на учёт: «Удалить» под числом позиций (только у hleb) */
+.t-del { display: inline-block; margin-top: 6px; padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: 600;
+  color: var(--danger); border: 1px solid var(--border); background: transparent; cursor: pointer; }
+.t-del:hover { background: var(--s-new-bg); }
