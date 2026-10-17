@@ -192,16 +192,6 @@
 <!-- ===================== ВКЛАДКА: 1C ===================== -->
 <div class="view" id="viewOneC">
 
-  <div class="add-panel">
-    <select id="ocNewSection">
-      <option value="parts">Детали</option>
-      <option value="consumables">Расходники</option>
-    </select>
-    <input type="text" id="ocNewCode" class="code-input" placeholder="Код">
-    <input type="text" id="ocNewName" placeholder="Наименование">
-    <button class="btn plus" id="ocAddBtn">+ Добавить</button>
-    <button class="util" id="ocImportBtn" title="Импорт остатков из Excel">⬆ Импорт</button>
-  </div>
 
   <div class="section-head">
     <div class="menu-wrap oc-filter-wrap">
@@ -227,6 +217,7 @@
     <button class="iconbtn" id="ocUndoBtn" disabled title="Отменить последнее действие">↶</button>
     <button class="iconbtn" id="ocRedoBtn" disabled title="Повторить действие">↷</button>
     <span class="oc-filter-label" id="ocFilterLabel"></span>
+    <button class="util oc-import-btn" id="ocImportBtn" title="Импорт остатков из Excel">⬆ Импорт</button>
     <div class="spacer"></div>
   </div>
   <div class="table-scroll">
@@ -352,6 +343,13 @@
           <button type="button" class="ms-opt" data-model="YGW 5.0">5.0</button>
           <button type="button" class="ms-opt" data-model="9Bot">9Bot</button>
         </div>
+        <div class="field-label">Модель 2 (если подходит к двум)</div>
+        <div class="model-switch" id="whEditModel2" data-value="">
+          <button type="button" class="ms-opt" data-model="YGW 4.0">4.0</button>
+          <button type="button" class="ms-opt" data-model="">—</button>
+          <button type="button" class="ms-opt" data-model="YGW 5.0">5.0</button>
+          <button type="button" class="ms-opt" data-model="9Bot">9Bot</button>
+        </div>
       </div>
     </div>
     <div class="field-label">Категория</div>
@@ -387,6 +385,13 @@
           <button type="button" class="ms-opt" data-model="YGW 5.0">5.0</button>
           <button type="button" class="ms-opt" data-model="9Bot">9Bot</button>
         </div>
+        <div class="field-label">Модель 2 (если подходит к двум)</div>
+        <div class="model-switch" id="ocToWhModel2" data-value="">
+          <button type="button" class="ms-opt" data-model="YGW 4.0">4.0</button>
+          <button type="button" class="ms-opt" data-model="">—</button>
+          <button type="button" class="ms-opt" data-model="YGW 5.0">5.0</button>
+          <button type="button" class="ms-opt" data-model="9Bot">9Bot</button>
+        </div>
       </div>
     </div>
     <div class="modal-actions">
@@ -413,6 +418,13 @@
       <div class="flex-1-0">
         <div class="field-label">Модель</div>
         <div class="model-switch" id="ocEditModel" data-value="">
+          <button type="button" class="ms-opt" data-model="YGW 4.0">4.0</button>
+          <button type="button" class="ms-opt" data-model="">—</button>
+          <button type="button" class="ms-opt" data-model="YGW 5.0">5.0</button>
+          <button type="button" class="ms-opt" data-model="9Bot">9Bot</button>
+        </div>
+        <div class="field-label">Модель 2 (если подходит к двум)</div>
+        <div class="model-switch" id="ocEditModel2" data-value="">
           <button type="button" class="ms-opt" data-model="YGW 4.0">4.0</button>
           <button type="button" class="ms-opt" data-model="">—</button>
           <button type="button" class="ms-opt" data-model="YGW 5.0">5.0</button>

@@ -647,7 +647,7 @@ function loadCatalogLocal() {
 }
 function warehouseFromCatalog() {
   const c = loadCatalogLocal();
-  const conv = (a) => a.map((it) => ({ code: it.code || "", name: it.name || "", model: it.model || "", qty: 0 }));
+  const conv = (a) => a.map((it) => ({ code: it.code || "", name: it.name || "", model: it.model || "", model2: it.model2 || "", qty: 0 }));
   return { parts: conv(c.parts), consumables: conv(c.consumables) };
 }
 function loadWarehouse() {
@@ -986,7 +986,7 @@ function renderSection(section) {
     // Модель берём со склада по коду — показываем той же серой подписью
     // в углу, что и на вкладке «Склад».
     const whInfoForModel = item.code ? warehouseInfoFor(item.code) : null;
-    const modelLabel = (whInfoForModel && whInfoForModel.model) || "";
+    const caModels = modelsOf(whInfoForModel);
     const tr = document.createElement("tr");
     tr.dataset.key = key;
     tr.dataset.index = i;          // индекс в массиве: строки идут не по нему
@@ -995,7 +995,7 @@ function renderSection(section) {
       <td class="code">${item.code ? `<span class="code-text" data-code="${escapeHtml(item.code)}">${formatCodeDisplay(item.code)}</span>` : "—"}</td>
       <td class="name">
         ${escapeHtml(item.name)}
-        ${modelLabel ? `<span class="ca-model-badge">${escapeHtml(modelLabel)}</span>` : ""}
+        ${modelBadgesHtml(caModels, false)}
         <button class="ca-del-badge" data-section="${section}" data-index="${i}" title="Удалить строку">🗑</button>
       </td>
       <td class="check">
@@ -1769,6 +1769,22 @@ document.getElementById("ticketSearchInput").addEventListener("input", (e) => {
 });
 
 /* ==================== ВКЛАДКА СКЛАД: логика ==================== */
+/* ==================== Модели самоката у позиции ====================
+   У позиции до двух моделей: model (основная) и model2 (вторая, необязательная).
+   Показываются одна под другой в правом верхнем углу ячейки названия. */
+function modelsOf(it) {
+  const out = [];
+  if (!it) return out;
+  [it.model, it.model2].forEach((m) => { if (m && out.indexOf(m) === -1) out.push(m); });
+  return out;
+}
+function hasModel(it, m) { return modelsOf(it).indexOf(m) !== -1; }
+function modelBadgesHtml(models, stripYgw) {
+  if (!models || !models.length) return "";
+  return `<span class="model-badges">${models.map((m) =>
+    `<span>${escapeHtml(stripYgw ? String(m).replace(/^YGW\s*/i, "") : m)}</span>`).join("")}</span>`;
+}
+
 /* ==================== Категории склада ====================
    Фильтр: Самокаты (Все / YGW 5.0 / YGW 4.0 / 9Bot / Без модели), Инструменты,
    Расходники, Остальное. Категория позиции — поле cat (ставится в окне правки);
@@ -1811,8 +1827,8 @@ function saveWhFilter() {
 function whMatches(item) {
   if (whCatOf(item) !== whFilter.cat) return false;
   if (whFilter.cat !== "scooter" || whFilter.model === "all") return true;
-  if (whFilter.model === "none") return !item.model;
-  return (item.model || "") === whFilter.model;
+  if (whFilter.model === "none") return modelsOf(item).length === 0;
+  return hasModel(item, whFilter.model);
 }
 // Показать все позиции категории этой позиции (для перехода к строке, скрытой фильтром).
 function whFilterShowItem(item) {
@@ -1839,7 +1855,7 @@ function renderWarehouseSection(section) {
     return `<tr data-key="${escapeHtml(key)}" data-index="${i}"${picked.has(key) ? ' class="row-picked"' : ""}>
       <td class="num"></td>
       <td class="code">${item.code ? `<span class="code-text" data-code="${escapeHtml(item.code)}">${formatCodeDisplay(item.code)}</span>` : "—"}</td>
-      <td class="name"><div class="main-name">${escapeHtml(item.name)}</div>${ocInfo ? altNameHtml(item.code, ocInfo, true) : ""}${item.model ? `<span class="ca-model-badge">${escapeHtml(String(item.model).replace(/^YGW\s*/i, ""))}</span>` : ""}</td>
+      <td class="name"><div class="main-name">${escapeHtml(item.name)}</div>${ocInfo ? altNameHtml(item.code, ocInfo, true) : ""}${modelBadgesHtml(modelsOf(item), true)}</td>
       <td class="wh-oc-qty">${ocInfo ? ocInfo.qty : "—"}</td>
       <td class="buttons wh-buttons">
         <div class="menu-wrap wh-menu-wrap">
@@ -2092,6 +2108,7 @@ function openWhEdit(section, index) {
   document.getElementById("whEditName").value = item.name;
   document.getElementById("whEditQty").value = item.qty || 0;
   setModelSwitch(document.getElementById("whEditModel"), item.model || "");
+  setModelSwitch(document.getElementById("whEditModel2"), item.model2 || "");
   setModelSwitch(document.getElementById("whEditCat"), whCatOf(item));
   const box = document.getElementById("whEditSuggestBox");
   if (box) { box.classList.remove("open"); box.innerHTML = ""; }
@@ -2134,7 +2151,9 @@ document.getElementById("whEditSave").addEventListener("click", () => {
   pushWhHistory();
   const oldItem = warehouse[section][index];
   const oldKey = countKey(section, oldItem);
+  const model2 = readModel2("whEditModel2", model);
   const newItem = Object.assign({}, oldItem, { code, name, qty, model });
+  if (model2) newItem.model2 = model2; else delete newItem.model2;
   const cat = getModelSwitch(document.getElementById("whEditCat"));
   if (WH_CATS[cat]) newItem.cat = cat;
   const newKey = countKey(newSection, newItem);
@@ -2150,7 +2169,7 @@ document.getElementById("whEditSave").addEventListener("click", () => {
   selectedWH[section].delete(oldKey);
   if (wasPicked) selectedWH[newSection].add(newKey);
 
-  syncModelByCode(code, model);   // модель едина для склада и 1С
+  syncModelByCode(code, model, model2);   // модели едины для склада и 1С
   saveWarehouse();
   saveOneCLocalOnly();
   renderOneCAll();
@@ -3437,7 +3456,7 @@ function buildWarehouseIndex() {
   ["parts", "consumables"].forEach((section) => {
     warehouse[section].forEach((it, index) => {
       codeVariants(it.code).forEach((c) => {
-        if (!map[c]) map[c] = { name: it.name, qty: it.qty || 0, code: it.code, model: it.model || "", section, index };
+        if (!map[c]) map[c] = { name: it.name, qty: it.qty || 0, code: it.code, model: it.model || "", model2: it.model2 || "", section, index };
       });
     });
   });
@@ -3472,7 +3491,8 @@ function oneCMatchesFor(code) {
 /* Модель — свойство самой детали, а не списка, поэтому держим её
    одинаковой на «Складе» и в «1С». Меняешь в одном месте — меняется в
    обоих; сопоставляем по коду. */
-function syncModelByCode(code, model) {
+// model2 === undefined — вторую модель не трогаем.
+function syncModelByCode(code, model, model2) {
   if (!code) return 0;
   const want = codeVariants(code);
   let changed = 0;
@@ -3481,13 +3501,22 @@ function syncModelByCode(code, model) {
       store[section].forEach((it) => {
         if (!it.code) return;
         if (!codeVariants(it.code).some((v) => want.includes(v))) return;
-        if ((it.model || "") === (model || "")) return;
-        it.model = model;
-        changed++;
+        let ch = false;
+        if ((it.model || "") !== (model || "")) { it.model = model; ch = true; }
+        if (model2 !== undefined && (it.model2 || "") !== (model2 || "")) {
+          if (model2) it.model2 = model2; else delete it.model2;
+          ch = true;
+        }
+        if (ch) changed++;
       });
     });
   });
   return changed;
+}
+// Вторая модель из переключателя: пустая или совпавшая с первой не сохраняется.
+function readModel2(id, model) {
+  const m2 = getModelSwitch(document.getElementById(id));
+  return m2 && m2 !== model ? m2 : "";
 }
 function warehouseInfoFor(code) {
   for (const c of codeVariants(code)) {
@@ -3651,8 +3680,8 @@ function ocMatches(item) {
   if (ocCatOf(item) !== ocFilter.cat) return false;
   if (ocFilter.stock && !((item.qty || 0) < (ocFilter.qty || 0))) return false;
   if (ocFilter.cat !== "scooter" || ocFilter.model === "all") return true;
-  if (ocFilter.model === "none") return !item.model;
-  return (item.model || "") === ocFilter.model;
+  if (ocFilter.model === "none") return modelsOf(item).length === 0;
+  return hasModel(item, ocFilter.model);
 }
 function ocFilterShowItem(item) {
   ocFilter = { cat: ocCatOf(item), model: "all", stock: false, qty: ocFilter.qty };
@@ -3676,7 +3705,7 @@ function renderOneCSection(section) {
       <td class="name">
         <div class="main-name">${escapeHtml(item.name)}</div>
         ${altNameHtml(item.code, whInfo, true)}
-        ${item.model ? `<span class="ca-model-badge">${escapeHtml(String(item.model).replace(/^YGW\s*/i, ""))}</span>` : ""}
+        ${modelBadgesHtml(modelsOf(item), true)}
         ${whInfo ? "" : `<button class="oc-addwh oc-addwh-badge" data-section="${section}" data-index="${i}" title="Добавить эту позицию на склад">+</button>`}
       </td>
       <td class="wh-oc-qty">${item.qty || 0}</td>
@@ -3842,6 +3871,7 @@ function openOcEdit(section, index) {
   document.getElementById("ocEditCode").value = item.code || "";
   document.getElementById("ocEditName").value = item.name;
   setModelSwitch(document.getElementById("ocEditModel"), item.model || "");
+  setModelSwitch(document.getElementById("ocEditModel2"), item.model2 || "");
   openModal("ocEditOverlay");
 }
 function closeOcEdit() {
@@ -3869,14 +3899,16 @@ document.getElementById("ocEditSave").addEventListener("click", () => {
   const model = getModelSwitch(document.getElementById("ocEditModel"));
   pushOcHistory();
   // остаток не правится вручную — только импортом из 1С
+  const model2 = readModel2("ocEditModel2", model);
   const updated = Object.assign({}, onec[section][index], { code, name, model });
+  if (model2) updated.model2 = model2; else delete updated.model2;
   if (sectionChanged) {
     onec[section].splice(index, 1);
     onec[newSection].push(updated);
   } else {
     onec[section][index] = updated;
   }
-  syncModelByCode(code, model);   // модель едина для склада и 1С
+  syncModelByCode(code, model, model2);   // модель едина для склада и 1С
   saveOneC();
   saveWarehouseLocalOnly();
   renderWarehouseAll();
@@ -3890,35 +3922,6 @@ document.getElementById("ocEditSave").addEventListener("click", () => {
   }
   closeOcEdit();
 });
-
-/* --- добавление позиции в 1C --- */
-document.getElementById("ocAddBtn").addEventListener("click", () => {
-  const section = document.getElementById("ocNewSection").value;
-  const code = document.getElementById("ocNewCode").value.trim();
-  const name = document.getElementById("ocNewName").value.trim();
-  if (!name) return;
-  if (code) {
-    const dupIndex = onec[section].findIndex((it) => it.code === code);
-    if (dupIndex !== -1) {
-      alert("Позиция с таким кодом уже есть в этом разделе 1C.");
-      // Дубль может быть скрыт фильтром — тогда показываем его, иначе
-      // сообщение «позиция уже есть» указывало бы в пустоту.
-      flashRow(revealRow("oc", section, dupIndex));
-      return;
-    }
-  }
-  pushOcHistory();
-  onec[section].push({ code, name, qty: 0 });
-  saveOneC();
-  document.getElementById("ocNewCode").value = "";
-  document.getElementById("ocNewName").value = "";
-  renderOneCSection(section);
-  const tbody = document.getElementById("oc-body-" + section);
-  const rows = tbody.querySelectorAll("tr");
-  flashRow(rows[rows.length - 1]);
-});
-
-
 
 /* ==================== Подсказки из 1C для вкладки «Склад» ====================
    Работают как автоподсказка склада в «Учёте» (см. searchStore/renderSuggestionsFrom
@@ -4239,6 +4242,7 @@ function openOcToWh(section, index) {
   // названию (метка wind/ygw в тексте), чтобы не выбирать руками.
   setModelSwitch(document.getElementById("ocToWhModel"),
     item.model || detectModelFromName(item.name) || "");
+  setModelSwitch(document.getElementById("ocToWhModel2"), item.model2 || "");
   openModal("ocToWhOverlay");
   setTimeout(() => {
     const n = document.getElementById("ocToWhName");
@@ -4265,12 +4269,14 @@ document.getElementById("ocToWhSave").addEventListener("click", () => {
   if (code && warehouseInfoFor(code)) { alert("Позиция с таким кодом уже есть на складе."); closeOcToWh(); return; }
 
   const model = getModelSwitch(document.getElementById("ocToWhModel"));
+  const model2 = readModel2("ocToWhModel2", model);
   pushWhHistory();
-  warehouse[section].push({ code, name, qty, model });
+  const newWh = { code, name, qty, model };
+  if (model2) newWh.model2 = model2;
+  warehouse[section].push(newWh);
   // ту же модель проставляем и позиции в 1С, чтобы не расходились
-  if (model) {
-    item.model = model;
-    syncModelByCode(code, model);
+  if (model || model2) {
+    syncModelByCode(code, model, model2);
     saveOneCLocalOnly();
   }
   saveWarehouse();
