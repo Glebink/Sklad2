@@ -1391,3 +1391,8 @@ body.ca-search-collapsed #caSearchBar { display: none !important; }
 .add-panel.one-row button.util { height: auto; align-self: stretch; }
 .add-panel.one-row .add-name-wrap { align-items: stretch; }
 body:not(.ca-search-collapsed) .ca-search-toggle, body:not([data-tab="consumption"]) .ca-search-toggle, body.no-ticket .ca-search-toggle { display: none !important; }
+
+/* Лупа в одной строке с вводом; строка поиска раскрывается под ней */
+.add-panel.one-row .ca-search-toggle.in-row { flex: 0 0 auto; width: 44px; height: auto; align-self: stretch; margin: 0; }
+.ca-search-toggle.alone { display: none !important; }
+body.shift-ro.ca-search-collapsed[data-tab="consumption"]:not(.no-ticket) .ca-search-toggle.alone { display: inline-flex !important; }

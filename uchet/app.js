@@ -2667,11 +2667,22 @@ SEARCH_TABS.forEach(({ key, bodyPrefix, getStore }) => {
   const bar = document.getElementById("caSearchBar");
   const input = searchInputs.ca;
   if (!bar || !input) return;
-  const btn = document.createElement("button");
-  btn.type = "button"; btn.id = "caSearchToggle"; btn.className = "iconbtn ca-search-toggle";
-  btn.title = "Поиск по заявке"; btn.setAttribute("aria-label", "Поиск по заявке");
-  btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
-  bar.parentNode.insertBefore(btn, bar);
+  const mk = (id, cls) => {
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.id = id; btn.className = "iconbtn ca-search-toggle " + cls;
+    btn.title = "Поиск по заявке"; btn.setAttribute("aria-label", "Поиск по заявке");
+    btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
+    return btn;
+  };
+  // Лупа — в одной строке с вводом; строка поиска раскрывается под строкой ввода.
+  // Если панели ввода нет (заявка только для просмотра), лупа стоит отдельно.
+  const panel = document.getElementById("addPanelConsumption");
+  const inRow = mk("caSearchToggle", "in-row");
+  panel.insertBefore(inRow, document.getElementById("addItemBtn"));
+  const alone = mk("caSearchToggleAlone", "alone");
+  panel.parentNode.insertBefore(alone, panel);
+  panel.parentNode.insertBefore(bar, panel.nextSibling);
+  const btn = inRow;
   document.body.dataset.tab = "consumption";
   document.body.classList.add("ca-search-collapsed");
   const setOpen = (o) => {
@@ -2680,6 +2691,7 @@ SEARCH_TABS.forEach(({ key, bodyPrefix, getStore }) => {
     try { syncStickyTopHeight(true); } catch (e) {}
   };
   btn.addEventListener("click", () => setOpen(true));
+  alone.addEventListener("click", () => setOpen(true));
   input.addEventListener("blur", () => setTimeout(() => {
     if (!input.value && !bar.contains(document.activeElement)) setOpen(false);
   }, 250));
