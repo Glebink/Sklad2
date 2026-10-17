@@ -2285,14 +2285,6 @@ function getSortValue(table, section, item, col) {
   if (col === "code") return codeSortValue(item.code);
   if (table === "ca" && col === "count") return counts[countKey(section, item)] || 0;
   if ((table === "wh" || table === "oc") && col === "qty") return item.qty || 0;
-  if (table === "oc" && col === "whqty") {
-    const info = warehouseInfoFor(item.code);
-    return info ? info.qty : -1;
-  }
-  if (table === "oc" && col === "diff") {
-    const info = warehouseInfoFor(item.code);
-    return info ? info.qty - (item.qty || 0) : 0;
-  }
   if (table === "wh" && col === "ocqty") {
     const info = oneCInfoFor(item.code);
     return info ? info.qty : -1;
@@ -3720,7 +3712,6 @@ function renderOneCSection(section) {
   tbody.innerHTML = pairs.map(({ item, i }) => {
     const key = section + "::" + item.code + "::" + item.name;
     const whInfo = warehouseInfoFor(item.code);
-    const diff = whInfo ? whInfo.qty - (item.qty || 0) : null;
     return `<tr data-key="${escapeHtml(key)}" data-index="${i}"${picked.has(key) ? ' class="row-picked"' : ""}>
       <td class="code wh-code">${item.code ? `<span class="code-text" data-code="${escapeHtml(item.code)}">${formatCodeDisplay(item.code)}</span>` : "—"}${item.model ? `<span class="wh-model-badge">${escapeHtml(item.model)}</span>` : ""}</td>
       <td class="name">
@@ -3728,13 +3719,11 @@ function renderOneCSection(section) {
         ${altNameHtml(item.code, whInfo, true)}
         ${whInfo ? "" : `<button class="oc-addwh oc-addwh-badge" data-section="${section}" data-index="${i}" title="Добавить эту позицию на склад">+</button>`}
       </td>
-      <td class="count-merged wh-merged three-tier">
+      <td class="count-merged wh-merged">
         <div class="count-tier count-tier-num">
           <input type="number" min="0" value="${item.qty || 0}" class="ocQtyInput"
             data-section="${section}" data-index="${i}">
         </div>
-        <div class="count-tier count-tier-oc">${whInfo ? whInfo.qty : "—"}</div>
-        <div class="count-tier count-tier-diff"><span class="diff ${diff === null ? "" : (diff > 0 ? "plus" : (diff < 0 ? "minus" : "zero"))}">${diff === null ? "" : (diff > 0 ? "+" + diff : diff)}</span></div>
       </td>
       <td class="buttons oc-buttons">
         <div class="menu-wrap oc-menu-wrap">
@@ -4308,7 +4297,6 @@ function openOcToWh(section, index) {
   document.getElementById("ocToWhSection").value = section === "parts" ? "Детали" : "Расходники";
   document.getElementById("ocToWhCode").value = item.code || "";
   document.getElementById("ocToWhName").value = item.name;
-  document.getElementById("ocToWhQty").value = 0;
   // Модель берём из позиции 1С; если там пусто — пробуем определить по
   // названию (метка wind/ygw в тексте), чтобы не выбирать руками.
   setModelSwitch(document.getElementById("ocToWhModel"),
@@ -4333,8 +4321,7 @@ document.getElementById("ocToWhSave").addEventListener("click", () => {
   const item = onec[section][index];
   if (!item) { closeOcToWh(); return; }
   const name = document.getElementById("ocToWhName").value.trim();
-  let qty = parseInt(document.getElementById("ocToWhQty").value, 10);
-  if (isNaN(qty) || qty < 0) qty = 0;
+  const qty = 0;   // количество склада больше не ведётся
   if (!name) { alert("Укажите наименование для склада."); return; }
   const code = item.code || "";
   if (code && warehouseInfoFor(code)) { alert("Позиция с таким кодом уже есть на складе."); closeOcToWh(); return; }
@@ -4384,15 +4371,9 @@ function updateWarehouseTotals() {
 }
 
 function updateOneCTotals(section) {
-  const list = onec[section];
-  let own = 0, wh = 0;
-  list.forEach((it) => {
-    own += it.qty || 0;
-    const info = warehouseInfoFor(it.code);
-    if (info) wh += info.qty;
-  });
+  let own = 0;
+  onec[section].forEach((it) => { own += it.qty || 0; });
   setTotal(`total-oc-${section}-qty`, own);
-  setTotal(`total-oc-${section}-whqty`, wh);
 }
 
 /* ==================== Синхронизация через Supabase ====================

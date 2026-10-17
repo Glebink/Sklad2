@@ -229,7 +229,7 @@
       <tr>
         <th class="sortable" data-table="oc" data-section="parts" data-col="code">Код <span class="sort-arrow">↕</span></th>
         <th class="sortable" data-table="oc" data-section="parts" data-col="name">Наименование <span class="sort-arrow">↕</span></th>
-        <th class="sortable narrow" data-table="oc" data-section="parts" data-col="qty"><span class="two-line-split"><span class="tl-top">1С</span><span class="tl-bot">Склад</span></span> <span class="sort-arrow">↕</span><div class="col-total merged-total"><span id="total-oc-parts-qty"></span><span id="total-oc-parts-whqty"></span></div></th>
+        <th class="sortable narrow" data-table="oc" data-section="parts" data-col="qty">1С <span class="sort-arrow">↕</span><div class="col-total"><span id="total-oc-parts-qty"></span></div></th>
         <th></th>
       </tr>
     </thead>
@@ -244,7 +244,7 @@
       <tr>
         <th class="sortable" data-table="oc" data-section="consumables" data-col="code">Код <span class="sort-arrow">↕</span></th>
         <th class="sortable" data-table="oc" data-section="consumables" data-col="name">Наименование <span class="sort-arrow">↕</span></th>
-        <th class="sortable narrow" data-table="oc" data-section="consumables" data-col="qty"><span class="two-line-split"><span class="tl-top">1С</span><span class="tl-bot">Склад</span></span> <span class="sort-arrow">↕</span><div class="col-total merged-total"><span id="total-oc-consumables-qty"></span><span id="total-oc-consumables-whqty"></span></div></th>
+        <th class="sortable narrow" data-table="oc" data-section="consumables" data-col="qty">1С <span class="sort-arrow">↕</span><div class="col-total"><span id="total-oc-consumables-qty"></span></div></th>
         <th></th>
       </tr>
     </thead>
@@ -384,10 +384,6 @@
     <div class="field-label">Наименование на складе</div>
     <input type="text" id="ocToWhName">
     <div class="flex-row">
-      <div class="field-narrow">
-        <div class="field-label">Кол-во</div>
-        <input type="number" id="ocToWhQty" min="0" value="0">
-      </div>
       <div class="flex-1-0">
         <div class="field-label">Модель</div>
         <div class="model-switch" id="ocToWhModel" data-value="">
