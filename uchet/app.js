@@ -1015,7 +1015,7 @@ function renderSection(section) {
     tr.dataset.index = i;          // индекс в массиве: строки идут не по нему
     tr.innerHTML = `
       <td class="num">${rowNo}</td>
-      <td class="code">${item.code ? `<span class="code-text" data-code="${escapeHtml(item.code)}">${formatCodeDisplay(item.code)}</span>` : "—"}</td>
+      <td class="code">${item.code ? `<span class="code-text" data-code="${escapeHtml(item.code)}">${formatCodeDisplay(item.code)}</span>` : "—"}${modelBadgesHtml(caModels, false)}</td>
       <td class="name">
         ${escapeHtml(item.name)}
         ${modelBadgesHtml(caModels, false)}
