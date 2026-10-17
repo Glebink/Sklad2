@@ -618,7 +618,32 @@ function saveDataByDate() {
   try { localStorage.setItem(DATA_BY_DATE_KEY, JSON.stringify(dataByDate)); } catch (e) {}
   scheduleSync();
 }
+/* ==================== Роль (сменщик) ====================
+   Роль приходит из profiles после входа и кэшируется на устройстве (Auth.loadRole).
+   Сменщик: создаёт свои заявки и добавляет в них позиции; остальное — только просмотр.
+   Это удобство интерфейса, настоящие ограничения проверяет сервер (RLS и триггер sklad_kv_shift_guard). */
+const CATALOG_KEY = "sklad2_catalog_v1";           // названия и коды деталей для сменщика, без остатков
+const CATALOG_REMOTE_KEY = "potreblenie_catalog_v1";
+let ROLE = null, MY_LOGIN = "";
+(function () {
+  try { const c = window.Auth && Auth.cachedRole(); if (c) { ROLE = c.role; MY_LOGIN = c.login || ""; } } catch (e) {}
+})();
+function isShift() { return ROLE === "shift"; }
+document.body.classList.toggle("role-shift", isShift());
+function loadCatalogLocal() {
+  try {
+    const c = JSON.parse(localStorage.getItem(CATALOG_KEY) || "null");
+    if (c && Array.isArray(c.parts) && Array.isArray(c.consumables)) return c;
+  } catch (e) {}
+  return { parts: [], consumables: [] };
+}
+function warehouseFromCatalog() {
+  const c = loadCatalogLocal();
+  const conv = (a) => a.map((it) => ({ code: it.code || "", name: it.name || "", model: it.model || "", qty: 0 }));
+  return { parts: conv(c.parts), consumables: conv(c.consumables) };
+}
 function loadWarehouse() {
+  if (isShift()) return warehouseFromCatalog();
   try {
     const raw = localStorage.getItem(WAREHOUSE_KEY);
     if (!raw) return JSON.parse(JSON.stringify(WAREHOUSE_SEED));
@@ -628,12 +653,14 @@ function loadWarehouse() {
   } catch (e) { return JSON.parse(JSON.stringify(WAREHOUSE_SEED)); }
 }
 function saveWarehouse() {
+  if (isShift()) return;
   try { localStorage.setItem(WAREHOUSE_KEY, JSON.stringify(warehouse)); } catch (e) {}
   scheduleSync();
 }
 // Локально, без синхронизации — для чисто визуальных действий (сортировка),
 // которые не должны считаться правкой данных и уходить на сервер.
 function saveWarehouseLocalOnly() {
+  if (isShift()) return;
   try { localStorage.setItem(WAREHOUSE_KEY, JSON.stringify(warehouse)); } catch (e) {}
 }
 
@@ -663,6 +690,7 @@ function entryItemCount(e) {
 }
 // Пустые заявки за прошедшие дни (создали и забыли) убираем, чтобы не копились номера.
 (function cleanupEmptyTickets() {
+  if (isShift()) return;   // у сменщика заявки не удаляются
   const t = todayStr();
   let changed = false;
   Object.keys(dataByDate).forEach((k) => {
@@ -693,16 +721,24 @@ function bindCurrent() {
 }
 bindCurrent();
 
+// Сменщик правит только свою заявку за сегодня; остальные заявки для него — только просмотр.
+function canEditCurrent() {
+  if (!isShift()) return true;
+  const e = currentDate && dataByDate[currentDate];
+  return !!e && e.by === MY_LOGIN && currentDate.slice(0, 10) === todayStr();
+}
 function persistCurrent() {
   if (!currentDate) return;
-  dataByDate[currentDate] = { sections, counts, checked };
+  if (!canEditCurrent()) return;
+  dataByDate[currentDate] = Object.assign({}, dataByDate[currentDate], { sections, counts, checked });
   saveDataByDate();
 }
 // Локально, без синхронизации — используется при переключении даты
 // (сохраняем то, что уже было введено, но само переключение — не правка).
 function persistCurrentLocalOnly() {
   if (!currentDate) return;
-  dataByDate[currentDate] = { sections, counts, checked };
+  if (!canEditCurrent()) return;
+  dataByDate[currentDate] = Object.assign({}, dataByDate[currentDate], { sections, counts, checked });
   try { localStorage.setItem(DATA_BY_DATE_KEY, JSON.stringify(dataByDate)); } catch (e) {}
 }
 
@@ -946,7 +982,7 @@ function renderSection(section) {
       <td class="count count-merged">
         <div class="count-tier count-tier-num">
           <input type="number" min="0" value="${counts[key]}" class="countInput"
-            data-section="${section}" data-index="${i}">
+            data-section="${section}" data-index="${i}"${isShift() ? " readonly" : ""}>
         </div>
         <div class="count-tier count-tier-plus">
           <button class="btn plus" data-section="${section}" data-index="${i}" title="Тап: +1. Зажать: указать количество">+</button>
@@ -980,6 +1016,7 @@ function handleCountClick(e) {
     const key = countKey(section, item);
     // «plus»/«minus» теперь обрабатываются через pointerdown/pointerup
     // (см. setupQtyLongPress) — короткий тап и долгое нажатие делают разное.
+    if (isShift()) return;   // сменщик не отмечает и не удаляет строки
     if (btn.classList.contains("chk-toggle")) {
       checked[key] = !checked[key];
       // Отметка «учтено» — рабочая пометка для себя, а не изменение данных:
@@ -1019,6 +1056,7 @@ const LONG_PRESS_MOVE_TOLERANCE = 12;
 function applyQuickAdjust(section, index, mode) {
   const item = itemAt(section, index);
   if (!item) return;
+  if (!canEditCurrent() || (isShift() && mode !== "plus")) return;   // сменщик только прибавляет
   const key = countKey(section, item);
   pushHistory();
   if (mode === "plus") {
@@ -1063,6 +1101,7 @@ function setupQtyLongPress(tbody) {
     const section = btn.dataset.section;
     const index = Number(btn.dataset.index);
     const mode = btn.classList.contains("plus") ? "plus" : "minus";
+    if (isShift()) { activeBtn = btn; return; }   // долгое нажатие (ввод количества, списание) сменщику недоступно
     timer = setTimeout(() => {
       longFired = true;
       timer = null;
@@ -1080,7 +1119,9 @@ function setupQtyLongPress(tbody) {
     const btn = activeBtn;
     const hadTimer = !!timer;
     clearTimer();
-    if (btn && hadTimer && !longFired) {
+    if (isShift() && btn && !longFired) {
+      applyQuickAdjust(btn.dataset.section, Number(btn.dataset.index), btn.classList.contains("plus") ? "plus" : "minus");
+    } else if (btn && hadTimer && !longFired) {
       const section = btn.dataset.section;
       const index = Number(btn.dataset.index);
       const mode = btn.classList.contains("plus") ? "plus" : "minus";
@@ -1099,6 +1140,7 @@ setupQtyLongPress(document.getElementById("body-consumables"));
 function handleCountEdit(e) {
   const input = e.target.closest(".countInput");
   if (!input) return;
+  if (isShift()) { renderSection(input.dataset.section); return; }
   const section = input.dataset.section;
   const index = parseInt(input.dataset.index, 10);
   const item = itemAt(section, index);
@@ -1270,6 +1312,7 @@ document.getElementById("confirmYes").addEventListener("click", () => {
 });
 
 document.getElementById("deleteAllBtn").addEventListener("click", () => {
+  if (isShift()) return;
   openConfirmDelete("deleteAll",
     `Удалить ВСЕ позиции (детали и расходники) за ${formatFull(currentDate)}? Счётчики и сами строки будут стёрты полностью. Это можно отменить кнопкой ↶.`);
 });
@@ -1317,7 +1360,7 @@ function renderSuggestionsFrom(box, query, onPick, store, emptyText, opts) {
     box.classList.add("open");
     return;
   }
-  const withOcQty = !!(opts && opts.ocQty);
+  const withOcQty = !!(opts && opts.ocQty) && !isShift();
   box.innerHTML = results.map((r, idx) => {
     // Остаток из «1С» в конце строки: сразу видно, есть ли деталь в наличии,
     // не выходя из формы добавления. Позиции без пары в «1С» остатка не
@@ -1407,6 +1450,7 @@ newItemQtyInput.addEventListener("focus", () => {
 });
 
 document.getElementById("addItemBtn").addEventListener("click", () => {
+  if (!canEditCurrent()) return;
   // Раздел определяет выбранная из подсказок позиция; ввод вручную — «Детали».
   const section = (addPicked && addPicked.section) || "parts";
   const name = newItemInput.value.trim();
@@ -1470,6 +1514,7 @@ const editSuggestBox = document.getElementById("editSuggestBox");
 registerSuggestZone(editSuggestBox, [editItemInput]);
 
 function openEditItem(section, index) {
+  if (isShift()) return;
   editingTarget = { section, index };
   editPicked = null;
   const item = itemAt(section, index);
@@ -1877,6 +1922,7 @@ function ticketMatches(key, e, q) {
   if (found.length) return found;
   return head.indexOf(q) !== -1 ? [] : null;
 }
+function authorLabel(login) { const l = String(login || ""); return l.charAt(0).toUpperCase() + l.slice(1); }
 function renderTicketList() {
   const box = document.getElementById("ticketCards");
   if (!box) return;
@@ -1897,7 +1943,9 @@ function renderTicketList() {
     const more = found.length > 6 ? `<div class="t-hit-more">и ещё ${found.length - 6}</div>` : "";
     out.push(`<button class="t-card${k === currentDate ? " sel" : ""}" data-key="${escapeHtml(k)}">`
       + `<div class="t-row"><span class="mono">№ ${nums[k]}</span><span class="t-date">${ticketDateLong(k)}</span></div>`
-      + `<div class="t-sub">${pluralRu(cnt, "позиция", "позиции", "позиций")}</div>${shown}${more}</button>`);
+      + `<div class="t-sub">${pluralRu(cnt, "позиция", "позиции", "позиций")}</div>${shown}${more}`
+      + (e.by ? `<div class="t-author">${escapeHtml(authorLabel(e.by))}</div>` : "")
+      + `</button>`);
   });
   box.innerHTML = out.length ? out.join("")
     : `<div class="t-empty">${q ? "Ничего не найдено" : "Заявок на учёт нет. Создайте кнопкой «+»."}</div>`;
@@ -1924,6 +1972,7 @@ function createTicket() {
   let key = d, n = 1;
   while (dataByDate[key]) { n++; key = d + "#" + n; }
   dataByDate[key] = emptyEntry();
+  if (isShift()) dataByDate[key].by = MY_LOGIN;   // автор заявки (показывается в карточке)
   currentDate = key;
   bindCurrent();
   saveDataByDate();
@@ -2618,7 +2667,8 @@ let currentTab = "consumption";
 function updateAddPanelVisibility() {
   const panel = document.getElementById("addPanelConsumption");
   if (!panel) return;
-  panel.style.display = (currentTab === "consumption" && currentDate) ? "flex" : "none";
+  panel.style.display = (currentTab === "consumption" && currentDate && canEditCurrent()) ? "flex" : "none";
+  document.body.classList.toggle("shift-ro", isShift() && !canEditCurrent());
   updateLayoutClasses();
   syncStickyTopHeight(true);   // раскладка могла смениться (выбрали/сняли заявку) — пересчитываем даже при фокусе в поле
 }
@@ -4807,7 +4857,8 @@ function updateOneCTotals(section) {
        (тап по облачку: оставить мои данные или серверные);
      • совпадают — просто запоминаем метку.
    Сервер к тому же хранит последние 20 версий каждого ключа (sklad_kv_log). */
-const SYNC_KEYS = BACKUP_KEYS.slice(0, 5);   // в бэкапе они названы по-старому (potreblenie_*)
+// Сменщик синхронизирует только данные учёта по дням; остальные ключи ему сервер не отдаёт.
+const SYNC_KEYS = isShift() ? ["potreblenie_data_by_date_v3"] : BACKUP_KEYS.slice(0, 5);   // в бэкапе они названы по-старому (potreblenie_*)
 const SYNC_FIELD = {
   potreblenie_data_by_date_v3: "dataByDate",
   potreblenie_warehouse_v1: "warehouse",
@@ -5686,6 +5737,19 @@ function stopRealtime() {
   if (rtChannel) { try { Auth.sb.removeChannel(rtChannel); } catch (e) {} rtChannel = null; }
 }
 
+// Сменщику: названия, коды и модели деталей (без остатков) — готовая выжимка на сервере.
+async function loadCatalogFromServer() {
+  try {
+    const r = await Auth.sb.from("sklad_kv").select("value").eq("key", CATALOG_REMOTE_KEY).maybeSingle();
+    const v = r && r.data && r.data.value;
+    if (v && Array.isArray(v.parts) && Array.isArray(v.consumables)) {
+      localStorage.setItem(CATALOG_KEY, JSON.stringify(v));
+      warehouse = warehouseFromCatalog();
+      renderAll();
+    }
+  } catch (e) {}
+}
+
 /* ==================== Окно «Синхронизация и аккаунт» ==================== */
 async function refreshAccountLine() {
   const el = document.getElementById("syncAccountLine");
@@ -5790,7 +5854,14 @@ if (migrationTouchedAtStartup) markLocalChange();
 setSyncStatus("off", "Нужен вход в аккаунт.");
 if (window.Auth) {
   Auth.gate({
-    onLogin: () => {
+    onLogin: async () => {
+      // Роль: если изменилась (другой аккаунт на этом устройстве) — перезагружаем страницу в нужном режиме.
+      try {
+        const r = await Auth.loadRole();
+        if (r && r.role !== ROLE) { location.reload(); return; }
+        if (r) MY_LOGIN = r.login;
+      } catch (e) {}
+      if (isShift()) await loadCatalogFromServer();
       syncUserOk = true;
       updateDirtyIndicator();
       setSyncStatus("idle", manualModeStatusText());

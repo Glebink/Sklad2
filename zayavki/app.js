@@ -798,6 +798,7 @@ async function startApp() {
   $('#app').innerHTML = '<div class="locked"><div class="muted">Загрузка…</div></div>';
   try { await Auth.withTimeout(loadAll(), 25000); } catch (e) { return showLogin('Не удалось загрузить данные: ' + errMsg(e)); }
   if (!S.role) return showLogin('Для этого аккаунта не назначена роль.');
+  if (S.role === 'shift') { try { localStorage.setItem('sklad2_last_module', 'uchet'); } catch (e) {} location.replace('../uchet/'); return; }   // сменщику заявки на закупку недоступны
   S.ready = true;
   if (!started) { started = true; subscribe(); }
   if (!authBound) {

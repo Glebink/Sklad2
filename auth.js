@@ -8,6 +8,7 @@
   // Публичный (anon) ключ: его безопасно хранить в коде, доступ ограничивают правила RLS на сервере.
   var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rZ3phZ2V6emVlZ2xreXJ3Ynp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3MzkyNjksImV4cCI6MjEwNzMxNTI2OX0.aVPwcJI4dtXEDhfy9pLXKH_nVVcsNgg69vC9mRqrPGU';
   var LOGIN_DOMAIN = 'zayavki.app';
+  var ROLE_KEY = 'sklad2_role_v1';   // кэш роли для работы без связи: { uid, login, role }
 
   // Хранилище сессии: «только это окно» (sessionStorage) или «запомнить на устройстве» (localStorage).
   var authStore = {
@@ -45,6 +46,7 @@
   }
   // Выходим сразу, не дожидаясь сервера: при плохой связи запрос на выход может висеть долго.
   function clearSession() {
+    try { localStorage.removeItem(ROLE_KEY); } catch (e) {}
     sbKeys(localStorage).concat(sbKeys(sessionStorage)).forEach(function (k) { authStore.removeItem(k); });
     try { sb.removeAllChannels(); } catch (e) {}
     Promise.resolve().then(function () { return sb.auth.signOut({ scope: 'local' }); }).catch(function () {});
@@ -92,6 +94,24 @@
     } catch (e) { return null; }
   }
 
+  // Роль текущего пользователя из таблицы profiles. Кэшируется на устройстве, чтобы интерфейс
+  // сразу открывался в нужном режиме и без связи. Права всё равно проверяет сервер.
+  async function loadRole() {
+    var u = await getUser();
+    if (!u) return null;
+    var login = String(u.email || '').split('@')[0].toLowerCase();
+    try {
+      var r = await sb.from('profiles').select('role').eq('user_id', u.id).maybeSingle();
+      if (r.error) throw r.error;
+      var role = (r.data && r.data.role) || null;
+      try { localStorage.setItem(ROLE_KEY, JSON.stringify({ uid: u.id, login: login, role: role })); } catch (e) {}
+      return { role: role, login: login };
+    } catch (e) { return null; }
+  }
+  function cachedRole() {
+    try { var c = JSON.parse(localStorage.getItem(ROLE_KEY) || 'null'); return c && c.role ? c : null; } catch (e) { return null; }
+  }
+
   /* Экран-«шлюз» поверх страницы для модулей без собственного входа (Учёт).
      Если сессия есть — сразу пропускает. Если нет связи и сессия сохранена на устройстве —
      тоже пропускает (работа офлайн), синхронизация сама скажет, что связи нет.
@@ -131,6 +151,6 @@
 
   window.Auth = {
     sb: sb, authStore: authStore, emailOf: emailOf, doLogin: doLogin, renderLogin: renderLogin,
-    getUser: getUser, withTimeout: withTimeout, gate: gate, logout: logout, clearSession: clearSession, hasStoredSession: hasStoredSession
+    getUser: getUser, loadRole: loadRole, cachedRole: cachedRole, withTimeout: withTimeout, gate: gate, logout: logout, clearSession: clearSession, hasStoredSession: hasStoredSession
   };
 })();
