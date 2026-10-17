@@ -1452,3 +1452,6 @@ td.wh-oc-qty { width: 72px; text-align: center; font-size: 16px; font-weight: 70
 td.wh-empty { text-align: center; color: var(--muted); padding: 18px 8px; }
 .cat-switch .ms-opt { flex: 1 1 0; font-size: 12px; padding-left: 4px; padding-right: 4px; }
 #viewWarehouse { min-height: 75vh; }   /* меню категорий не обрезается, даже если позиций мало */
+/* «Склад»: заголовок категории — он же кнопка фильтра, меню открывается под ним слева */
+#whTitle.wh-title-btn { cursor: pointer; user-select: none; -webkit-user-select: none; }
+.wh-filter-wrap #whFilterPanel { left: 0; right: auto; }

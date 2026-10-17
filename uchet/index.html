@@ -149,11 +149,8 @@
 <div class="view" id="viewWarehouse">
 
   <div class="section-head">
-    <h2 class="section-title" id="whTitle">Склад</h2>
-    <button class="iconbtn" id="whUndoBtn" disabled title="Отменить последнее действие">↶</button>
-    <button class="iconbtn" id="whRedoBtn" disabled title="Повторить действие">↷</button>
     <div class="menu-wrap wh-filter-wrap">
-      <button class="iconbtn" id="whFilterBtn" title="Категория">⛃</button>
+      <h2 class="section-title wh-title-btn" id="whTitle" role="button" tabindex="0" title="Категория">Склад</h2>
       <div class="menu-panel list" id="whFilterPanel">
         <button class="util" data-cat="scooter" data-model="">Самокаты <span class="wh-caret">▸</span></button>
         <div class="wh-sub" id="whScooterSub" hidden>
@@ -168,6 +165,8 @@
         <button class="util" data-cat="other" data-model="all">Остальное</button>
       </div>
     </div>
+    <button class="iconbtn" id="whUndoBtn" disabled title="Отменить последнее действие">↶</button>
+    <button class="iconbtn" id="whRedoBtn" disabled title="Повторить действие">↷</button>
     <span class="oc-filter-label" id="whFilterLabel"></span>
   </div>
   <div class="table-scroll">

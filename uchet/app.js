@@ -1903,7 +1903,7 @@ function updateWhFilterUI() {
     b.classList.toggle("primary", b.dataset.model ? on : b.dataset.cat === whFilter.cat);
   });
 }
-document.getElementById("whFilterBtn").addEventListener("click", (e) => {
+document.getElementById("whTitle").addEventListener("click", (e) => {
   e.stopPropagation();
   const panel = document.getElementById("whFilterPanel");
   const open = panel.classList.toggle("open");
