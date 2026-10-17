@@ -1404,3 +1404,9 @@ body.shift-ro.ca-search-collapsed[data-tab="consumption"]:not(.no-ticket) .ca-se
 .add-panel.one-row input#newItemQty { width: 64px; max-width: 64px; border-radius: 0; margin-left: -1px; }
 .add-panel.one-row .ca-search-toggle.in-row { border-radius: 0; margin-left: -1px; width: 44px; }
 .add-panel.one-row button.util#addItemBtn { border-radius: 0 8px 8px 0; margin-left: -1px; }
+
+/* Лупа — первой в строке; внутренняя рамка панели убрана */
+.add-panel.one-row, .add-panel.search-bar { border: none; background: transparent; box-shadow: none; }
+.add-panel.one-row .ca-search-toggle.in-row { border-radius: 8px 0 0 8px; margin-left: 0; }
+.add-panel.one-row .add-name-wrap { margin-left: -1px; }
+.add-panel.one-row .add-name-wrap input[type="text"] { border-radius: 0; }

@@ -2678,7 +2678,7 @@ SEARCH_TABS.forEach(({ key, bodyPrefix, getStore }) => {
   // Если панели ввода нет (заявка только для просмотра), лупа стоит отдельно.
   const panel = document.getElementById("addPanelConsumption");
   const inRow = mk("caSearchToggle", "in-row");
-  panel.insertBefore(inRow, document.getElementById("addItemBtn"));
+  panel.insertBefore(inRow, panel.firstChild);
   panel.parentNode.insertBefore(bar, panel.nextSibling);
   const btn = inRow;
   document.body.dataset.tab = "consumption";
