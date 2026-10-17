@@ -1435,7 +1435,7 @@ body.shift-ro.ca-search-collapsed[data-tab="consumption"]:not(.no-ticket) .ca-se
 
 /* ПК: таблицы Учёта, Склада и 1С уже на 15%, по центру правой части */
 @media (min-width: 900px) {
-  #viewConsumption, #viewWarehouse, #viewOneC { width: 85%; margin-left: auto; margin-right: auto; }
+  #viewConsumption, #viewWarehouse, #viewOneC { width: 72%; margin-left: auto; margin-right: auto; }
 }
 
 /* История сохранений: аккаунт рядом с цветной точкой; кнопка истории в списке заявок */
