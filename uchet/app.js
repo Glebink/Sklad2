@@ -938,9 +938,17 @@ function flashRow(tr) {
 /* Порядок групп в «Учёте». Всё, чего здесь нет, идёт следом по алфавиту,
    а позиции без модели — в самом конце. */
 const CA_MODEL_ORDER = ["9Bot", "YGW 4.0", "YGW 5.0"];
+// Группа в «Учёте»: у детали с двумя моделями — YGW 5.0, если она среди них,
+// иначе первая по порядку CA_MODEL_ORDER. В строке при этом видны обе модели.
 function caModelOf(item) {
   const info = item.code ? warehouseInfoFor(item.code) : null;
-  return (info && info.model) || "";
+  const ms = modelsOf(info);
+  if (!ms.length) return "";
+  if (ms.indexOf("YGW 5.0") !== -1) return "YGW 5.0";
+  return ms.slice().sort((a, b) => {
+    const ra = CA_MODEL_ORDER.indexOf(a), rb = CA_MODEL_ORDER.indexOf(b);
+    return (ra === -1 ? 99 : ra) - (rb === -1 ? 99 : rb);
+  })[0];
 }
 /* Раскладывает позиции раздела по моделям в нужном порядке.
    Возвращает [{ model, pairs: [{ item, i }] }] — i остаётся ИНДЕКСОМ В
@@ -1772,11 +1780,14 @@ document.getElementById("ticketSearchInput").addEventListener("input", (e) => {
 /* ==================== Модели самоката у позиции ====================
    У позиции до двух моделей: model (основная) и model2 (вторая, необязательная).
    Показываются одна под другой в правом верхнем углу ячейки названия. */
+// Модели равноправны: всегда в одном порядке (4.0, 5.0, 9Bot, прочие), независимо от того, какая записана первой.
+const MODEL_DISPLAY_ORDER = ["YGW 4.0", "YGW 5.0", "9Bot"];
 function modelsOf(it) {
   const out = [];
   if (!it) return out;
   [it.model, it.model2].forEach((m) => { if (m && out.indexOf(m) === -1) out.push(m); });
-  return out;
+  const r = (m) => { const k = MODEL_DISPLAY_ORDER.indexOf(m); return k === -1 ? 99 : k; };
+  return out.sort((a, b) => r(a) - r(b));
 }
 function hasModel(it, m) { return modelsOf(it).indexOf(m) !== -1; }
 function modelBadgesHtml(models, stripYgw) {
@@ -2097,7 +2108,9 @@ function setModelsSwitch(el, models) {
     btn.classList.toggle("active", list.indexOf(btn.dataset.model || "") !== -1);
   });
 }
-function getModelsSwitch(el) { return (el.dataset.value || "").split("|").filter(Boolean); }
+// Отмеченные модели в постоянном порядке (4.0, 5.0, 9Bot): ни одна не «основная».
+function getModelsSwitch(el) { return modelsOf({ model: (el.dataset.value || "").split("|")[0], model2: (el.dataset.value || "").split("|")[1] }); }
+function rawModelsSwitch(el) { return (el.dataset.value || "").split("|").filter(Boolean); }
 document.querySelectorAll(".model-switch").forEach((el) => {
   el.addEventListener("click", (e) => {
     const btn = e.target.closest(".ms-opt");
@@ -2105,7 +2118,7 @@ document.querySelectorAll(".model-switch").forEach((el) => {
     e.preventDefault();
     const m = btn.dataset.model || "";
     if (el.dataset.multi) {
-      let list = getModelsSwitch(el);
+      let list = rawModelsSwitch(el);
       if (list.indexOf(m) !== -1) list = list.filter((x) => x !== m);
       else { list.push(m); if (list.length > 2) list.shift(); }
       setModelsSwitch(el, list);
