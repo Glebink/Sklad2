@@ -1491,3 +1491,10 @@ td.count-merged .count-tier-num input.countInput:focus { outline: 2px solid var(
 .t-del { display: inline-block; margin-top: 6px; padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: 600;
   color: var(--danger); border: 1px solid var(--border); background: transparent; cursor: pointer; }
 .t-del:hover { background: var(--s-new-bg); }
+/* Карточка заявки ниже: «Удалить» и автор в одной строке, меньше отступы */
+.t-card { padding: 8px 12px; }
+.t-card.sel { padding: 7px 11px; }
+.t-sub { margin-top: 2px; }
+.t-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 4px; }
+.t-foot .t-del { margin-top: 0; padding: 2px 8px; }
+.t-foot .t-author { margin-top: 0; }

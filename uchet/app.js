@@ -1712,9 +1712,11 @@ function renderTicketList() {
     out.push(`<button class="t-card${k === currentDate ? " sel" : ""}" data-key="${escapeHtml(k)}">`
       + `<div class="t-row"><span class="mono">№ ${nums[k]}</span><span class="t-date">${ticketDateLong(k)}</span></div>`
       + `<div class="t-sub">${pluralRu(cnt, "позиция", "позиции", "позиций")}</div>`
-      + (canDeleteTickets() ? `<span class="t-del" role="button" tabindex="0" data-del="${escapeHtml(k)}" title="Удалить заявку">🗑 Удалить</span>` : "")
+      + ((canDeleteTickets() || e.by) ? `<div class="t-foot">`
+          + (canDeleteTickets() ? `<span class="t-del" role="button" tabindex="0" data-del="${escapeHtml(k)}" title="Удалить заявку">🗑 Удалить</span>` : "<span></span>")
+          + (e.by ? `<span class="t-author">${escapeHtml(authorLabel(e.by))}</span>` : "")
+          + `</div>` : "")
       + `${shown}${more}`
-      + (e.by ? `<div class="t-author">${escapeHtml(authorLabel(e.by))}</div>` : "")
       + `</button>`);
   });
   box.innerHTML = out.length ? out.join("")
