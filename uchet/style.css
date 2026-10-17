@@ -1364,7 +1364,7 @@ body.no-ticket .sticky-top { display: none; }
 .t-author { margin-top: 6px; text-align: right; color: var(--muted); font-size: 13px; }
 
 /* Режим сменщика: только добавление и просмотр */
-body.role-shift .ca-del-badge, body.role-shift .chk-toggle,
+body.role-shift .ca-del-badge,
 body.role-shift #undoBtn, body.role-shift #redoBtn, body.role-shift #deleteAllBtn,
 body.role-shift #tabWarehouseBtn, body.role-shift #tabOneCBtn,
 body.role-shift #headMenuBtn, body.role-shift #headMenuPanel,

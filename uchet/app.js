@@ -713,11 +713,21 @@ function entryFor(date) {
 }
 
 let sections, counts, checked;
+// Галочки «учтено» — личные, только на этом устройстве и аккаунте: в синхронизацию не попадают.
+const CHECKS_KEY = "sklad2_checks_v1_" + (MY_LOGIN || "");
+let localChecks = {};
+try { localChecks = JSON.parse(localStorage.getItem(CHECKS_KEY) || "{}") || {}; } catch (e) { localChecks = {}; }
+function persistChecks() {
+  if (!currentDate) return;
+  localChecks[currentDate] = checked;
+  try { localStorage.setItem(CHECKS_KEY, JSON.stringify(localChecks)); } catch (e) {}
+}
 // Привязывает рабочие переменные к выбранной заявке (или к пустой заглушке, если заявка не выбрана).
 function bindCurrent() {
   if (currentDate && !dataByDate[currentDate]) currentDate = null;   // заявку удалили на другом устройстве
   const e = currentDate ? entryFor(currentDate) : emptyEntry();
-  sections = e.sections; counts = e.counts; checked = e.checked;
+  sections = e.sections; counts = e.counts;
+  checked = currentDate ? (localChecks[currentDate] || (localChecks[currentDate] = {})) : {};
 }
 bindCurrent();
 
@@ -729,16 +739,18 @@ function canEditCurrent() {
 }
 function persistCurrent() {
   if (!currentDate) return;
+  persistChecks();
   if (!canEditCurrent()) return;
-  dataByDate[currentDate] = Object.assign({}, dataByDate[currentDate], { sections, counts, checked });
+  dataByDate[currentDate] = Object.assign({}, dataByDate[currentDate], { sections, counts, checked: {} });
   saveDataByDate();
 }
 // Локально, без синхронизации — используется при переключении даты
 // (сохраняем то, что уже было введено, но само переключение — не правка).
 function persistCurrentLocalOnly() {
   if (!currentDate) return;
+  persistChecks();
   if (!canEditCurrent()) return;
-  dataByDate[currentDate] = Object.assign({}, dataByDate[currentDate], { sections, counts, checked });
+  dataByDate[currentDate] = Object.assign({}, dataByDate[currentDate], { sections, counts, checked: {} });
   try { localStorage.setItem(DATA_BY_DATE_KEY, JSON.stringify(dataByDate)); } catch (e) {}
 }
 
@@ -1014,7 +1026,7 @@ function handleCountClick(e) {
     const key = countKey(section, item);
     // «plus»/«minus» теперь обрабатываются через pointerdown/pointerup
     // (см. setupQtyLongPress) — короткий тап и долгое нажатие делают разное.
-    if (isShift()) return;   // сменщик не отмечает и не удаляет строки
+    if (isShift() && !btn.classList.contains("chk-toggle")) return;   // сменщик только отмечает, не удаляет
     if (btn.classList.contains("chk-toggle")) {
       checked[key] = !checked[key];
       // Отметка «учтено» — рабочая пометка для себя, а не изменение данных:
