@@ -1464,3 +1464,10 @@ td.wh-empty { text-align: center; color: var(--muted); padding: 18px 8px; }
   .brand-btn { width: 252px; white-space: nowrap; }
   .brand-btn .brand-caret { margin-left: auto; }
 }
+/* «Учёт» на ПК: строки ниже (ширина колонок не меняется) — больше строк на экране без прокрутки */
+@media (min-width: 900px) {
+  #viewConsumption td { padding-top: 2px; padding-bottom: 2px; }
+  #viewConsumption td.count-merged .count-tier-num { padding: 4px 4px; }
+  #viewConsumption td.count-merged .count-tier-num input.countInput { height: 30px; font-size: 19px !important; padding: 2px; }
+  #viewConsumption td.count-merged .count-tier-pm .btn { padding: 5px 0; font-size: 17px; }
+}
