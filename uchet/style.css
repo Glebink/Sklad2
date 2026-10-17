@@ -1426,3 +1426,9 @@ body.shift-ro.ca-search-collapsed[data-tab="consumption"]:not(.no-ticket) .ca-se
   /* Строка ввода: вдвое уже и по центру правой части (над таблицей) */
   .sticky-top .add-panel.one-row, .sticky-top .add-panel.search-bar { width: 50%; margin-left: auto; margin-right: auto; }
 }
+
+/* Верхняя панель: дата убрана; версия и меню «⋮» — справа рядом с профилем */
+#datePickerBox { display: none !important; }
+.topbar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; flex: 0 0 auto; }
+.topbar-right #appVersionBadge { align-self: center; }
+.topbar-right .menu-panel { right: 0; left: auto; }
