@@ -1269,7 +1269,7 @@
   #headMenuPanel button.util .mi { flex: 0 0 auto; }
 
 /* ==================== Макет как в заявках: верхняя панель + левый столбец заявок ==================== */
-:root { --topbar-h: 60px; --list-w: clamp(300px, 24vw, 440px); --edge: 16px; --top0: max(6px, env(safe-area-inset-top)); }
+:root { --topbar-h: 60px; --list-w-old: clamp(300px, 24vw, 440px); --list-w: clamp(210px, 16.8vw, 308px); --edge: 16px; --top0: max(6px, env(safe-area-inset-top)); }
 .topbar {
   position: fixed; top: var(--top0); left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right));
   z-index: 160; height: var(--topbar-h); padding-bottom: 8px; box-sizing: border-box;
@@ -1424,7 +1424,7 @@ body.shift-ro.ca-search-collapsed[data-tab="consumption"]:not(.no-ticket) .ca-se
   #viewConsumption thead th:nth-child(5) { width: 96px; }
   #body-parts td.code, #body-consumables td.code { width: auto; min-width: 0; font-size: 18px; letter-spacing: .02em; overflow-wrap: anywhere; white-space: normal; }
   /* Строка ввода: вдвое уже и по центру правой части (над таблицей) */
-  .sticky-top .add-panel.one-row, .sticky-top .add-panel.search-bar { width: 50%; margin-left: auto; margin-right: auto; }
+  .sticky-top .add-panel.one-row, .sticky-top .add-panel.search-bar { width: min(100%, calc(0.5 * (100vw - var(--list-w-old) - 48px))); margin-left: auto; margin-right: auto; }
 }
 
 /* Верхняя панель: дата убрана; версия и меню «⋮» — справа рядом с профилем */
@@ -1435,7 +1435,7 @@ body.shift-ro.ca-search-collapsed[data-tab="consumption"]:not(.no-ticket) .ca-se
 
 /* ПК: таблицы Учёта, Склада и 1С уже на 15%, по центру правой части */
 @media (min-width: 900px) {
-  #viewConsumption, #viewWarehouse, #viewOneC { width: 72%; margin-left: auto; margin-right: auto; }
+  #viewConsumption, #viewWarehouse, #viewOneC { width: min(100%, calc(0.72 * (100vw - var(--list-w-old) - 48px))); margin-left: auto; margin-right: auto; }
 }
 
 /* История сохранений: аккаунт рядом с цветной точкой; кнопка истории в списке заявок */
