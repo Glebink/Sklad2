@@ -1024,8 +1024,7 @@ function handleCountClick(e) {
     const item = itemAt(section, index);
     if (!item) return;
     const key = countKey(section, item);
-    // «plus»/«minus» теперь обрабатываются через pointerdown/pointerup
-    // (см. setupQtyLongPress) — короткий тап и долгое нажатие делают разное.
+    // «–»/«+» обрабатывает setupQtyButtons (окно ввода количества).
     if (isShift() && !btn.classList.contains("chk-toggle")) return;   // сменщик только отмечает, не удаляет
     if (btn.classList.contains("chk-toggle")) {
       checked[key] = !checked[key];
@@ -1055,36 +1054,8 @@ function handleCountClick(e) {
 document.getElementById("body-parts").addEventListener("click", handleCountClick);
 document.getElementById("body-consumables").addEventListener("click", handleCountClick);
 
-/* ==================== Учёт: короткое / долгое нажатие на «+»/«–» ====================
-   Короткий тап — просто +1 к количеству (или −1; если результат ≤ 0, позиция
-   удаляется из списка — та же логика, что раньше была только в модалке).
-   Долгое нажатие (зажать ~0.5 c) — открывает модалку с вводом произвольного
-   количества (applyQtyAdjust), как было раньше на обычный тап. */
-
-function applyQuickAdjust(section, index, mode) {
-  const item = itemAt(section, index);
-  if (!item) return;
-  if (!canEditCurrent()) return;   // сменщик правит только свою заявку за сегодня
-  const key = countKey(section, item);
-  pushHistory();
-  if (mode === "plus") {
-    counts[key] = (counts[key] || 0) + 1;
-  } else {
-    const newVal = (counts[key] || 0) - 1;
-    if (newVal <= 0) {
-      sections[section].splice(index, 1);
-      delete counts[key];
-      delete checked[key];
-      selectedCA[section].delete(key);
-    } else {
-      counts[key] = newVal;
-    }
-  }
-  persistCurrent();
-  renderSection(section);
-}
-
-function setupQtyLongPress(tbody) {
+/* ==================== Учёт: «–»/«+» открывают окно ввода количества ==================== */
+function setupQtyButtons(tbody) {
   tbody.addEventListener("click", (e) => {
     const btn = e.target.closest(".btn.plus, .btn.minus");
     if (!btn) return;
@@ -1092,8 +1063,8 @@ function setupQtyLongPress(tbody) {
     openQtyAdjust(btn.dataset.section, Number(btn.dataset.index), btn.classList.contains("plus") ? "plus" : "minus");
   });
 }
-setupQtyLongPress(document.getElementById("body-parts"));
-setupQtyLongPress(document.getElementById("body-consumables"));
+setupQtyButtons(document.getElementById("body-parts"));
+setupQtyButtons(document.getElementById("body-consumables"));
 
 function handleCountEdit(e) {
   const input = e.target.closest(".countInput");
@@ -1618,9 +1589,8 @@ document.getElementById("historyOverlay").addEventListener("click", (e) => {
    1 — модель слева, «N шт» в правом углу; 2-3 — название (1 строка по
    центру обеих, длинное — переносом на 2); 4 — код, жирным, крупным
    шрифтом, растянутым под ширину/высоту строки. Единый дизайн — и для
-   разовой печати со склада, и для формы ручного ввода.
-   ВАЖНО: используем тот же #printArea + window.print(), что и обычный
-   экспорт — открытие через window.open() в установленном на «Домой»
+   печати из меню строки «Склада».
+   ВАЖНО: используем #printArea + window.print() — открытие через window.open() в установленном на «Домой»
    PWA виснет без адресной строки и кнопки закрытия. */
 function fitCodeFontPt(text, maxWidthMm, startPt, minPt) {
   const canvas = fitCodeFontPt._canvas || (fitCodeFontPt._canvas = document.createElement("canvas"));
@@ -1668,192 +1638,6 @@ function printLabelsV2(entries) {
 function printWarehouseLabels(item) {
   printLabelsV2([{ name: item.name, code: item.code || "", model: item.model || "", copies: LABELS_V2_PER_PAGE }]);
 }
-function printManualLabels(entries) {
-  printLabelsV2(entries);
-}
-
-/* --- Модалка ручного ввода этикеток (кнопка «⋮» → «🖨️ Печать») ====================
-   Мини-таблица: каждая строка — своя позиция (Название+Шт / Код+Кол-во
-   копий), с автоподбором по складу (как в панели добавления «Учёта») и
-   крестиком удаления. «+» снизу добавляет ещё строку. */
-let printLabelRowSeq = 0;
-/* Нумерация строк в форме печати — только для ориентира на экране,
-   в сам печатный лист не попадает (нумеруется форма, не этикетки). */
-/* Черновик формы печати: набранные позиции сохраняются на устройстве,
-   чтобы можно было закрыть окно (или выйти из приложения) и вернуться к
-   тому же списку. Очищается только после самой печати. */
-const PRINT_DRAFT_KEY = "sklad2_print_draft_v1";
-function savePrintDraft() {
-  const rows = Array.from(document.querySelectorAll("#printLabelRows .print-label-row")).map((r) => ({
-    name: r.querySelector(".plr-name").value,
-    code: r.querySelector(".plr-code").value,
-    qty: r.querySelector(".plr-qty").value,
-    copies: r.querySelector(".plr-copies").value,
-    model: r.querySelector(".plr-model").value
-  }));
-  // пустой черновик не храним
-  const filled = rows.some((r) => r.name || r.code || r.qty || r.copies || r.model);
-  try {
-    if (filled) localStorage.setItem(PRINT_DRAFT_KEY, JSON.stringify(rows));
-    else localStorage.removeItem(PRINT_DRAFT_KEY);
-  } catch (e) {}
-}
-function loadPrintDraft() {
-  try { return JSON.parse(localStorage.getItem(PRINT_DRAFT_KEY) || "[]"); } catch (e) { return []; }
-}
-function clearPrintDraft() {
-  try { localStorage.removeItem(PRINT_DRAFT_KEY); } catch (e) {}
-}
-function renumberPrintLabelRows() {
-  document.querySelectorAll("#printLabelRows .print-label-row").forEach((row, i) => {
-    const el = row.querySelector(".plr-num");
-    if (el) el.textContent = String(i + 1);
-  });
-}
-function createPrintLabelRow(data) {
-  const id = "plr" + (++printLabelRowSeq);
-  const row = document.createElement("div");
-  row.className = "print-label-row";
-  row.dataset.rowId = id;
-  row.innerHTML = `
-    <button class="plr-del" title="Удалить эту позицию">✕</button>
-    <div class="plr-line">
-      <div class="plr-name-wrap">
-        <input type="text" class="plr-name" placeholder="Название *" autocomplete="off">
-        <div class="suggest-box plr-suggest"></div>
-      </div>
-      <div class="plr-side">
-        <input type="number" class="plr-qty" min="0" placeholder="Шт">
-      </div>
-    </div>
-    <div class="plr-line" style="margin-top:6px;">
-      <div class="plr-name-wrap">
-        <input type="text" class="plr-code" placeholder="Код (необязательно)" autocomplete="off">
-      </div>
-      <div class="plr-side">
-        <input type="number" class="plr-copies" min="1" placeholder="Копий">
-      </div>
-    </div>
-    <div class="plr-line" style="margin-top:6px;">
-      <div class="plr-name-wrap">
-        <input type="text" class="plr-model" placeholder="Модель (напр. YGW 5.0)" autocomplete="off">
-      </div>
-      <div class="plr-side"></div>
-    </div>
-    <span class="plr-num"></span>
-  `;
-  const nameInput = row.querySelector(".plr-name");
-  const codeInput = row.querySelector(".plr-code");
-  const modelInput = row.querySelector(".plr-model");
-  const qtyInput = row.querySelector(".plr-qty");
-  const copiesInput = row.querySelector(".plr-copies");
-  const suggestBox = row.querySelector(".plr-suggest");
-  if (data) {
-    nameInput.value = data.name || "";
-    codeInput.value = data.code || "";
-    modelInput.value = data.model || "";
-    qtyInput.value = data.qty || "";
-    copiesInput.value = data.copies || "";
-  }
-  // любое изменение — сразу в черновик
-  [nameInput, codeInput, modelInput, qtyInput, copiesInput].forEach((el) => {
-    el.addEventListener("input", savePrintDraft);
-  });
-  // Подсказка остаётся в обычном потоке — прямо внутри своей строки, под
-  // полем названия (position:absolute относительно .plr-name-wrap, см. CSS).
-  // Раньше её выносили в <body> и считали координаты через JS, потому что
-  // её обрезал скролл-контейнер строк; тот контейнер убран, и теперь
-  // никаких координат считать не нужно — подсказка физически привязана к
-  // полю и не может от него отстать или накрыть его при появлении
-  // клавиатуры.
-  let picked = null;
-  function handleInput() {
-    picked = null;
-    renderSuggestions(suggestBox, nameInput.value || codeInput.value, (r) => {
-      picked = r;
-      nameInput.value = r.name;
-      codeInput.value = r.code || "";
-      modelInput.value = r.model || ""; // модель — как и код, подставляется автоматически из склада
-      suggestBox.classList.remove("open");
-      savePrintDraft();
-    });
-  }
-  nameInput.addEventListener("input", handleInput);
-  codeInput.addEventListener("input", handleInput);
-  registerSuggestZone(suggestBox, [nameInput, codeInput]);
-  row.querySelector(".plr-del").addEventListener("click", () => {
-    const rows = document.querySelectorAll(".print-label-row");
-    if (rows.length <= 1) {
-      // последнюю строку не удаляем совсем — просто очищаем поля
-      if (!confirm("Очистить эту позицию?")) return;
-      nameInput.value = ""; codeInput.value = ""; modelInput.value = "";
-      row.querySelector(".plr-qty").value = "";
-      row.querySelector(".plr-copies").value = "";
-      savePrintDraft();
-      return;
-    }
-    if (!confirm("Удалить эту позицию?")) return;
-    row.remove();   // подсказка лежит внутри строки и удалится вместе с ней
-    renumberPrintLabelRows();
-    savePrintDraft();
-  });
-  return row;
-}
-function openPrintLabelModal() {
-  const container = document.getElementById("printLabelRows");
-  container.innerHTML = "";
-  const draft = loadPrintDraft();
-  if (draft.length === 0) container.appendChild(createPrintLabelRow());
-  else draft.forEach((d) => container.appendChild(createPrintLabelRow(d)));
-  renumberPrintLabelRows();
-  openModal("printLabelOverlay");
-}
-function closePrintLabelModal() {
-  closeModal("printLabelOverlay");
-}
-document.getElementById("printLabelCancel").addEventListener("click", closePrintLabelModal);
-document.getElementById("printLabelOverlay").addEventListener("click", (e) => {
-  if (e.target.id !== "printLabelOverlay") return;
-  // Защита от случайного тапа мимо формы — спрашиваем подтверждение,
-  // а не закрываем сразу (иначе введённые позиции терялись без вопросов).
-  // Позиции теперь сохраняются в черновик, поэтому закрытие безопасно —
-  // подтверждение оставлено только чтобы не закрывать случайным тапом.
-  if (!confirm("Закрыть окно печати? Набранные позиции сохранятся.")) return;
-  closePrintLabelModal();
-});
-document.getElementById("printLabelAddRow").addEventListener("click", () => {
-  document.getElementById("printLabelRows").appendChild(createPrintLabelRow());
-  renumberPrintLabelRows();
-  savePrintDraft();
-});
-document.getElementById("printLabelGo").addEventListener("click", () => {
-  const rows = Array.from(document.querySelectorAll(".print-label-row"));
-  const entries = [];
-  let firstEmptyNameInput = null;
-  rows.forEach((row) => {
-    const name = row.querySelector(".plr-name").value.trim();
-    const code = row.querySelector(".plr-code").value.trim();
-    const qty = row.querySelector(".plr-qty").value.trim();
-    const model = row.querySelector(".plr-model").value.trim();
-    const copiesRaw = row.querySelector(".plr-copies").value.trim();
-    const copies = copiesRaw ? Math.max(1, parseInt(copiesRaw, 10) || 1) : 1;
-    if (!name) {
-      if (!firstEmptyNameInput) firstEmptyNameInput = row.querySelector(".plr-name");
-      return; // пустые строки (без названия) просто пропускаем
-    }
-    entries.push({ name, code, qty, model, copies });
-  });
-  if (entries.length === 0) {
-    alert("Заполните название хотя бы для одной позиции.");
-    if (firstEmptyNameInput) firstEmptyNameInput.focus();
-    return;
-  }
-  closePrintLabelModal();
-  clearPrintDraft();      // напечатали — начинаем со свежего списка
-  printManualLabels(entries);
-});
-
-
 /* ==================== Левый столбец: заявки на учёт ==================== */
 let ticketQuery = "", ticketSearchOpen = false;
 function pluralRu(n, a, b, c) {
@@ -1981,39 +1765,6 @@ document.getElementById("ticketSearchInput").addEventListener("input", (e) => {
   ticketQuery = e.target.value;
   renderTicketList();
 });
-
-/* ==================== Экспорт в PDF (через печать) ==================== */
-function buildExportTable(title, section) {
-  const rows = sections[section]
-    .map((item) => [item.name, item.code, counts[countKey(section, item)] || 0, !!checked[countKey(section, item)]])
-    .filter(([, , qty]) => qty > 0);
-  if (rows.length === 0) return "";
-  const rowsHtml = rows.map(([name, code, qty]) =>
-    `<tr><td>${escapeHtml(name)}</td><td>${code ? escapeHtml(code) : "—"}</td><td style="text-align:center">${qty}</td></tr>`
-  ).join("");
-  return `
-    <h3>${title}</h3>
-    <table>
-      <thead><tr><th>Наименование</th><th style="width:130px;">Код</th><th style="width:70px;">Кол-во</th></tr></thead>
-      <tbody>${rowsHtml}</tbody>
-    </table>`;
-}
-function runConsumptionExport() {
-  const partsHtml = buildExportTable("Детали", "parts");
-  const consumHtml = buildExportTable("Расходники", "consumables");
-  if (!partsHtml && !consumHtml) {
-    alert("За выбранную дату ещё нет выданных позиций (все счётчики равны 0).");
-    return;
-  }
-  const printArea = document.getElementById("printArea");
-  printArea.innerHTML = `
-    <h1>Учёт потребления деталей</h1>
-    <div class="print-date">Дата: ${escapeHtml(formatFull(currentDate))}</div>
-    ${partsHtml}
-    ${consumHtml}
-  `;
-  window.print();
-}
 
 /* ==================== ВКЛАДКА СКЛАД: логика ==================== */
 /* ==================== Фильтр склада по модели ====================
@@ -4350,80 +4101,6 @@ topBtn.addEventListener("click", (e) => {
   updateStickySearch();
 });
 
-/* ==================== Экспорт 1C в PDF ==================== */
-function buildOneCExport(section, mode) {
-  const title = section === "parts" ? "Детали (1C)" : "Расходники (1C)";
-  const rows = [];
-  onec[section].forEach((item) => {
-    const info = warehouseInfoFor(item.code);
-    const diff = info ? info.qty - (item.qty || 0) : null;
-    if (mode === "diff" && !(diff !== null && diff !== 0)) return;
-    if (mode === "plus" && !(diff !== null && diff > 0)) return;
-    if (mode === "minus" && !(diff !== null && diff < 0)) return;
-    rows.push({ item, info, diff });
-  });
-  if (rows.length === 0) return "";
-  const body = rows.map(({ item, info, diff }) => {
-    const d = diff === null ? "—" : (diff > 0 ? "+" + diff : String(diff));
-    const color = diff === null ? "var(--muted)" : (diff > 0 ? "var(--ok-ink)" : (diff < 0 ? "var(--bad-ink)" : "var(--muted)"));
-    return `<tr>
-      <td>${escapeHtml(item.code || "—")}</td>
-      <td>${escapeHtml(item.name)}${info ? `<br><span style="color:var(--ok-ink);font-size:11px">${escapeHtml(info.name)}</span>` : ""}</td>
-      <td style="text-align:center">${info ? info.qty : "—"}</td>
-      <td style="text-align:center">${item.qty || 0}</td>
-      <td style="text-align:center; color:${color}; font-weight:700">${d}</td>
-    </tr>`;
-  }).join("");
-  return `
-    <h3>${title}</h3>
-    <table>
-      <thead><tr>
-        <th style="width:110px;">Код</th>
-        <th>Наименование</th>
-        <th style="width:70px;">На складе</th>
-        <th style="width:70px;">В 1C</th>
-        <th style="width:70px;">Разница</th>
-      </tr></thead>
-      <tbody>${body}</tbody>
-    </table>`;
-}
-
-function runOneCExport(mode) {
-  const html = buildOneCExport("parts", mode) + buildOneCExport("consumables", mode);
-  const emptyMessages = {
-    all: "Справочник 1C пуст.",
-    diff: "Расхождений со складом не найдено.",
-    plus: "Позиций с излишком (+) не найдено.",
-    minus: "Позиций с недостачей (−) не найдено.",
-  };
-  if (!html) {
-    alert(emptyMessages[mode] || "Нет данных для выгрузки.");
-    return;
-  }
-  const titleSuffixes = {
-    all: "",
-    diff: " — расхождения со складом",
-    plus: " — только излишки (+)",
-    minus: " — только недостачи (−)",
-  };
-  const printArea = document.getElementById("printArea");
-  printArea.innerHTML = `
-    <h1>Справочник 1C${titleSuffixes[mode] || ""}</h1>
-    <div class="print-date">Дата: ${escapeHtml(formatFull(todayStr()))}</div>
-    ${html}
-  `;
-  window.print();
-}
-
-const ocExportOverlay = document.getElementById("ocExportOverlay");
-document.getElementById("ocExportCancel").addEventListener("click", () => closeModal(ocExportOverlay));
-ocExportOverlay.addEventListener("click", (e) => { if (e.target.id === "ocExportOverlay") closeModal(ocExportOverlay); });
-document.getElementById("ocExportAll").addEventListener("click", () => { closeModal(ocExportOverlay); runOneCExport("all"); });
-document.getElementById("ocExportDiff").addEventListener("click", () => { closeModal(ocExportOverlay); runOneCExport("diff"); });
-document.getElementById("ocExportPlus").addEventListener("click", () => { closeModal(ocExportOverlay); runOneCExport("plus"); });
-document.getElementById("ocExportMinus").addEventListener("click", () => { closeModal(ocExportOverlay); runOneCExport("minus"); });
-
-
 /* ==================== Навигация по совпадениям поиска ====================
    Работает одинаково для «Учёта», «Склада» и 1C: счётчик «N / всего»
    и стрелки ‹ › для быстрого перехода между найденными строками. */
@@ -4650,58 +4327,6 @@ document.addEventListener("paste", (e) => {
   const pos = start + clean.length;
   el.setSelectionRange(pos, pos);
   el.dispatchEvent(new Event("input", { bubbles: true }));
-});
-
-
-/* ==================== Экспорт «Склада» в PDF ==================== */
-function buildWarehouseExport(section) {
-  const title = section === "parts" ? "Детали (склад)" : "Расходники (склад)";
-  const list = warehouse[section];
-  if (list.length === 0) return "";
-  const body = list.map((item) => {
-    const oc = oneCInfoFor(item.code);
-    return `<tr>
-      <td>${escapeHtml(item.code || "—")}</td>
-      <td>${escapeHtml(item.name)}${oc ? `<br><span style="color:var(--ok-ink);font-size:11px">${escapeHtml(oc.name)}</span>` : ""}</td>
-      <td style="text-align:center">${item.qty || 0}</td>
-      <td style="text-align:center">${oc ? oc.qty : "—"}</td>
-    </tr>`;
-  }).join("");
-  return `
-    <h3>${title}</h3>
-    <table>
-      <thead><tr>
-        <th style="width:120px;">Код</th>
-        <th>Наименование</th>
-        <th style="width:70px;">На складе</th>
-        <th style="width:70px;">1C остаток</th>
-      </tr></thead>
-      <tbody>${body}</tbody>
-    </table>`;
-}
-
-function runWarehouseExport() {
-  const html = buildWarehouseExport("parts") + buildWarehouseExport("consumables");
-  if (!html) { alert("Склад пуст."); return; }
-  const printArea = document.getElementById("printArea");
-  printArea.innerHTML = `
-    <h1>Склад</h1>
-    <div class="print-date">Дата: ${escapeHtml(formatFull(todayStr()))}</div>
-    ${html}
-  `;
-  window.print();
-}
-
-/* Кнопка в шапке работает в контексте активной вкладки */
-const exportBtnEl = document.getElementById("exportBtn");
-if (exportBtnEl) exportBtnEl.addEventListener("click", () => {
-  if (document.getElementById("tabWarehouseBtn").classList.contains("active")) {
-    runWarehouseExport();
-  } else if (document.getElementById("tabOneCBtn").classList.contains("active")) {
-    openModal(ocExportOverlay);
-  } else {
-    runConsumptionExport();
-  }
 });
 
 

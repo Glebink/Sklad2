@@ -653,64 +653,6 @@
   .modal-box.wide { max-width: 420px; max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
   .modal-box.wide p { text-align: left; }
 
-  /* ==================== Строка формы в модалке печати этикеток ==================== */
-  /* Раньше здесь были max-height + overflow-y: скролл-контейнер обрезал
-     выпадающие подсказки, из-за чего их пришлось выносить в body и
-     позиционировать через JS — а они «отставали» от поля при появлении
-     клавиатуры и накрывали строку ввода. Теперь контейнер ничего не
-     обрезает, подсказка живёт прямо под своим полем в обычном потоке,
-     и никакие координаты считать не нужно. */
-  #printLabelRows { }
-  .print-label-row {
-    position: relative;
-    border:1px solid var(--border);
-    border-radius:10px;
-    padding: 10px 32px 4px 10px;
-    margin-top: 10px;
-    text-align: left;
-  }
-  .print-label-row:first-child { margin-top: 0; }
-  .print-label-row .plr-line {
-    display: flex;
-    gap: 8px;
-    align-items: flex-start;
-  }
-  .print-label-row .plr-name-wrap {
-    flex: 1;
-    min-width: 0;
-    position: relative;
-  }
-  .print-label-row .plr-name-wrap input[type="text"] { width: 100%; }
-  .print-label-row .plr-side { width: 72px; flex: 0 0 auto; }
-  /* Порядковый номер строки в форме печати — серым в правом нижнем
-     углу, без рамки и подложки. Только ориентир на экране; на печатный
-     лист не попадает (см. @media print — там скрыта вся модалка). */
-  .print-label-row .plr-num {
-    position: absolute;
-    right: 10px;
-    bottom: 6px;
-    font-size: 11px;
-    font-weight: 600;
-    color:var(--muted);
-    line-height: 1;
-    pointer-events: none;
-  }
-  .print-label-row .plr-del {
-    position: absolute;
-    top: 8px; right: 8px;
-    width: 24px; height: 24px;
-    border-radius:50%;
-    border:none;
-    background:var(--s-new-bg);
-    color:var(--muted);
-    font-size: 13px;
-    line-height: 1;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .print-label-row .plr-del:active { background:var(--line-strong); }
-  /* Подсказки вынесены в <body> и позиционируются через JS (position:fixed)
-     — иначе их обрезает скролл-контейнер #printLabelRows. */
   /* ==================== Переключатель модели (3 положения) ====================
      Слева YGW 4.0 — по центру «—» (без модели) — справа YGW 5.0.
      Заменил поле ввода: значения всего три, набирать руками незачем. */
@@ -924,12 +866,6 @@
   .diff.zero  { color:var(--muted); }
 
   #printArea { display: none; }
-  #printArea h1 { font-size: 18px; margin: 0 0 4px 0; }
-  #printArea .print-date { font-size: 13px; margin-bottom: 14px; }
-  #printArea h3 { font-size: 15px; margin: 16px 0 6px 0; }
-  #printArea table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-  #printArea th, #printArea td { border: 1px solid #999; padding: 6px 8px; font-size: 13px; text-align: left; }
-  #printArea thead th { background: #eee; }
   #printArea .print-labels-grid {
     display: grid;
     gap: 0;
@@ -1247,7 +1183,6 @@
      между "" и "none" (updateOcFilterUI) — CSS-правило с display:none тут
      перебило бы очистку инлайн-стиля в JS и поле никогда бы не появлялось. */
   #ocFilterQty { width: 56px; margin: 0 0 0 6px; padding: 6px; font-size: 13px; }
-  #printLabelAddRow { width: 100%; font-size: 22px; font-weight: 700; margin-top: 6px; }
 
   /* ==================== Меню разделов ==================== */
   .mod-menu-wrap { flex: 0 0 auto; }

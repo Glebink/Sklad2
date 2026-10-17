@@ -396,38 +396,6 @@
   </div>
 </div>
 
-<!-- Модалка печати этикеток: ручной ввод, мини-таблица из нескольких позиций -->
-<div class="modal-overlay" id="printLabelOverlay">
-  <div class="modal-box wide">
-    <p>Печать</p>
-    <div id="printLabelRows"></div>
-    <button class="util" id="printLabelAddRow" title="Добавить ещё позицию">+</button>
-    <div class="sync-help mt-8">
-      «Шт» печатается в углу этикетки (необязательно). «Кол-во копий» —
-      сколько этикеток этой позиции разместить на листе (пусто = 1).
-      Лист вмещает 10 этикеток, дальше — новый лист.
-    </div>
-    <div class="modal-actions">
-      <button class="confirm-no" id="printLabelCancel">Отмена</button>
-      <button class="confirm-yes accent" id="printLabelGo">🖨️ Печать</button>
-    </div>
-  </div>
-</div>
-
-<!-- Модалка выбора варианта экспорта 1C -->
-<div class="modal-overlay" id="ocExportOverlay">
-  <div class="modal-box">
-    <p>Что выгрузить в PDF?</p>
-    <div class="modal-actions stack">
-      <button class="confirm-yes accent full-w" id="ocExportAll">Все позиции</button>
-      <button class="confirm-yes full-w" id="ocExportDiff">Только расхождения (+ / −)</button>
-      <button class="confirm-yes full-w" id="ocExportPlus">Только + (излишки)</button>
-      <button class="confirm-yes full-w" id="ocExportMinus">Только − (недостачи)</button>
-      <button class="confirm-no full-w" id="ocExportCancel">Отмена</button>
-    </div>
-  </div>
-</div>
-
 <!-- Модалка: добавить позицию 1C на склад -->
 <div class="modal-overlay" id="ocToWhOverlay">
   <div class="modal-box">

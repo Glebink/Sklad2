@@ -46,7 +46,7 @@ const fmtFull = (s) => new Date(s).toLocaleString('ru-RU', { day: 'numeric', mon
 const ERR_MAP = [
   [/row-level security|violates row-level|permission denied|not allowed|forbidden|\b403\b/i, 'Нет прав на это действие. Возможно, вы вошли под другим пользователем — обновите страницу.'],
   [/failed to fetch|networkerror|network request failed|load failed|fetch failed|timeout|timed out|offline/i, 'Нет связи с сервером. Проверьте интернет и повторите.'],
-  [/jwt|token.*(expired|invalid)|invalid.*token|not authenticated|session.*(missing|expired)|refresh token/i, 'Сессия закончилась. Откройте личную ссылку снова.'],
+  [/jwt|token.*(expired|invalid)|invalid.*token|not authenticated|session.*(missing|expired)|refresh token/i, 'Сессия закончилась. Войдите снова.'],
   [/invalid login credentials|invalid.*credentials/i, 'Неверный логин или пароль.'],
   [/password should be at least|at least \d+ characters|weak password/i, 'Пароль слишком короткий. Нужно не меньше 6 символов.'],
   [/different from the old|same as the old|should be different/i, 'Новый пароль должен отличаться от старого.'],
@@ -191,13 +191,6 @@ function counts(items) {
 }
 
 /* ---------- отрисовка ---------- */
-function showLocked(msg) {
-  $('#app').innerHTML = `<div class="locked"><div>
-    <div class="brand-mark" style="margin:0 auto;width:48px;height:48px;color:#fff">${ICON.cart.replace('<svg', '<svg stroke="#fff"')}</div>
-    <h1>Заявки на закупку</h1>
-    <p class="muted">${esc(msg || 'Откройте личную ссылку, которую вам выдали.')}</p></div></div>`;
-}
-
 const deskMQ = window.matchMedia('(min-width: 900px)');
 const isDesk = () => deskMQ.matches;
 function render() {
