@@ -1967,19 +1967,28 @@ function selectTicket(key) {
   afterTicketChange();
 }
 function createTicket() {
+  if (shiftTodayTicket()) return;
   persistCurrentLocalOnly();
   const d = todayStr();
   let key = d, n = 1;
   while (dataByDate[key]) { n++; key = d + "#" + n; }
   dataByDate[key] = emptyEntry();
-  if (isShift()) dataByDate[key].by = MY_LOGIN;   // автор заявки (показывается в карточке)
+  if (MY_LOGIN) dataByDate[key].by = MY_LOGIN;   // автор заявки (показывается в карточке)
   currentDate = key;
   bindCurrent();
   saveDataByDate();
   try { sessionStorage.setItem("sklad2_sel_ticket", currentDate); } catch (e) {}
   afterTicketChange();
 }
+// Одна заявка в день на аккаунт: если своя за сегодня уже есть, открываем её, а не создаём новую.
+function shiftTodayTicket() {
+  if (!MY_LOGIN) return null;
+  const t = todayStr();
+  return ticketKeys().find((k) => k.slice(0, 10) === t && dataByDate[k].by === MY_LOGIN) || null;
+}
 document.getElementById("ticketNewBtn").addEventListener("click", () => {
+  const own = shiftTodayTicket();
+  if (own) { selectTicket(own); alert("На сегодня заявка уже есть. Добавляйте позиции в неё."); return; }
   const n = ticketKeys().length + 1;
   document.getElementById("newTicketText").textContent =
     "Создать новую заявку на учёт № " + n + " за " + formatFull(todayStr()) + "?";
