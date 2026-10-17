@@ -336,7 +336,7 @@
   <div class="modal-box">
     <p id="qtyAdjustTitle" class="modal-title">Списать</p>
     <div class="sync-status-line mb-10" id="qtyAdjustInfo"></div>
-    <input type="number" id="qtyAdjustInput" min="1" inputmode="numeric" placeholder="Количество" autocomplete="off">
+    <input type="number" id="qtyAdjustInput" min="1" inputmode="numeric" pattern="[0-9]*" enterkeyhint="done" placeholder="Количество" autocomplete="off">
     <div class="modal-actions">
       <button class="confirm-no" id="qtyAdjustCancel">Отмена</button>
       <button class="confirm-yes accent" id="qtyAdjustConfirm">Применить</button>

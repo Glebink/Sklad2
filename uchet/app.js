@@ -1152,7 +1152,9 @@ function openQtyAdjust(section, index, mode) {
   document.getElementById("qtyAdjustConfirm").style.background = mode === "plus" ? "var(--accent)" : "var(--danger)";
   qtyAdjustInput.value = "";
   openModal("qtyAdjustOverlay");
-  setTimeout(() => qtyAdjustInput.focus(), 50);
+  // фокус сразу, в рамках нажатия: иначе iOS не показывает клавиатуру
+  qtyAdjustInput.focus();
+  setTimeout(() => qtyAdjustInput.focus(), 60);
 }
 function closeQtyAdjust() {
   pendingQtyAdjust = null;
