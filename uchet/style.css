@@ -1410,3 +1410,7 @@ body.shift-ro.ca-search-collapsed[data-tab="consumption"]:not(.no-ticket) .ca-se
 .add-panel.one-row .ca-search-toggle.in-row { border-radius: 8px 0 0 8px; margin-left: 0; }
 .add-panel.one-row .add-name-wrap { margin-left: -1px; }
 .add-panel.one-row .add-name-wrap input[type="text"] { border-radius: 0; }
+
+/* Минималистичная шапка: без карточки (рамка, тень, подложка), цвет фона страницы */
+.sticky-top { background: var(--bg); border: none; box-shadow: none; border-radius: 0; padding: 0 0 6px; }
+.sticky-top .add-panel { margin: 0; padding: 6px 0; }
