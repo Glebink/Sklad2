@@ -1006,19 +1006,14 @@ function renderSection(section) {
     const key = countKey(section, item);
     if (counts[key] === undefined) counts[key] = 0;
     const isChecked = !!checked[key];
-    // Модель берём со склада по коду — показываем той же серой подписью
-    // в углу, что и на вкладке «Склад».
-    const whInfoForModel = item.code ? warehouseInfoFor(item.code) : null;
-    const caModels = modelsOf(whInfoForModel);
     const tr = document.createElement("tr");
     tr.dataset.key = key;
     tr.dataset.index = i;          // индекс в массиве: строки идут не по нему
     tr.innerHTML = `
       <td class="num">${rowNo}</td>
-      <td class="code">${item.code ? `<span class="code-text" data-code="${escapeHtml(item.code)}">${formatCodeDisplay(item.code)}</span>` : "—"}${modelBadgesHtml(caModels, false)}</td>
+      <td class="code">${item.code ? `<span class="code-text" data-code="${escapeHtml(item.code)}">${formatCodeDisplay(item.code)}</span>` : "—"}</td>
       <td class="name">
         ${escapeHtml(item.name)}
-        ${modelBadgesHtml(caModels, false)}
         <button class="ca-del-badge" data-section="${section}" data-index="${i}" title="Удалить строку">🗑</button>
       </td>
       <td class="check">
