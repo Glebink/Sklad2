@@ -984,11 +984,9 @@ function renderSection(section) {
           <input type="number" min="0" value="${counts[key]}" class="countInput"
             data-section="${section}" data-index="${i}"${!canEditCurrent() ? " readonly" : ""}>
         </div>
-        <div class="count-tier count-tier-plus">
-          <button class="btn plus" data-section="${section}" data-index="${i}" title="Тап: +1. Зажать: указать количество">+</button>
-        </div>
-        <div class="count-tier count-tier-minus">
-          <button class="btn minus" data-section="${section}" data-index="${i}" title="Тап: −1. Зажать: указать количество">–</button>
+        <div class="count-tier count-tier-pm">
+          <button class="btn plus" data-section="${section}" data-index="${i}" title="Указать количество">+</button>
+          <button class="btn minus" data-section="${section}" data-index="${i}" title="Указать количество">–</button>
         </div>
       </td>
     `;
@@ -1050,8 +1048,6 @@ document.getElementById("body-consumables").addEventListener("click", handleCoun
    удаляется из списка — та же логика, что раньше была только в модалке).
    Долгое нажатие (зажать ~0.5 c) — открывает модалку с вводом произвольного
    количества (applyQtyAdjust), как было раньше на обычный тап. */
-const LONG_PRESS_MS = 500;
-const LONG_PRESS_MOVE_TOLERANCE = 12;
 
 function applyQuickAdjust(section, index, mode) {
   const item = itemAt(section, index);
@@ -1077,58 +1073,11 @@ function applyQuickAdjust(section, index, mode) {
 }
 
 function setupQtyLongPress(tbody) {
-  let timer = null;
-  let longFired = false;
-  let activeBtn = null;
-  let startX = 0, startY = 0;
-
-  function clearTimer() {
-    if (timer) { clearTimeout(timer); timer = null; }
-  }
-  function reset() {
-    clearTimer();
-    longFired = false;
-    activeBtn = null;
-  }
-  tbody.addEventListener("pointerdown", (e) => {
+  tbody.addEventListener("click", (e) => {
     const btn = e.target.closest(".btn.plus, .btn.minus");
     if (!btn) return;
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-    activeBtn = btn;
-    longFired = false;
-    startX = e.clientX; startY = e.clientY;
-    clearTimer();
-    const section = btn.dataset.section;
-    const index = Number(btn.dataset.index);
-    const mode = btn.classList.contains("plus") ? "plus" : "minus";
-    timer = setTimeout(() => {
-      longFired = true;
-      timer = null;
-      if (navigator.vibrate) navigator.vibrate(15);
-      openQtyAdjust(section, index, mode);
-    }, LONG_PRESS_MS);
-  });
-  tbody.addEventListener("pointermove", (e) => {
-    if (!timer || !activeBtn) return;
-    if (Math.abs(e.clientX - startX) > LONG_PRESS_MOVE_TOLERANCE || Math.abs(e.clientY - startY) > LONG_PRESS_MOVE_TOLERANCE) {
-      reset();
-    }
-  });
-  tbody.addEventListener("pointerup", (e) => {
-    const btn = activeBtn;
-    const hadTimer = !!timer;
-    clearTimer();
-    if (btn && hadTimer && !longFired) {
-      const section = btn.dataset.section;
-      const index = Number(btn.dataset.index);
-      const mode = btn.classList.contains("plus") ? "plus" : "minus";
-      applyQuickAdjust(section, index, mode);
-    }
-    reset();
-  });
-  tbody.addEventListener("pointercancel", reset);
-  tbody.addEventListener("contextmenu", (e) => {
-    if (e.target.closest(".btn.plus, .btn.minus")) e.preventDefault();
+    if (!canEditCurrent()) return;
+    openQtyAdjust(btn.dataset.section, Number(btn.dataset.index), btn.classList.contains("plus") ? "plus" : "minus");
   });
 }
 setupQtyLongPress(document.getElementById("body-parts"));
