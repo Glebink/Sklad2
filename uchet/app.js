@@ -1871,27 +1871,6 @@ function renderWarehouseAll() {
   renderWarehouseSection("parts");
   renderWarehouseSection("consumables");
 }
-/* Общая для «Склада» и «1С»: прячет пустой после фильтра раздел (таблицу и
-   заголовок), кроме шапки с кнопкой фильтра — иначе из режима, где раздел
-   пуст, нельзя было бы переключиться обратно. Заголовок раздела — только
-   элемент прямо перед таблицей: идти назад «до первого .section-head»
-   нельзя, у «Расходников» заголовок — простой h2, и поиск добирался бы до
-   шапки «Деталей», пряча её вместе с кнопкой фильтра. */
-function hideEmptySections(bodyPrefix, filterBtnId) {
-  ["parts", "consumables"].forEach((section) => {
-    const tbody = document.getElementById(bodyPrefix + section);
-    if (!tbody) return;
-    const empty = tbody.children.length === 0;
-    const table = tbody.closest(".table-scroll");
-    if (table) table.style.display = empty ? "none" : "";
-    const head = table ? table.previousElementSibling : null;
-    const hasFilter = head && head.querySelector && head.querySelector("#" + filterBtnId);
-    if (head && !hasFilter &&
-        (head.classList.contains("section-head") || head.classList.contains("section-title"))) {
-      head.style.display = empty ? "none" : "";
-    }
-  });
-}
 function updateWhFilterUI() {
   const shown = document.querySelectorAll("#wh-body-parts tr[data-index], #wh-body-consumables tr[data-index]").length;
   const label = document.getElementById("whFilterLabel");
@@ -2346,16 +2325,16 @@ function reapplySavedSort() {
   });
 }
 function sortTable(table, section, col) {
-  if (table === "wh" && section !== "consumables") {
+  if ((table === "wh" || table === "oc") && section !== "consumables") {
     // «Склад» — одна таблица: одинаково сортируем оба раздела
-    const st = sortState.wh.parts;
+    const st = sortState[table].parts;
     const dir = st.col === col ? (st.dir === "asc" ? "desc" : "asc") : defaultDirFor(col);
-    pushWhHistory();
-    ["parts", "consumables"].forEach((s) => { sortState.wh[s].col = col; sortState.wh[s].dir = dir; applySortToList("wh", s); });
+    if (table === "wh") pushWhHistory(); else pushOcHistory();
+    ["parts", "consumables"].forEach((s) => { sortState[table][s].col = col; sortState[table][s].dir = dir; applySortToList(table, s); });
     saveSortState();
-    saveWarehouseLocalOnly();
-    renderWarehouseAll();
-    updateSortArrows("wh", "parts");
+    if (table === "wh") { saveWarehouseLocalOnly(); renderWarehouseAll(); }
+    else { saveOneCLocalOnly(); renderOneCAll(); }
+    updateSortArrows(table, "parts");
     return;
   }
   const state = sortState[table][section];
@@ -3634,8 +3613,8 @@ function revealRow(tab, section, index) {
     if (it) whFilterShowItem(it);
     renderWarehouseAll();
   } else {
-    ocFilter.mode = "all";
-    saveOcFilter();
+    const it = onec[section] && onec[section][index];
+    if (it) ocFilterShowItem(it);
     renderOneCAll();
   }
   return rowByDataIndex(tbodyId, index);
@@ -3665,61 +3644,62 @@ function jumpToWarehouse(code, fromSection, fromIndex) {
 
 
 /* ==================== Фильтр списка 1С ====================
-   Список стал длинным (500+ позиций), поэтому вместо одной простыни —
-   выбор: всё / детали / расходники / по остатку / временные коды AB.
-   Фильтр только для просмотра: данные не меняются, синхронизация не
-   запускается. Выбор запоминается на устройстве. */
-const OC_FILTER_KEY = "sklad2_oc_filter_v1";
+   Как на «Складе»: одна таблица (детали и расходники подряд), выбор по
+   заголовку — Самокаты (Все / YGW 4.0 / YGW 5.0 / 9Bot / Без модели),
+   Инструменты, Расходники, Остальное. Категория позиции 1С — как у связанной
+   позиции склада, иначе по тем же правилам. Дополнительно: «Остаток меньше N».
+   Только просмотр, выбор запоминается на устройстве. */
+const OC_FILTER_KEY = "sklad2_oc_filter_v2";
 let ocFilter = loadOcFilter();
 function loadOcFilter() {
   try {
-    const raw = localStorage.getItem(OC_FILTER_KEY);
-    const f = raw ? JSON.parse(raw) : null;
-    if (f && f.mode) { if (f.showCons === undefined) f.showCons = true; return f; }
-    return { mode: "all", qty: 20, showCons: true };
-  } catch (e) { return { mode: "all", qty: 20, showCons: true }; }
+    const f = JSON.parse(localStorage.getItem(OC_FILTER_KEY) || "null");
+    if (f && WH_CATS[f.cat]) return { cat: f.cat, model: f.model || "all", stock: !!f.stock, qty: Number.isFinite(f.qty) ? f.qty : 20 };
+  } catch (e) {}
+  return { cat: "scooter", model: "all", stock: false, qty: 20 };
 }
 function saveOcFilter() {
   try { localStorage.setItem(OC_FILTER_KEY, JSON.stringify(ocFilter)); } catch (e) {}
 }
 function isAbCode(code) { return /^AB[\s.]/i.test(String(code || "")); }
-// Возвращает пары { item, i } — исходный индекс обязателен, иначе кнопки
-// в строках стали бы указывать не на те позиции.
+function ocCatOf(item) {
+  const w = item.code ? warehouseInfoFor(item.code) : null;
+  const wi = w && warehouse[w.section] && warehouse[w.section][w.index];
+  return wi ? whCatOf(wi) : guessWhCat(item);
+}
+function ocMatches(item) {
+  if (ocCatOf(item) !== ocFilter.cat) return false;
+  if (ocFilter.stock && !((item.qty || 0) < (ocFilter.qty || 0))) return false;
+  if (ocFilter.cat !== "scooter" || ocFilter.model === "all") return true;
+  if (ocFilter.model === "none") return !item.model;
+  return (item.model || "") === ocFilter.model;
+}
+function ocFilterShowItem(item) {
+  ocFilter = { cat: ocCatOf(item), model: "all", stock: false, qty: ocFilter.qty };
+  saveOcFilter();
+}
+// Пары { item, i } — исходный индекс обязателен, иначе кнопки в строках указывали бы не на те позиции.
 function ocFilteredPairs(section) {
-  // Тумблер «расходники» имеет смысл только в режиме «Остаток»: там в один
-  // список попадают и детали, и расходка, а везти между складами обычно
-  // нужны только детали. В остальных режимах раздел и так задан выбором.
-  if (section === "consumables" && ocFilter.mode === "stock" && !ocFilter.showCons) return [];
-  const pairs = onec[section].map((item, i) => ({ item, i }));
-  switch (ocFilter.mode) {
-    case "consumables":  return section === "consumables" ? pairs : [];
-    case "stock":        return pairs.filter(({ item }) => (item.qty || 0) < (ocFilter.qty || 0));
-    case "9Bot":
-    case "YGW 4.0":
-    case "YGW 5.0":      return pairs.filter(({ item }) => (item.model || "") === ocFilter.mode);
-    default:             return pairs;
-  }
+  return onec[section].map((item, i) => ({ item, i })).filter(({ item }) => ocMatches(item));
 }
 function renderOneCSection(section) {
-  // См. комментарий в renderWarehouseSection — тот же индекс код→позиция,
-  // без него переход «1С» → «Склад» и колонка сравнения указывали бы не
-  // на ту строку после сортировки/добавления/редактирования.
+  // Индекс код→позиция должен быть свежим ДО построения строк (переход «1С» ↔ «Склад»).
   rebuildCrossIndexes();
   const tbody = document.getElementById("oc-body-" + section);
   const picked = selectedOC[section];
-  const pairs = ocFilteredPairs(section);
-  // собираем разметку одной строкой — заметно быстрее на длинных списках
-  tbody.innerHTML = pairs.map(({ item, i }) => {
+  tbody.innerHTML = ocFilteredPairs(section).map(({ item, i }) => {
     const key = section + "::" + item.code + "::" + item.name;
     const whInfo = warehouseInfoFor(item.code);
     return `<tr data-key="${escapeHtml(key)}" data-index="${i}"${picked.has(key) ? ' class="row-picked"' : ""}>
-      <td class="code wh-code">${item.code ? `<span class="code-text" data-code="${escapeHtml(item.code)}">${formatCodeDisplay(item.code)}</span>` : "—"}${item.model ? `<span class="wh-model-badge">${escapeHtml(item.model)}</span>` : ""}</td>
+      <td class="num"></td>
+      <td class="code">${item.code ? `<span class="code-text" data-code="${escapeHtml(item.code)}">${formatCodeDisplay(item.code)}</span>` : "—"}</td>
       <td class="name">
         <div class="main-name">${escapeHtml(item.name)}</div>
         ${altNameHtml(item.code, whInfo, true)}
+        ${item.model ? `<span class="ca-model-badge">${escapeHtml(String(item.model).replace(/^YGW\s*/i, ""))}</span>` : ""}
         ${whInfo ? "" : `<button class="oc-addwh oc-addwh-badge" data-section="${section}" data-index="${i}" title="Добавить эту позицию на склад">+</button>`}
       </td>
-      <td class="count-merged wh-merged">
+      <td class="count-merged wh-merged oc-qty-cell">
         <div class="count-tier count-tier-num">
           <input type="number" min="0" value="${item.qty || 0}" class="ocQtyInput"
             data-section="${section}" data-index="${i}">
@@ -3737,69 +3717,75 @@ function renderOneCSection(section) {
       </td>
     </tr>`;
   }).join("");
-  updateOneCTotals(section);
+  ocAfterRender();
   if (typeof applyOcSearch === "function") applyOcSearch();
+}
+// Одна таблица: сквозная нумерация, общий итог, пустое состояние, заголовок.
+function ocAfterRender() {
+  let n = 0;
+  document.querySelectorAll("#oc-body-parts td.num, #oc-body-consumables td.num").forEach((td) => { td.textContent = ++n; });
+  const empty = document.getElementById("oc-body-empty");
+  if (empty) empty.hidden = n > 0;
+  updateOneCTotals();
+  updateOcFilterUI();
 }
 function renderOneCAll() {
   rebuildCrossIndexes();
   renderOneCSection("parts");
   renderOneCSection("consumables");
-  updateOcFilterUI();
 }
-/* Прячем заголовок и таблицу раздела, если после фильтра он пуст —
-   иначе на экране висели бы пустые «Детали (1C)» / «Расходники (1C)». */
+function ocFilterTitle() {
+  let t = WH_CATS[ocFilter.cat];
+  if (ocFilter.cat === "scooter" && ocFilter.model !== "all") t += " · " + (ocFilter.model === "none" ? "без модели" : ocFilter.model);
+  if (ocFilter.stock) t += " · < " + ocFilter.qty;
+  return t;
+}
 function updateOcFilterUI() {
-  const view = document.getElementById("viewOneC");
-  if (!view) return;
-  hideEmptySections("oc-body-", "ocFilterBtn");
-  // подпись рядом с кнопкой фильтра + поле количества только для «Остаток»
+  const shown = document.querySelectorAll("#oc-body-parts tr[data-index], #oc-body-consumables tr[data-index]").length;
   const label = document.getElementById("ocFilterLabel");
-  const qtyInput = document.getElementById("ocFilterQty");
-  const names = { all: "Всё", consumables: "Расходники", stock: "Остаток",
-                  "9Bot": "9Bot", "YGW 4.0": "YGW 4.0", "YGW 5.0": "YGW 5.0" };
-  const shown = ocFilteredPairs("parts").length + ocFilteredPairs("consumables").length;
-  if (label) label.textContent = `${names[ocFilter.mode] || ""} · ${shown}`;
-  if (qtyInput) {
-    qtyInput.style.display = ocFilter.mode === "stock" ? "" : "none";
-    qtyInput.value = ocFilter.qty;
-  }
-  const consBtn = document.getElementById("ocConsToggle");
-  if (consBtn) {
-    consBtn.style.display = ocFilter.mode === "stock" ? "" : "none";
-    consBtn.classList.toggle("off", !ocFilter.showCons);
-    consBtn.title = ocFilter.showCons ? "Расходники показаны — нажмите, чтобы скрыть"
-                                      : "Расходники скрыты — нажмите, чтобы показать";
-  }
-  // отмечаем выбранный пункт в меню
-  document.querySelectorAll("#ocFilterPanel [data-filter]").forEach((b) => {
-    b.classList.toggle("primary", b.dataset.filter === ocFilter.mode);
+  if (label) label.textContent = String(shown);
+  const title = document.getElementById("ocTitle");
+  if (title) title.textContent = ocFilterTitle();
+  document.querySelectorAll("#ocFilterPanel [data-cat]").forEach((b) => {
+    const on = b.dataset.cat === ocFilter.cat && (b.dataset.cat !== "scooter" || b.dataset.model === ocFilter.model);
+    b.classList.toggle("primary", b.dataset.model ? on : b.dataset.cat === ocFilter.cat);
   });
+  const st = document.getElementById("ocStockToggle");
+  if (st) st.classList.toggle("primary", ocFilter.stock);
+  const q = document.getElementById("ocFilterQty");
+  if (q && document.activeElement !== q) q.value = ocFilter.qty;
 }
-/* --- кнопка фильтра --- */
-document.getElementById("ocFilterBtn").addEventListener("click", (e) => {
+document.getElementById("ocTitle").addEventListener("click", (e) => {
   e.stopPropagation();
-  document.getElementById("ocFilterPanel").classList.toggle("open");
+  const open = document.getElementById("ocFilterPanel").classList.toggle("open");
+  if (open) document.getElementById("ocScooterSub").hidden = ocFilter.cat !== "scooter";
 });
-document.querySelectorAll("#ocFilterPanel [data-filter]").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    ocFilter.mode = btn.dataset.filter;
+document.querySelectorAll("#ocFilterPanel [data-cat]").forEach((btn) => {
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!btn.dataset.model) {   // «Самокаты ▸» — раскрыть выбор модели
+      const sub = document.getElementById("ocScooterSub");
+      sub.hidden = !sub.hidden;
+      return;
+    }
+    ocFilter.cat = btn.dataset.cat;
+    ocFilter.model = btn.dataset.model;
     saveOcFilter();
     document.getElementById("ocFilterPanel").classList.remove("open");
     renderOneCAll();          // только перерисовка, без синхронизации
-    applyOcSearch();
   });
 });
-document.getElementById("ocConsToggle").addEventListener("click", () => {
-  ocFilter.showCons = !ocFilter.showCons;
+document.getElementById("ocStockToggle").addEventListener("click", (e) => {
+  e.stopPropagation();
+  ocFilter.stock = !ocFilter.stock;
   saveOcFilter();
-  renderOneCAll();          // только перерисовка, без синхронизации
-  applyOcSearch();
+  renderOneCAll();
 });
+document.getElementById("ocFilterQty").addEventListener("click", (e) => e.stopPropagation());
 document.getElementById("ocFilterQty").addEventListener("input", (e) => {
   ocFilter.qty = Math.max(0, parseInt(e.target.value, 10) || 0);
   saveOcFilter();
-  renderOneCAll();
-  applyOcSearch();
+  if (ocFilter.stock) renderOneCAll();
 });
 document.addEventListener("click", (e) => {
   if (!e.target.closest(".oc-filter-wrap")) {
@@ -4370,10 +4356,10 @@ function updateWarehouseTotals() {
   setTotal("total-wh-ocqty", oc);
 }
 
-function updateOneCTotals(section) {
+function updateOneCTotals() {
   let own = 0;
-  onec[section].forEach((it) => { own += it.qty || 0; });
-  setTotal(`total-oc-${section}-qty`, own);
+  ["parts", "consumables"].forEach((section) => ocFilteredPairs(section).forEach(({ item }) => { own += item.qty || 0; }));
+  setTotal("total-oc-qty", own);
 }
 
 /* ==================== Синхронизация через Supabase ====================

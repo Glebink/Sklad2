@@ -607,17 +607,6 @@
   /* Крестик закрытия в углу окна */
   /* Подпись выбранного фильтра рядом с кнопкой в шапке раздела 1С */
   /* Тумблер «показывать расходники» (только в режиме «Остаток») */
-  .oc-cons-toggle { position: relative; }
-  .oc-cons-toggle.off { opacity: 0.45; }
-  .oc-cons-toggle.off::after {
-    content: "";
-    position: absolute;
-    left: 4px; right: 4px; top: 50%;
-    height: 2px;
-    background:var(--danger);
-    transform: rotate(-20deg);
-    border-radius:2px;
-  }
   .oc-filter-label {
     font-size: 11px;
     font-weight: 600;
@@ -1449,3 +1438,32 @@ td.wh-empty { text-align: center; color: var(--muted); padding: 18px 8px; }
 /* «Склад»: заголовок категории — он же кнопка фильтра, меню открывается под ним слева */
 #whTitle.wh-title-btn { cursor: pointer; user-select: none; -webkit-user-select: none; }
 .wh-filter-wrap #whFilterPanel { left: 0; right: auto; }
+
+/* ==================== «1С» — как «Склад»: одна таблица, код, модель в углу названия, фильтр в заголовке ==================== */
+#viewOneC { min-height: 75vh; }
+#viewOneC td.code, #viewOneC td.code .code-text { color: var(--fg); font-weight: 700; letter-spacing: .02em; }
+#viewOneC td.name { padding-right: 64px; }
+#ocTitle.wh-title-btn { cursor: pointer; user-select: none; -webkit-user-select: none; }
+.oc-filter-wrap #ocFilterPanel { left: 0; right: auto; min-width: 190px; }
+#ocFilterPanel .wh-sub { display: grid; gap: 4px; padding-left: 14px; }
+#ocFilterPanel .wh-sub[hidden] { display: none; }
+#ocFilterPanel .wh-caret { opacity: .6; margin-left: 4px; }
+#ocFilterPanel .oc-stock-row { display: flex; gap: 6px; align-items: center; border-top: 1px solid var(--border); padding-top: 8px; }
+#ocFilterPanel .oc-stock-row .util { flex: 1 1 auto; }
+#ocFilterPanel #ocFilterQty { width: 64px; flex: none; text-align: center; }
+td.oc-qty-cell { width: 72px; }
+#viewOneC td.name:has(.oc-addwh-badge) { padding-bottom: 30px; }   /* «+» внизу не налезает на модель в углу */
+#viewOneC td.buttons.oc-buttons { width: 56px; }
+@media (min-width: 900px) {
+  #viewOneC table { table-layout: fixed; width: 100%; }
+  #viewOneC thead th:nth-child(1) { width: 56px; }
+  #viewOneC thead th:nth-child(2) { width: 220px; }
+  #viewOneC thead th:nth-child(4) { width: 72px; }
+  #viewOneC thead th:nth-child(5) { width: 56px; }
+  #viewOneC td.code { width: auto; min-width: 0; font-size: 18px; overflow-wrap: anywhere; white-space: normal; }
+}
+@media (max-width: 899px) {
+  #viewOneC td.code { font-size: 11.5px; width: 104px; white-space: normal; overflow-wrap: anywhere; }
+  #viewOneC td.name { padding-right: 46px; }
+  td.oc-qty-cell { width: 44px; }
+}

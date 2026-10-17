@@ -204,22 +204,28 @@
   </div>
 
   <div class="section-head">
-    <h2 class="section-title">Детали (1C)</h2>
-    <button class="iconbtn" id="ocUndoBtn" disabled title="Отменить последнее действие">↶</button>
-    <button class="iconbtn" id="ocRedoBtn" disabled title="Повторить действие">↷</button>
     <div class="menu-wrap oc-filter-wrap">
-      <button class="iconbtn" id="ocFilterBtn" title="Фильтр списка">⛃</button>
+      <h2 class="section-title wh-title-btn" id="ocTitle" role="button" tabindex="0" title="Категория">1С</h2>
       <div class="menu-panel list" id="ocFilterPanel">
-        <button class="util" data-filter="all">Всё</button>
-        <button class="util" data-filter="consumables">Расходники</button>
-        <button class="util" data-filter="9Bot">9Bot</button>
-        <button class="util" data-filter="YGW 4.0">YGW 4.0</button>
-        <button class="util" data-filter="YGW 5.0">YGW 5.0</button>
-        <button class="util" data-filter="stock">Остаток</button>
+        <button class="util" data-cat="scooter" data-model="">Самокаты <span class="wh-caret">▸</span></button>
+        <div class="wh-sub" id="ocScooterSub" hidden>
+          <button class="util" data-cat="scooter" data-model="all">Все</button>
+          <button class="util" data-cat="scooter" data-model="YGW 4.0">YGW 4.0</button>
+          <button class="util" data-cat="scooter" data-model="YGW 5.0">YGW 5.0</button>
+          <button class="util" data-cat="scooter" data-model="9Bot">9Bot</button>
+          <button class="util" data-cat="scooter" data-model="none">Без модели</button>
+        </div>
+        <button class="util" data-cat="tool" data-model="all">Инструменты</button>
+        <button class="util" data-cat="cons" data-model="all">Расходники</button>
+        <button class="util" data-cat="other" data-model="all">Остальное</button>
+        <div class="oc-stock-row">
+          <button class="util" id="ocStockToggle" title="Показывать только позиции с остатком меньше числа">Остаток &lt;</button>
+          <input type="number" id="ocFilterQty" min="0" value="20" inputmode="numeric">
+        </div>
       </div>
     </div>
-    <input type="number" id="ocFilterQty" min="0" value="20" title="Показывать позиции с остатком меньше этого числа" style="display:none;">
-    <button class="iconbtn oc-cons-toggle" id="ocConsToggle" style="display:none;" title="Расходники">🧴</button>
+    <button class="iconbtn" id="ocUndoBtn" disabled title="Отменить последнее действие">↶</button>
+    <button class="iconbtn" id="ocRedoBtn" disabled title="Повторить действие">↷</button>
     <span class="oc-filter-label" id="ocFilterLabel"></span>
     <div class="spacer"></div>
   </div>
@@ -227,28 +233,17 @@
   <table>
     <thead>
       <tr>
+        <th>№</th>
         <th class="sortable" data-table="oc" data-section="parts" data-col="code">Код <span class="sort-arrow">↕</span></th>
         <th class="sortable" data-table="oc" data-section="parts" data-col="name">Наименование <span class="sort-arrow">↕</span></th>
-        <th class="sortable narrow" data-table="oc" data-section="parts" data-col="qty">1С <span class="sort-arrow">↕</span><div class="col-total"><span id="total-oc-parts-qty"></span></div></th>
+        <th class="sortable narrow" data-table="oc" data-section="parts" data-col="qty">1С <span class="sort-arrow">↕</span><div class="col-total"><span id="total-oc-qty"></span></div></th>
         <th></th>
       </tr>
     </thead>
+    <!-- Детали и расходники — одна таблица: два tbody подряд (данные по-прежнему в двух разделах) -->
     <tbody id="oc-body-parts"></tbody>
-  </table>
-  </div>
-
-  <h2 class="section-title">Расходники (1C)</h2>
-  <div class="table-scroll">
-  <table>
-    <thead>
-      <tr>
-        <th class="sortable" data-table="oc" data-section="consumables" data-col="code">Код <span class="sort-arrow">↕</span></th>
-        <th class="sortable" data-table="oc" data-section="consumables" data-col="name">Наименование <span class="sort-arrow">↕</span></th>
-        <th class="sortable narrow" data-table="oc" data-section="consumables" data-col="qty">1С <span class="sort-arrow">↕</span><div class="col-total"><span id="total-oc-consumables-qty"></span></div></th>
-        <th></th>
-      </tr>
-    </thead>
     <tbody id="oc-body-consumables"></tbody>
+    <tbody id="oc-body-empty" hidden><tr><td colspan="5" class="wh-empty">В этой категории ничего нет</td></tr></tbody>
   </table>
   </div>
 
