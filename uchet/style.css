@@ -1432,3 +1432,8 @@ body.shift-ro.ca-search-collapsed[data-tab="consumption"]:not(.no-ticket) .ca-se
 .topbar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; flex: 0 0 auto; }
 .topbar-right #appVersionBadge { align-self: center; }
 .topbar-right .menu-panel { right: 0; left: auto; }
+
+/* ПК: таблицы Учёта, Склада и 1С уже на 15%, по центру правой части */
+@media (min-width: 900px) {
+  #viewConsumption, #viewWarehouse, #viewOneC { width: 85%; margin-left: auto; margin-right: auto; }
+}
