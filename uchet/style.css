@@ -1465,3 +1465,15 @@ body.shift-ro .count-tier-pm { display: none !important; }
 td.count-merged .count-tier-num { padding: 14px 4px; }
 td.count-merged .count-tier-num input.countInput { font-size: 22px !important; min-width: 56px; height: 40px; padding: 4px 2px; }
 td.count-merged .count-tier-pm .btn { padding: 11px 0; font-size: 20px; line-height: 1; }
+/* порядок «–» «+» */
+.count-tier-pm .btn.plus { border-right: 0; }
+.count-tier-pm .btn.minus { border-right: 1px solid var(--border); }
+#viewConsumption td.code, #viewConsumption td.code .code-text { font-weight: 700; }
+/* телефон: ячейки ниже на 30%, зона «Шт» уже на 15% */
+@media (max-width: 899px) {
+  td.count-merged { width: 61px; }
+  td.count-merged .count-tier-num { padding: 6px 3px; }
+  td.count-merged .count-tier-num input.countInput { font-size: 18px !important; min-width: 40px; height: 30px; padding: 2px; }
+  td.count-merged .count-tier-pm .btn { padding: 7px 0; font-size: 18px; }
+  #viewConsumption td { padding-top: 3px; padding-bottom: 3px; }
+}

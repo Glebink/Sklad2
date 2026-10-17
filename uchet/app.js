@@ -985,8 +985,8 @@ function renderSection(section) {
             data-section="${section}" data-index="${i}"${!canEditCurrent() ? " readonly" : ""}>
         </div>
         <div class="count-tier count-tier-pm">
-          <button class="btn plus" data-section="${section}" data-index="${i}" title="Указать количество">+</button>
           <button class="btn minus" data-section="${section}" data-index="${i}" title="Указать количество">–</button>
+          <button class="btn plus" data-section="${section}" data-index="${i}" title="Указать количество">+</button>
         </div>
       </td>
     `;
