@@ -1839,7 +1839,7 @@ function renderWarehouseSection(section) {
     return `<tr data-key="${escapeHtml(key)}" data-index="${i}"${picked.has(key) ? ' class="row-picked"' : ""}>
       <td class="num"></td>
       <td class="code">${item.code ? `<span class="code-text" data-code="${escapeHtml(item.code)}">${formatCodeDisplay(item.code)}</span>` : "—"}</td>
-      <td class="name"><div class="main-name">${escapeHtml(item.name)}</div>${ocInfo ? altNameHtml(item.code, ocInfo, true) : ""}${item.model ? `<span class="ca-model-badge">${escapeHtml(item.model)}</span>` : ""}</td>
+      <td class="name"><div class="main-name">${escapeHtml(item.name)}</div>${ocInfo ? altNameHtml(item.code, ocInfo, true) : ""}${item.model ? `<span class="ca-model-badge">${escapeHtml(String(item.model).replace(/^YGW\s*/i, ""))}</span>` : ""}</td>
       <td class="wh-oc-qty">${ocInfo ? ocInfo.qty : "—"}</td>
       <td class="buttons wh-buttons">
         <div class="menu-wrap wh-menu-wrap">
