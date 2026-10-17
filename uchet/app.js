@@ -2679,8 +2679,6 @@ SEARCH_TABS.forEach(({ key, bodyPrefix, getStore }) => {
   const panel = document.getElementById("addPanelConsumption");
   const inRow = mk("caSearchToggle", "in-row");
   panel.insertBefore(inRow, document.getElementById("addItemBtn"));
-  const alone = mk("caSearchToggleAlone", "alone");
-  panel.parentNode.insertBefore(alone, panel);
   panel.parentNode.insertBefore(bar, panel.nextSibling);
   const btn = inRow;
   document.body.dataset.tab = "consumption";
@@ -2691,7 +2689,6 @@ SEARCH_TABS.forEach(({ key, bodyPrefix, getStore }) => {
     try { syncStickyTopHeight(true); } catch (e) {}
   };
   btn.addEventListener("click", () => setOpen(true));
-  alone.addEventListener("click", () => setOpen(true));
   input.addEventListener("blur", () => setTimeout(() => {
     if (!input.value && !bar.contains(document.activeElement)) setOpen(false);
   }, 250));

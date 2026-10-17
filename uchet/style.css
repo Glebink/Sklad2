@@ -1396,3 +1396,11 @@ body:not(.ca-search-collapsed) .ca-search-toggle, body:not([data-tab="consumptio
 .add-panel.one-row .ca-search-toggle.in-row { flex: 0 0 auto; width: 44px; height: auto; align-self: stretch; margin: 0; }
 .ca-search-toggle.alone { display: none !important; }
 body.shift-ro.ca-search-collapsed[data-tab="consumption"]:not(.no-ticket) .ca-search-toggle.alone { display: inline-flex !important; }
+
+/* Строка ввода одним блоком: без промежутков, только перегородки между ячейками */
+.add-panel.one-row { gap: 0; }
+.add-panel.one-row .add-name-wrap { flex: 1 1 auto; }
+.add-panel.one-row .add-name-wrap input[type="text"] { border-radius: 8px 0 0 8px; }
+.add-panel.one-row input#newItemQty { width: 64px; max-width: 64px; border-radius: 0; margin-left: -1px; }
+.add-panel.one-row .ca-search-toggle.in-row { border-radius: 0; margin-left: -1px; width: 44px; }
+.add-panel.one-row button.util#addItemBtn { border-radius: 0 8px 8px 0; margin-left: -1px; }
