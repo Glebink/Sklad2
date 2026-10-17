@@ -1373,3 +1373,7 @@ body.role-shift #backupSaveBtn, body.role-shift #backupLoadBtn, body.role-shift 
 body.role-shift a.mod-item[href*="zayavki"] { display: none !important; }
 body.role-shift .countInput { pointer-events: none; }
 body.shift-ro .btn.plus, body.shift-ro .count-tier-plus { display: none !important; }
+
+/* Поле количества в блоке добавления: компактное (оно text, а не number, поэтому общие правила
+   для текстовых полей делали его огромным) */
+.add-panel.one-row input#newItemQty { flex: 0 0 auto; width: 75px; min-width: 0; max-width: 75px; text-align: center; padding-left: 4px; padding-right: 4px; }
