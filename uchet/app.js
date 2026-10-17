@@ -561,10 +561,18 @@ let transferList = loadTransferList();
 
 const MONTHS_FULL_GEN = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
 
-function todayStr() {
-  const d = new Date();
-  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+/* Дата и время — по Москве (как на сервере), а не по часам и поясу устройства. */
+function mskParts(offsetDays) {
+  const d = new Date(Date.now() + 3 * 3600 * 1000 + (offsetDays || 0) * 86400000);   // МСК = UTC+3 круглый год
+  return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate(), h: d.getUTCHours() };
 }
+function mskDateStr(offsetDays) {
+  const p = mskParts(offsetDays);
+  return p.y + "-" + String(p.m).padStart(2, "0") + "-" + String(p.d).padStart(2, "0");
+}
+function todayStr() { return mskDateStr(0); }
+// До 04:00 МСК сменщик ещё может дописать свою вчерашнюю заявку (то же правило на сервере).
+const SHIFT_GRACE_HOUR = 4;
 function formatShort(dateStr) {
   if (!dateStr) return "—";
   dateStr = String(dateStr).slice(0, 10);   // у заявки на учёт ключ может быть «2026-10-16#2»
@@ -731,11 +739,13 @@ function bindCurrent() {
 }
 bindCurrent();
 
-// Сменщик правит только свою заявку за сегодня; остальные заявки для него — только просмотр.
+// Сменщик правит только свою заявку за сегодня (и вчерашнюю — до 04:00 МСК); остальные — только просмотр.
 function canEditCurrent() {
   if (!isShift()) return true;
   const e = currentDate && dataByDate[currentDate];
-  return !!e && e.by === MY_LOGIN && currentDate.slice(0, 10) === todayStr();
+  if (!e || e.by !== MY_LOGIN) return false;
+  const day = currentDate.slice(0, 10);
+  return day === todayStr() || (day === mskDateStr(-1) && mskParts(0).h < SHIFT_GRACE_HOUR);
 }
 function persistCurrent() {
   if (!currentDate) return;
@@ -5500,6 +5510,14 @@ if (window.Auth) {
   setSyncStatus("err", "Не загрузилась библиотека входа — обмен с сервером недоступен.");
 }
 refreshAfterSyncChange();
+// Сменщик: в полночь и в 04:00 МСК меняется, какую заявку можно править — раз в минуту обновляем режим.
+if (isShift()) {
+  let lastEditable = canEditCurrent();
+  setInterval(() => {
+    const now = canEditCurrent();
+    if (now !== lastEditable) { lastEditable = now; renderAll(); renderTicketList(); updateAddPanelVisibility(); }
+  }, 60000);
+}
 
 /* ==================== Поля количества: авто-ширина + курсор в конец ====================
    Ширина поля растёт вслед за введённым числом (не обрезает 1000+), а при
