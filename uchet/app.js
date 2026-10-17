@@ -982,7 +982,7 @@ function renderSection(section) {
       <td class="count count-merged">
         <div class="count-tier count-tier-num">
           <input type="number" min="0" value="${counts[key]}" class="countInput"
-            data-section="${section}" data-index="${i}"${isShift() ? " readonly" : ""}>
+            data-section="${section}" data-index="${i}"${!canEditCurrent() ? " readonly" : ""}>
         </div>
         <div class="count-tier count-tier-plus">
           <button class="btn plus" data-section="${section}" data-index="${i}" title="Тап: +1. Зажать: указать количество">+</button>
@@ -1056,7 +1056,7 @@ const LONG_PRESS_MOVE_TOLERANCE = 12;
 function applyQuickAdjust(section, index, mode) {
   const item = itemAt(section, index);
   if (!item) return;
-  if (!canEditCurrent() || (isShift() && mode !== "plus")) return;   // сменщик только прибавляет
+  if (!canEditCurrent()) return;   // сменщик правит только свою заявку за сегодня
   const key = countKey(section, item);
   pushHistory();
   if (mode === "plus") {
@@ -1101,7 +1101,6 @@ function setupQtyLongPress(tbody) {
     const section = btn.dataset.section;
     const index = Number(btn.dataset.index);
     const mode = btn.classList.contains("plus") ? "plus" : "minus";
-    if (isShift()) { activeBtn = btn; return; }   // долгое нажатие (ввод количества, списание) сменщику недоступно
     timer = setTimeout(() => {
       longFired = true;
       timer = null;
@@ -1119,9 +1118,7 @@ function setupQtyLongPress(tbody) {
     const btn = activeBtn;
     const hadTimer = !!timer;
     clearTimer();
-    if (isShift() && btn && !longFired) {
-      applyQuickAdjust(btn.dataset.section, Number(btn.dataset.index), btn.classList.contains("plus") ? "plus" : "minus");
-    } else if (btn && hadTimer && !longFired) {
+    if (btn && hadTimer && !longFired) {
       const section = btn.dataset.section;
       const index = Number(btn.dataset.index);
       const mode = btn.classList.contains("plus") ? "plus" : "minus";
@@ -1140,7 +1137,7 @@ setupQtyLongPress(document.getElementById("body-consumables"));
 function handleCountEdit(e) {
   const input = e.target.closest(".countInput");
   if (!input) return;
-  if (isShift()) { renderSection(input.dataset.section); return; }
+  if (!canEditCurrent()) { renderSection(input.dataset.section); return; }
   const section = input.dataset.section;
   const index = parseInt(input.dataset.index, 10);
   const item = itemAt(section, index);
@@ -1183,7 +1180,7 @@ const qtyAdjustInput = document.getElementById("qtyAdjustInput");
 
 function openQtyAdjust(section, index, mode) {
   const item = itemAt(section, index);
-  if (!item) return;
+  if (!item || !canEditCurrent()) return;
   const key = countKey(section, item);
   const current = counts[key] || 0;
   pendingQtyAdjust = { section, index, mode };
