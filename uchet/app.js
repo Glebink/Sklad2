@@ -699,15 +699,28 @@ function entryItemCount(e) {
   return ((s.parts || []).length) + ((s.consumables || []).length);
 }
 // Пустые заявки за прошедшие дни (создали и забыли) убираем, чтобы не копились номера.
-(function cleanupEmptyTickets() {
-  if (!canDeleteTickets()) return;   // заявки удаляет только hleb (сервер иначе отклонит обмен)
-  const t = todayStr();
+/* Пустые заявки удаляются сами на любом устройстве: через час после создания, если
+   в них ничего не добавили (поле created ставится при создании). У старых заявок без
+   created — если они за прошедший день. Сервер разрешает любому аккаунту удалять только
+   пустые заявки, заявки с позициями — только hleb. */
+const EMPTY_TICKET_TTL_MS = 60 * 60 * 1000;
+function emptyTicketExpired(k, e) {
+  if (!TICKET_KEY_RE.test(k) || entryItemCount(e) !== 0) return false;
+  if (e && e.created) return Date.now() - e.created >= EMPTY_TICKET_TTL_MS;
+  return k.slice(0, 10) < todayStr();
+}
+function cleanupEmptyTickets(sync) {
   let changed = false;
   Object.keys(dataByDate).forEach((k) => {
-    if (TICKET_KEY_RE.test(k) && k.slice(0, 10) < t && entryItemCount(dataByDate[k]) === 0) { delete dataByDate[k]; changed = true; }
+    if (k === currentDate && canEditCurrent() && document.activeElement && document.activeElement.id === "newItemName") return;   // прямо сейчас набирают позицию
+    if (emptyTicketExpired(k, dataByDate[k])) { delete dataByDate[k]; changed = true; }
   });
-  if (changed) { try { localStorage.setItem(DATA_BY_DATE_KEY, JSON.stringify(dataByDate)); } catch (e) {} }
-})();
+  if (!changed) return false;
+  if (sync) saveDataByDate();
+  else { try { localStorage.setItem(DATA_BY_DATE_KEY, JSON.stringify(dataByDate)); } catch (e) {} }
+  return true;
+}
+cleanupEmptyTickets(false);
 try {
   const sel = sessionStorage.getItem("sklad2_sel_ticket");
   if (sel && dataByDate[sel]) currentDate = sel;
@@ -1730,6 +1743,7 @@ function createTicket() {
   let key = d, n = 1;
   while (dataByDate[key]) { n++; key = d + "#" + n; }
   dataByDate[key] = emptyEntry();
+  dataByDate[key].created = Date.now();          // пустая заявка удалится сама через час
   if (MY_LOGIN) dataByDate[key].by = MY_LOGIN;   // автор заявки (показывается в карточке)
   currentDate = key;
   bindCurrent();
@@ -5375,6 +5389,11 @@ if (window.Auth) {
   setSyncStatus("err", "Не загрузилась библиотека входа — обмен с сервером недоступен.");
 }
 refreshAfterSyncChange();
+// Раз в минуту убираем пустые заявки старше часа (на любом устройстве и аккаунте).
+setInterval(() => {
+  if (applyingRemote) return;
+  if (cleanupEmptyTickets(true)) { bindCurrent(); renderTicketList(); renderAll(); updateAddPanelVisibility(); }
+}, 60000);
 // Сменщик: в полночь и в 04:00 МСК меняется, какую заявку можно править — раз в минуту обновляем режим.
 if (isShift()) {
   let lastEditable = canEditCurrent();
