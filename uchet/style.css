@@ -1444,3 +1444,11 @@ td.wh-oc-qty { width: 72px; text-align: center; font-size: 16px; font-weight: 70
   #viewWarehouse td.name { padding-right: 46px; }
   td.wh-oc-qty { width: 40px; font-size: 13px; }
 }
+/* «Склад»: фильтр категорий (подменю моделей у «Самокатов»), пустая категория, переключатель категории */
+#whFilterPanel { min-width: 190px; }
+#whFilterPanel .wh-sub { display: grid; gap: 4px; padding-left: 14px; }
+#whFilterPanel .wh-sub[hidden] { display: none; }
+#whFilterPanel .wh-caret { opacity: .6; margin-left: 4px; }
+td.wh-empty { text-align: center; color: var(--muted); padding: 18px 8px; }
+.cat-switch .ms-opt { flex: 1 1 0; font-size: 12px; padding-left: 4px; padding-right: 4px; }
+#viewWarehouse { min-height: 75vh; }   /* меню категорий не обрезается, даже если позиций мало */

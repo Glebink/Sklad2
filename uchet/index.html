@@ -149,16 +149,23 @@
 <div class="view" id="viewWarehouse">
 
   <div class="section-head">
-    <h2 class="section-title">Детали (склад)</h2>
+    <h2 class="section-title" id="whTitle">Склад</h2>
     <button class="iconbtn" id="whUndoBtn" disabled title="Отменить последнее действие">↶</button>
     <button class="iconbtn" id="whRedoBtn" disabled title="Повторить действие">↷</button>
     <div class="menu-wrap wh-filter-wrap">
-      <button class="iconbtn" id="whFilterBtn" title="Фильтр по модели">⛃</button>
+      <button class="iconbtn" id="whFilterBtn" title="Категория">⛃</button>
       <div class="menu-panel list" id="whFilterPanel">
-        <button class="util" data-model="all">Все</button>
-        <button class="util" data-model="YGW 5.0">YGW 5.0</button>
-        <button class="util" data-model="YGW 4.0">YGW 4.0</button>
-        <button class="util" data-model="9Bot">9Bot</button>
+        <button class="util" data-cat="scooter" data-model="">Самокаты <span class="wh-caret">▸</span></button>
+        <div class="wh-sub" id="whScooterSub" hidden>
+          <button class="util" data-cat="scooter" data-model="all">Все</button>
+          <button class="util" data-cat="scooter" data-model="YGW 5.0">YGW 5.0</button>
+          <button class="util" data-cat="scooter" data-model="YGW 4.0">YGW 4.0</button>
+          <button class="util" data-cat="scooter" data-model="9Bot">9Bot</button>
+          <button class="util" data-cat="scooter" data-model="none">Без модели</button>
+        </div>
+        <button class="util" data-cat="tool" data-model="all">Инструменты</button>
+        <button class="util" data-cat="cons" data-model="all">Расходники</button>
+        <button class="util" data-cat="other" data-model="all">Остальное</button>
       </div>
     </div>
     <span class="oc-filter-label" id="whFilterLabel"></span>
@@ -170,30 +177,16 @@
         <th>№</th>
         <th class="sortable" data-table="wh" data-section="parts" data-col="code">Код <span class="sort-arrow">↕</span></th>
         <th class="sortable" data-table="wh" data-section="parts" data-col="name">Наименование <span class="sort-arrow">↕</span></th>
-        <th class="sortable narrow" data-table="wh" data-section="parts" data-col="ocqty">1С <span class="sort-arrow">↕</span><div class="col-total"><span id="total-wh-parts-ocqty"></span></div></th>
+        <th class="sortable narrow" data-table="wh" data-section="parts" data-col="ocqty">1С <span class="sort-arrow">↕</span><div class="col-total"><span id="total-wh-ocqty"></span></div></th>
         <th></th>
       </tr>
     </thead>
+    <!-- Детали и расходники — одна таблица: два tbody подряд (данные по-прежнему в двух разделах) -->
     <tbody id="wh-body-parts"></tbody>
-  </table>
-  </div>
-
-  <h2 class="section-title">Расходники (склад)</h2>
-  <div class="table-scroll">
-  <table>
-    <thead>
-      <tr>
-        <th>№</th>
-        <th class="sortable" data-table="wh" data-section="consumables" data-col="code">Код <span class="sort-arrow">↕</span></th>
-        <th class="sortable" data-table="wh" data-section="consumables" data-col="name">Наименование <span class="sort-arrow">↕</span></th>
-        <th class="sortable narrow" data-table="wh" data-section="consumables" data-col="ocqty">1С <span class="sort-arrow">↕</span><div class="col-total"><span id="total-wh-consumables-ocqty"></span></div></th>
-        <th></th>
-      </tr>
-    </thead>
     <tbody id="wh-body-consumables"></tbody>
+    <tbody id="wh-body-empty" hidden><tr><td colspan="5" class="wh-empty">В этой категории ничего нет</td></tr></tbody>
   </table>
   </div>
-
 
 </div>
 
@@ -366,6 +359,13 @@
           <button type="button" class="ms-opt" data-model="9Bot">9Bot</button>
         </div>
       </div>
+    </div>
+    <div class="field-label">Категория</div>
+    <div class="model-switch cat-switch" id="whEditCat" data-value="">
+      <button type="button" class="ms-opt" data-model="scooter">Самокаты</button>
+      <button type="button" class="ms-opt" data-model="tool">Инстр.</button>
+      <button type="button" class="ms-opt" data-model="cons">Расходн.</button>
+      <button type="button" class="ms-opt" data-model="other">Остальное</button>
     </div>
     <div class="modal-actions">
       <button class="confirm-no" id="whEditCancel">Отмена</button>

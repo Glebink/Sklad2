@@ -1769,29 +1769,67 @@ document.getElementById("ticketSearchInput").addEventListener("input", (e) => {
 });
 
 /* ==================== ВКЛАДКА СКЛАД: логика ==================== */
-/* ==================== Фильтр склада по модели ====================
-   Всё / YGW 5.0 / YGW 4.0 / 9Bot. Только просмотр: данные не меняются,
-   синхронизация не запускается, выбор запоминается на устройстве. */
-const WH_FILTER_KEY = "sklad2_wh_filter_v1";
-let whFilterModel = (function () {
-  try { return localStorage.getItem(WH_FILTER_KEY) || "all"; } catch (e) { return "all"; }
+/* ==================== Категории склада ====================
+   Фильтр: Самокаты (Все / YGW 5.0 / YGW 4.0 / 9Bot / Без модели), Инструменты,
+   Расходники, Остальное. Категория позиции — поле cat (ставится в окне правки);
+   если не задана, определяется правилами ниже по названию, коду и модели.
+   Только просмотр: фильтр данные не меняет, выбор запоминается на устройстве. */
+const WH_CATS = { scooter: "Самокаты", tool: "Инструменты", cons: "Расходники", other: "Остальное" };
+// Правила по порядку: первое сработавшее решает. [категория, поле, выражение]
+const WH_CAT_RULES = [
+  ["cons", "name", /^(винт|болт|гайка|шайба|саморез|шуруп|заклепка|стяжка|screw|flat gasket|disk-lock|nylon cable|stainless steel collar|стопорная шайба|плоская шайба)/i],
+  ["tool", "name", /(^бита|бокорез|^головка семиуг)/i],
+  ["cons", "name", /(лента на липучке|^коробка|упаковочн|наклейк|qr-код|жидкий ключ|пломб|лезви)/i],
+  ["scooter", "model", /./],
+  ["scooter", "code", /^(\d{3}[a-z]{2}\d{2}-|ab|14\.01\.|nbr|6001|6003|16004|e05|врем|00000775|00-00002861|796$|zu001|234jy)/i],
+  ["cons", "name", /(pla-пластик|пластик для 3d|пластик в катушке|филамент|масло|шампун|щетка для мой|щетка для мыть)/i],
+  ["other", "name", /(внешний аккумулятор|ящик|органайзер|3d принтер)/i],
+  ["tool", "name", /(дрел|шуруповерт|винтоверт|перфоратор|гайковерт|пила|шлифмаш|углошлиф|углоглиф|угловая шлиф|ушм|аккумулятор|удлинитель для бит|лопатка монтаж)/i],
+  ["other", "name", /(станок|мойк|пылесос|сварочн|обогреват|пушка тепл|принтер|верстак|стул|кресло|весы|сканер|мышь|светильник|удлинитель|сетевой фильтр|фильтр удлинитель|тройник|картридер|перфопанел|подвес|полк[аи]|система хранения|колесо поворот|кран шаров|шланг|доска магнит|ограждение|знак |лопат|ледоруб|швабр|сгон|аппарат высокого|фильтр для моек|фильтр тонкой|набор для полива|компрессор|соединени|соединител|муфта|поддон|тарелка магнит|держатель инструмента магнит|страховочная подставка)/i],
+  ["tool", "name", /(отверт|головок|сверел|насад|бит |бит$|бита|биты|бит-головк|ключ|головк|трещ|вороток|пинцет|нож|кусачк|плоскогуб|пассатиж|длинногуб|клещ|молот|киянк|кувалд|зажим|струбцин|тиски|заклепочник|напильник|рулетк|отсос припоя|фен|полировальная машина|сверл|набор инструмент|инструмент для|экстрактор|плашк|переходник|адаптер|держател[ья]? для бит|держатель бит|редуктор|стаместк|лом|горелк|точильн|гравер|насадк|кордщетк|щетка для дрели|щетка концев|щетка круглая|щетка дисков|щетка металлическая для ушм|ракель|валик|пистолет|опрыскиват|пульверизат|распылит|воронк|набор ремонтника|реанимат|диагностическ|магнитный держатель|шестигранник|борфрез)/i],
+  ["cons", "name", /(заклепк|болт м|перчат|краги|респиратор|полумаск|очки|щиток|куртк|плащ|сапог|ботинк|чулок|костюм|стельк|скотч|лент|изолен|этикетк|бумаг|блокнот|картон|пакет|пленк|стрейч|клей|склеиван|активатор|герметик|смазк|обезжир|растворит|уайт|очистит|граффити|удалител|паст|диск|круг|наждач|абразив|губка|микрофибр|вафельн|протирочн|батаре|крона|маркер|резинк|припой|трубк|термоус|эмаль|жидкое стекло|газ |проволок|фум|оргстекло|прокладка|кисть|щетк|щётк|сальник)/i]
+];
+function guessWhCat(item) {
+  for (const [cat, field, re] of WH_CAT_RULES) {
+    if (re.test(String(item[field] || ""))) return cat;
+  }
+  return "other";
+}
+function whCatOf(item) { return WH_CATS[item.cat] ? item.cat : guessWhCat(item); }
+
+const WH_FILTER_KEY = "sklad2_wh_filter_v2";
+let whFilter = (function () {
+  try {
+    const f = JSON.parse(localStorage.getItem(WH_FILTER_KEY) || "null");
+    if (f && WH_CATS[f.cat]) return { cat: f.cat, model: f.model || "all" };
+  } catch (e) {}
+  return { cat: "scooter", model: "all" };
 })();
 function saveWhFilter() {
-  try { localStorage.setItem(WH_FILTER_KEY, whFilterModel); } catch (e) {}
+  try { localStorage.setItem(WH_FILTER_KEY, JSON.stringify(whFilter)); } catch (e) {}
+}
+function whMatches(item) {
+  if (whCatOf(item) !== whFilter.cat) return false;
+  if (whFilter.cat !== "scooter" || whFilter.model === "all") return true;
+  if (whFilter.model === "none") return !item.model;
+  return (item.model || "") === whFilter.model;
+}
+// Показать все позиции категории этой позиции (для перехода к строке, скрытой фильтром).
+function whFilterShowItem(item) {
+  whFilter = { cat: whCatOf(item), model: "all" };
+  saveWhFilter();
+}
+function whFilterTitle() {
+  if (whFilter.cat !== "scooter" || whFilter.model === "all") return WH_CATS[whFilter.cat];
+  return "Самокаты · " + (whFilter.model === "none" ? "без модели" : whFilter.model);
 }
 // Пары { item, i } — исходный индекс нужен, иначе кнопки в строках стали бы
 // указывать не на те позиции.
 function whFilteredPairs(section) {
-  const pairs = warehouse[section].map((item, i) => ({ item, i }));
-  if (whFilterModel === "all") return pairs;
-  return pairs.filter(({ item }) => (item.model || "") === whFilterModel);
+  return warehouse[section].map((item, i) => ({ item, i })).filter(({ item }) => whMatches(item));
 }
 function renderWarehouseSection(section) {
-  // Индекс код→позиция должен быть свежим ДО построения строк: иначе после
-  // сортировки/добавления/редактирования (которые меняют порядок или состав
-  // массива, но не всегда идут через renderWarehouseAll/renderOneCAll) тут
-  // читался бы старый индекс — переход между «Складом» и «1С» и колонки
-  // сравнения/остатка указывали бы не на ту позицию.
+  // Индекс код→позиция должен быть свежим ДО построения строк (переход «Склад» ↔ «1С»).
   rebuildCrossIndexes();
   const tbody = document.getElementById("wh-body-" + section);
   const picked = selectedWH[section];
@@ -1799,7 +1837,7 @@ function renderWarehouseSection(section) {
     const key = countKey(section, item);
     const ocInfo = oneCInfoFor(item.code);
     return `<tr data-key="${escapeHtml(key)}" data-index="${i}"${picked.has(key) ? ' class="row-picked"' : ""}>
-      <td class="num">${i + 1}</td>
+      <td class="num"></td>
       <td class="code">${item.code ? `<span class="code-text" data-code="${escapeHtml(item.code)}">${formatCodeDisplay(item.code)}</span>` : "—"}</td>
       <td class="name"><div class="main-name">${escapeHtml(item.name)}</div>${ocInfo ? altNameHtml(item.code, ocInfo, true) : ""}${item.model ? `<span class="ca-model-badge">${escapeHtml(item.model)}</span>` : ""}</td>
       <td class="wh-oc-qty">${ocInfo ? ocInfo.qty : "—"}</td>
@@ -1816,14 +1854,22 @@ function renderWarehouseSection(section) {
       </td>
     </tr>`;
   }).join("");
-  updateWarehouseTotals(section);
+  whAfterRender();
   if (typeof applyWhSearch === "function") applyWhSearch();
+}
+// Детали и расходники идут одной таблицей: сквозная нумерация, общий итог 1С, пустое состояние.
+function whAfterRender() {
+  let n = 0;
+  document.querySelectorAll("#wh-body-parts td.num, #wh-body-consumables td.num").forEach((td) => { td.textContent = ++n; });
+  const empty = document.getElementById("wh-body-empty");
+  if (empty) empty.hidden = n > 0;
+  updateWarehouseTotals();
+  updateWhFilterUI();
 }
 function renderWarehouseAll() {
   rebuildCrossIndexes();
   renderWarehouseSection("parts");
   renderWarehouseSection("consumables");
-  updateWhFilterUI();
 }
 /* Общая для «Склада» и «1С»: прячет пустой после фильтра раздел (таблицу и
    заголовок), кроме шапки с кнопкой фильтра — иначе из режима, где раздел
@@ -1847,27 +1893,34 @@ function hideEmptySections(bodyPrefix, filterBtnId) {
   });
 }
 function updateWhFilterUI() {
+  const shown = document.querySelectorAll("#wh-body-parts tr[data-index], #wh-body-consumables tr[data-index]").length;
   const label = document.getElementById("whFilterLabel");
-  if (label) {
-    const shown = whFilteredPairs("parts").length + whFilteredPairs("consumables").length;
-    label.textContent = (whFilterModel === "all" ? "Все" : whFilterModel) + " · " + shown;
-  }
-  document.querySelectorAll("#whFilterPanel [data-model]").forEach((b) => {
-    b.classList.toggle("primary", b.dataset.model === whFilterModel);
+  if (label) label.textContent = String(shown);
+  const title = document.getElementById("whTitle");
+  if (title) title.textContent = whFilterTitle();
+  document.querySelectorAll("#whFilterPanel [data-cat]").forEach((b) => {
+    const on = b.dataset.cat === whFilter.cat && (!b.dataset.model || b.dataset.model === whFilter.model || b.dataset.cat !== "scooter");
+    b.classList.toggle("primary", b.dataset.model ? on : b.dataset.cat === whFilter.cat);
   });
-  hideEmptySections("wh-body-", "whFilterBtn");
 }
 document.getElementById("whFilterBtn").addEventListener("click", (e) => {
   e.stopPropagation();
-  document.getElementById("whFilterPanel").classList.toggle("open");
+  const panel = document.getElementById("whFilterPanel");
+  const open = panel.classList.toggle("open");
+  if (open) document.getElementById("whScooterSub").hidden = whFilter.cat !== "scooter";
 });
-document.querySelectorAll("#whFilterPanel [data-model]").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    whFilterModel = btn.dataset.model;
+document.querySelectorAll("#whFilterPanel [data-cat]").forEach((btn) => {
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!btn.dataset.model) {   // «Самокаты ▸» — раскрыть выбор модели
+      const sub = document.getElementById("whScooterSub");
+      sub.hidden = !sub.hidden;
+      return;
+    }
+    whFilter = { cat: btn.dataset.cat, model: btn.dataset.model };
     saveWhFilter();
     document.getElementById("whFilterPanel").classList.remove("open");
     renderWarehouseAll();      // только перерисовка, без синхронизации
-    applyWhSearch();           // строки перерисованы — заново подсветим найденное
   });
 });
 document.addEventListener("click", (e) => {
@@ -2080,6 +2133,7 @@ function openWhEdit(section, index) {
   document.getElementById("whEditName").value = item.name;
   document.getElementById("whEditQty").value = item.qty || 0;
   setModelSwitch(document.getElementById("whEditModel"), item.model || "");
+  setModelSwitch(document.getElementById("whEditCat"), whCatOf(item));
   const box = document.getElementById("whEditSuggestBox");
   if (box) { box.classList.remove("open"); box.innerHTML = ""; }
   openModal("whEditOverlay");
@@ -2121,7 +2175,9 @@ document.getElementById("whEditSave").addEventListener("click", () => {
   pushWhHistory();
   const oldItem = warehouse[section][index];
   const oldKey = countKey(section, oldItem);
-  const newItem = { code, name, qty, model };
+  const newItem = Object.assign({}, oldItem, { code, name, qty, model });
+  const cat = getModelSwitch(document.getElementById("whEditCat"));
+  if (WH_CATS[cat]) newItem.cat = cat;
   const newKey = countKey(newSection, newItem);
   const wasPicked = selectedWH[section].has(oldKey);
 
@@ -2298,6 +2354,18 @@ function reapplySavedSort() {
   });
 }
 function sortTable(table, section, col) {
+  if (table === "wh" && section !== "consumables") {
+    // «Склад» — одна таблица: одинаково сортируем оба раздела
+    const st = sortState.wh.parts;
+    const dir = st.col === col ? (st.dir === "asc" ? "desc" : "asc") : defaultDirFor(col);
+    pushWhHistory();
+    ["parts", "consumables"].forEach((s) => { sortState.wh[s].col = col; sortState.wh[s].dir = dir; applySortToList("wh", s); });
+    saveSortState();
+    saveWarehouseLocalOnly();
+    renderWarehouseAll();
+    updateSortArrows("wh", "parts");
+    return;
+  }
   const state = sortState[table][section];
   const dir = state.col === col ? (state.dir === "asc" ? "desc" : "asc") : defaultDirFor(col);
   if (table === "ca") pushHistory();
@@ -3570,8 +3638,8 @@ function revealRow(tab, section, index) {
   let tr = rowByDataIndex(tbodyId, index);
   if (tr) return tr;
   if (tab === "wh") {
-    whFilterModel = "all";
-    saveWhFilter();
+    const it = warehouse[section] && warehouse[section][index];
+    if (it) whFilterShowItem(it);
     renderWarehouseAll();
   } else {
     ocFilter.mode = "all";
@@ -4304,16 +4372,15 @@ function setTotal(id, value) {
   if (el) el.textContent = fmtTotal(value);
 }
 
-function updateWarehouseTotals(section) {
-  const list = warehouse[section];
-  let own = 0, oc = 0;
-  list.forEach((it) => {
-    own += it.qty || 0;
-    const info = oneCInfoFor(it.code);
-    if (info) oc += info.qty;
+function updateWarehouseTotals() {
+  let oc = 0;
+  ["parts", "consumables"].forEach((section) => {
+    whFilteredPairs(section).forEach(({ item }) => {
+      const info = oneCInfoFor(item.code);
+      if (info) oc += info.qty;
+    });
   });
-  setTotal(`total-wh-${section}-qty`, own);
-  setTotal(`total-wh-${section}-ocqty`, oc);
+  setTotal("total-wh-ocqty", oc);
 }
 
 function updateOneCTotals(section) {
