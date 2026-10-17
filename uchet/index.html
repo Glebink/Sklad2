@@ -148,28 +148,6 @@
 <!-- ===================== ВКЛАДКА: СКЛАД ===================== -->
 <div class="view" id="viewWarehouse">
 
-  <div class="add-panel">
-    <select id="whNewSection">
-      <option value="parts">Детали</option>
-      <option value="consumables">Расходники</option>
-    </select>
-    <input type="text" id="whNewCode" class="code-input" placeholder="Код">
-    <input type="text" id="whNewName" placeholder="Наименование">
-    <div class="model-switch" id="whNewModel" data-value="" title="Модель">
-      <button type="button" class="ms-opt" data-model="YGW 4.0">4.0</button>
-      <button type="button" class="ms-opt" data-model="">—</button>
-      <button type="button" class="ms-opt" data-model="YGW 5.0">5.0</button>
-          <button type="button" class="ms-opt" data-model="9Bot">9Bot</button>
-    </div>
-    <input type="number" id="whNewQty" placeholder="Кол-во" min="0" value="0">
-    <div class="suggest-box" id="whAddSuggestBox"></div>
-    <div class="corner-row full-row">
-      <button class="util" id="whResetBtn">Обнулить</button>
-      <button class="util" id="whImportBtn" title="Импорт количеств из файла">⬆ Импорт</button>
-      <button class="util primary" id="whAddBtn">+ Добавить</button>
-    </div>
-  </div>
-
   <div class="section-head">
     <h2 class="section-title">Детали (склад)</h2>
     <button class="iconbtn" id="whUndoBtn" disabled title="Отменить последнее действие">↶</button>
@@ -577,25 +555,6 @@
     <div class="modal-actions mt-10">
       <button class="confirm-no" id="ocImportClose">Отмена</button>
       <button class="confirm-yes accent" id="ocImportRun">Импортировать</button>
-    </div>
-  </div>
-</div>
-
-<!-- Импорт количеств на склад: только код + количество -->
-<div class="modal-overlay" id="whImportOverlay">
-  <div class="modal-box wide pos-rel">
-    <button class="modal-x" id="whImportX" title="Закрыть">✕</button>
-    <p class="modal-title">Импорт на склад</p>
-    <div class="footer-note mb-8">
-      Файл <b>.xlsx</b> со столбцами <b>Код</b> и <b>Количество</b>. Обновятся
-      только количества у позиций с совпавшим кодом — названия, разделы и
-      модели не изменятся. Позиции, которых нет в файле, не трогаются.
-    </div>
-    <input type="file" id="whImportFile" accept=".xlsx" class="file-input">
-    <div class="footer-note mt-6" id="whImportInfo"></div>
-    <div class="modal-actions mt-10">
-      <button class="confirm-no" id="whImportClose">Отмена</button>
-      <button class="confirm-yes accent" id="whImportRun">Импортировать</button>
     </div>
   </div>
 </div>

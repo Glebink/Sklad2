@@ -1178,7 +1178,7 @@ qtyAdjustInput.addEventListener("keydown", (e) => {
 
 /* ==================== Подтверждение удаления (общее для Склада; в «Учёте» удаление
    теперь происходит автоматически при списании количества до 0, см. applyQtyAdjust) ==================== */
-let pendingDelete = null; // { kind: 'reset'|'warehouse'|'whReset'|'onec'|'deleteAll', section, index }
+let pendingDelete = null; // { kind: 'reset'|'warehouse'|'onec'|'deleteAll', section, index }
 
 /* ==================== Подтверждение удаления/обнуления (общее для 3 вкладок) ====================
    Раньше у каждого вида удаления (склад, 1С, обнулить учёт, обнулить склад,
@@ -1208,14 +1208,6 @@ document.getElementById("confirmOverlay").addEventListener("click", (e) => {
 // Что делает каждый вид подтверждения. pendingDelete доступен внутри
 // (section/index — если действие точечное, для «обнулить»/«удалить всё» не нужны).
 const DELETE_ACTIONS = {
-  whReset: () => {
-    pushWhHistory();
-    ["parts", "consumables"].forEach((sec) => {
-      warehouse[sec].forEach((it) => { it.qty = 0; });
-    });
-    saveWarehouse();
-    renderWarehouseAll();
-  },
   warehouse: () => {
     pushWhHistory();
     const { section, index } = pendingDelete;
@@ -2157,32 +2149,6 @@ document.getElementById("whEditSave").addEventListener("click", () => {
     renderWarehouseSection(section);
   }
   closeWhEdit();
-});
-
-/* --- Добавление новой позиции на склад --- */
-document.getElementById("whAddBtn").addEventListener("click", () => {
-  const section = document.getElementById("whNewSection").value;
-  const code = document.getElementById("whNewCode").value.trim();
-  const name = document.getElementById("whNewName").value.trim();
-  const model = getModelSwitch(document.getElementById("whNewModel"));
-  let qty = parseInt(document.getElementById("whNewQty").value, 10);
-  if (isNaN(qty) || qty < 0) qty = 0;
-  if (!name) return;
-  pushWhHistory();
-  const newItem = { code, name, qty, model };
-  warehouse[section].push(newItem);
-  if (model && syncModelByCode(code, model)) {   // если такой код есть в 1С — подтянем модель и туда
-    saveOneCLocalOnly();
-    renderOneCAll();
-  }
-  saveWarehouse();
-  document.getElementById("whNewCode").value = "";
-  document.getElementById("whNewName").value = "";
-  setModelSwitch(document.getElementById("whNewModel"), "");
-  document.getElementById("whNewQty").value = "0";
-  const addBox = document.getElementById("whAddSuggestBox");
-  if (addBox) { addBox.classList.remove("open"); addBox.innerHTML = ""; }
-  renderWarehouseSection(section);
 });
 
 /* ==================== Переключение вкладок ==================== */
@@ -3157,97 +3123,6 @@ document.getElementById("ocImportRun").addEventListener("click", () => {
   alert(`Готово: обновлено ${updated}, добавлено ${added}` + (zeroed.length ? `, обнулено ${zeroed.length}` : "") + ".");
 });
 
-/* ==================== Импорт количеств на склад ====================
-   Простой режим: в файле только код и количество. Обновляем количество у
-   совпавших по коду позиций, ничего больше не трогаем — ни названия, ни
-   разделы, ни модели. Позиции, которых нет в файле, остаются как есть
-   (в отличие от импорта в 1С, где отсутствие означает нулевой остаток). */
-let whImportRows = null;
-/* Простой разбор таблицы для склада: два столбца — код и количество.
-   Отдельно от разбора выгрузки 1С, где своя структура с заголовками.
-   Строка-заголовок («Код», «Количество») распознаётся и пропускается. */
-async function parseSimpleXlsx(file) {
-  const rows = await readXlsxGrid(file);
-  const out = [];
-  rows.forEach((cells) => {
-    const keys = Object.keys(cells).map(Number).sort((a, b) => a - b);
-    if (keys.length === 0) return;
-    const code = String(cells[keys[0]] || "").trim();
-    if (!code) return;
-    // второй непустой столбец — количество
-    let qty = 0;
-    for (let k = 1; k < keys.length; k++) {
-      const raw = String(cells[keys[k]] || "").replace(/\s|\u00a0/g, "").replace(",", ".");
-      if (raw === "") continue;
-      const n = parseFloat(raw);
-      if (!isNaN(n)) { qty = Math.max(0, Math.round(n)); }
-      break;
-    }
-    // пропускаем заголовок вида «Код | Количество»
-    if (/^(код|артикул)$/i.test(code)) return;
-    out.push({ code, qty });
-  });
-  return out;
-}
-function findWhItemByCode(code) {
-  if (!code) return null;
-  const want = codeVariants(code);
-  for (const section of ["parts", "consumables"]) {
-    const list = warehouse[section];
-    for (let i = 0; i < list.length; i++) {
-      if (list[i].code && codeVariants(list[i].code).some((v) => want.includes(v))) {
-        return { section, index: i };
-      }
-    }
-  }
-  return null;
-}
-document.getElementById("whImportBtn").addEventListener("click", () => {
-  whImportRows = null;
-  document.getElementById("whImportFile").value = "";
-  document.getElementById("whImportInfo").textContent = "";
-  openModal("whImportOverlay");
-});
-function closeWhImport() { closeModal("whImportOverlay"); }
-document.getElementById("whImportClose").addEventListener("click", closeWhImport);
-document.getElementById("whImportX").addEventListener("click", closeWhImport);
-document.getElementById("whImportFile").addEventListener("change", async (e) => {
-  const file = e.target.files && e.target.files[0];
-  const info = document.getElementById("whImportInfo");
-  whImportRows = null;
-  if (!file) { info.textContent = ""; return; }
-  info.textContent = "Читаю файл…";
-  try {
-    const rows = await parseSimpleXlsx(file);
-    whImportRows = rows;
-    const known = whImportRows.filter((r) => findWhItemByCode(r.code)).length;
-    info.textContent = `Прочитано ${whImportRows.length} строк · найдено на складе: ${known}` +
-      (whImportRows.length - known ? ` · нет на складе: ${whImportRows.length - known}` : "");
-  } catch (err) {
-    info.textContent = "Не удалось прочитать файл: " + err.message;
-  }
-});
-document.getElementById("whImportRun").addEventListener("click", () => {
-  if (!whImportRows || whImportRows.length === 0) { alert("Выберите файл .xlsx."); return; }
-  let updated = 0, skipped = 0;
-  const plan = [];
-  whImportRows.forEach((r) => {
-    const found = findWhItemByCode(r.code);
-    if (!found) { skipped++; return; }
-    plan.push({ found, qty: r.qty });
-    updated++;
-  });
-  if (updated === 0) { alert("Ни одного кода из файла нет на складе."); return; }
-  const skipMsg = skipped ? `\n\n${skipped} поз. из файла на складе нет — они пропущены.` : "";
-  if (!confirm(`Обновить количество у ${updated} поз. на складе?${skipMsg}`)) return;
-  pushWhHistory();
-  plan.forEach((p) => { warehouse[p.found.section][p.found.index].qty = p.qty; });
-  saveWarehouse();
-  renderWarehouseAll();
-  closeWhImport();
-  alert(`Готово: обновлено ${updated}` + (skipped ? `, пропущено ${skipped}` : "") + ".");
-});
-
 /* ==================== Резервная копия ====================
    Выгружает все данные приложения в один файл и восстанавливает из него.
    Файл содержит только данные приложения (без логина и пароля) — его можно
@@ -4058,25 +3933,6 @@ function renderOneCSuggestions(box, query, onPick) {
     "В 1C совпадений нет — можно добавить позицию вручную.");
 }
 
-/* --- панель добавления позиции на склад --- */
-const whNewCodeInput = document.getElementById("whNewCode");
-const whNewNameInput = document.getElementById("whNewName");
-const whAddSuggestBox = document.getElementById("whAddSuggestBox");
-
-function pickIntoWhAdd(r) {
-  whNewCodeInput.value = r.code;
-  whNewNameInput.value = r.name;
-  // раздел подставляем как в 1C — при необходимости меняется вручную
-  document.getElementById("whNewSection").value = r.section;
-}
-[whNewCodeInput, whNewNameInput].forEach((input) => {
-  input.addEventListener("input", () => {
-    renderOneCSuggestions(whAddSuggestBox, input.value, pickIntoWhAdd);
-  });
-});
-
-registerSuggestZone(whAddSuggestBox, [whNewCodeInput, whNewNameInput]);
-
 /* --- модалка редактирования позиции склада --- */
 const whEditCodeInput = document.getElementById("whEditCode");
 const whEditNameInput = document.getElementById("whEditName");
@@ -4288,13 +4144,6 @@ const whHistory = makeUndoRedo({
   limit: WH_HISTORY_LIMIT
 });
 function pushWhHistory() { whHistory.push(); }
-document.getElementById("whResetBtn").addEventListener("click", () => {
-  const total = warehouse.parts.length + warehouse.consumables.length;
-  openConfirmDelete("whReset",
-    `Обнулить количество у всех позиций склада (${total} шт.)? Сами позиции останутся, можно отменить кнопкой ↶.`);
-});
-
-
 /* ==================== Чистое копирование и вставка ====================
    Наименование выводится двумя блочными строками, поэтому браузер
    добавляет в копию перенос строки — в поле ввода он превращается

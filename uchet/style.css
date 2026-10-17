@@ -1427,7 +1427,6 @@ td.count-merged .count-tier-pm .btn { padding: 11px 0; font-size: 20px; line-hei
 /* ==================== «Склад»: код как в «Учёте», модель в углу названия, только остаток 1С ====================
    Количество склада в интерфейсе не показывается и не вводится (в данных поле qty остаётся —
    его использует вкладка «1С» для сравнения). */
-#whResetBtn, #whImportBtn, #whNewQty, #viewWarehouse .field-narrow { display: none !important; }
 #whEditOverlay .field-narrow { display: none !important; }
 #viewWarehouse td.code, #viewWarehouse td.code .code-text { color: var(--fg); font-weight: 700; letter-spacing: .02em; }
 #viewWarehouse td.name { padding-right: 64px; }
