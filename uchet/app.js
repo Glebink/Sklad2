@@ -872,6 +872,11 @@ function findChange(beforeLists, afterLists, beforeMap, afterMap, keyFn) {
 function rowByDataIndex(tbodyId, index) {
   const tbody = document.getElementById(tbodyId);
   if (!tbody) return null;
+  const sec = tbodyId.replace(/^.*-/, "");
+  const table = tbody.closest("table");
+  if (table && table.querySelector("tr[data-section]")) {
+    return table.querySelector(`tr[data-section="${sec}"][data-index="${index}"]`);
+  }
   if (tbody.querySelector("tr[data-index]")) {
     return tbody.querySelector(`tr[data-index="${index}"]`);
   }
@@ -1775,15 +1780,15 @@ function whFilterTitle() {
 function whFilteredPairs(section) {
   return warehouse[section].map((item, i) => ({ item, i })).filter(({ item }) => whMatches(item));
 }
-function renderWarehouseSection(section) {
-  // Индекс код→позиция должен быть свежим ДО построения строк (переход «Склад» ↔ «1С»).
-  rebuildCrossIndexes();
+// Разделы «Склада» и «1С» показываются одной таблицей, поэтому перерисовываются всегда вместе.
+function renderWarehouseSection() { renderWarehouseAll(); }
+function renderWhRows(section) {
   const tbody = document.getElementById("wh-body-" + section);
   const picked = selectedWH[section];
   tbody.innerHTML = whFilteredPairs(section).map(({ item, i }) => {
     const key = countKey(section, item);
     const ocInfo = oneCInfoFor(item.code);
-    return `<tr data-key="${escapeHtml(key)}" data-index="${i}"${picked.has(key) ? ' class="row-picked"' : ""}>
+    return `<tr data-key="${escapeHtml(key)}" data-index="${i}" data-section="${section}"${picked.has(key) ? ' class="row-picked"' : ""}>
       <td class="num"></td>
       <td class="code">${item.code ? `<span class="code-text" data-code="${escapeHtml(item.code)}">${formatCodeDisplay(item.code)}</span>` : "—"}</td>
       <td class="name"><div class="main-name">${escapeHtml(item.name)}</div>${ocInfo ? altNameHtml(item.code, ocInfo, true) : ""}<span class="wh-corner">${modelBadgesHtml(modelsOf(item), true)}<span class="wh-oc-qty" title="Остаток 1С">${ocInfo ? ocInfo.qty : "—"}</span></span></td>
@@ -1800,8 +1805,21 @@ function renderWarehouseSection(section) {
       </td>
     </tr>`;
   }).join("");
-  whAfterRender();
-  if (typeof applyWhSearch === "function") applyWhSearch();
+}
+/* При активной сортировке строки обоих разделов сливаются в общий порядок (в первый tbody),
+   иначе сортировка шла внутри каждого раздела отдельно и детали всегда стояли выше расходников. */
+function mergeSortedRows(table, prefix, store) {
+  const st = sortState[table].parts;
+  if (!st.col) return;
+  const parts = document.getElementById(prefix + "parts");
+  const rows = Array.from(document.querySelectorAll(`#${prefix}parts tr[data-index], #${prefix}consumables tr[data-index]`));
+  const val = (tr) => getSortValue(table, tr.dataset.section, store[tr.dataset.section][+tr.dataset.index], st.col);
+  const keyed = rows.map((tr, n) => ({ tr, n, v: val(tr) }));
+  keyed.sort((a, b) => {
+    const cmp = typeof a.v === "string" ? a.v.localeCompare(b.v, "ru") : (a.v - b.v);
+    return (st.dir === "asc" ? cmp : -cmp) || (a.n - b.n);
+  });
+  keyed.forEach(({ tr }) => parts.appendChild(tr));
 }
 // Детали и расходники идут одной таблицей: сквозная нумерация, общий итог 1С, пустое состояние.
 function whAfterRender() {
@@ -1809,13 +1827,16 @@ function whAfterRender() {
   document.querySelectorAll("#wh-body-parts td.num, #wh-body-consumables td.num").forEach((td) => { td.textContent = ++n; });
   const empty = document.getElementById("wh-body-empty");
   if (empty) empty.hidden = n > 0;
-  updateWarehouseTotals();
   updateWhFilterUI();
 }
 function renderWarehouseAll() {
+  // Индекс код→позиция должен быть свежим ДО построения строк (переход «Склад» ↔ «1С»).
   rebuildCrossIndexes();
-  renderWarehouseSection("parts");
-  renderWarehouseSection("consumables");
+  renderWhRows("parts");
+  renderWhRows("consumables");
+  mergeSortedRows("wh", "wh-body-", warehouse);
+  whAfterRender();
+  if (typeof applyWhSearch === "function") applyWhSearch();
 }
 function updateWhFilterUI() {
   const shown = document.querySelectorAll("#wh-body-parts tr[data-index], #wh-body-consumables tr[data-index]").length;
@@ -1963,7 +1984,8 @@ document.addEventListener("click", (e) => {
 }, true);
 
 function handleWarehouseClick(e) {
-  const section = e.currentTarget.id.replace("wh-body-", "");
+  const row = e.target.closest("tr[data-section]");
+  const section = row ? row.dataset.section : e.currentTarget.id.replace("wh-body-", "");
   const btn = e.target.closest("button");
   if (btn) {
     const index = parseInt(btn.dataset.index, 10);
@@ -2119,8 +2141,7 @@ document.getElementById("whEditSave").addEventListener("click", () => {
   if (sectionChanged) {
     renderWarehouseAll();
     // подсветим, куда переехала позиция
-    const tbody = document.getElementById("wh-body-" + newSection);
-    const rows = tbody.querySelectorAll("tr");
+    const rows = document.querySelectorAll(`#viewWarehouse tr[data-section="${newSection}"]`);
     flashRow(rows[rows.length - 1]);
   } else {
     renderWarehouseSection(section);
@@ -3499,15 +3520,14 @@ function ocFilterShowItem(item) {
 function ocFilteredPairs(section) {
   return onec[section].map((item, i) => ({ item, i })).filter(({ item }) => ocMatches(item));
 }
-function renderOneCSection(section) {
-  // Индекс код→позиция должен быть свежим ДО построения строк (переход «1С» ↔ «Склад»).
-  rebuildCrossIndexes();
+function renderOneCSection() { renderOneCAll(); }
+function renderOcRows(section) {
   const tbody = document.getElementById("oc-body-" + section);
   const picked = selectedOC[section];
   tbody.innerHTML = ocFilteredPairs(section).map(({ item, i }) => {
     const key = section + "::" + item.code + "::" + item.name;
     const whInfo = warehouseInfoFor(item.code);
-    return `<tr data-key="${escapeHtml(key)}" data-index="${i}"${picked.has(key) ? ' class="row-picked"' : ""}>
+    return `<tr data-key="${escapeHtml(key)}" data-index="${i}" data-section="${section}"${picked.has(key) ? ' class="row-picked"' : ""}>
       <td class="num"></td>
       <td class="code">${item.code ? `<span class="code-text" data-code="${escapeHtml(item.code)}">${formatCodeDisplay(item.code)}</span>` : "—"}</td>
       <td class="name">
@@ -3529,8 +3549,6 @@ function renderOneCSection(section) {
       </td>
     </tr>`;
   }).join("");
-  ocAfterRender();
-  if (typeof applyOcSearch === "function") applyOcSearch();
 }
 // Одна таблица: сквозная нумерация, общий итог, пустое состояние, заголовок.
 function ocAfterRender() {
@@ -3542,9 +3560,13 @@ function ocAfterRender() {
   updateOcFilterUI();
 }
 function renderOneCAll() {
+  // Индекс код→позиция должен быть свежим ДО построения строк (переход «1С» ↔ «Склад»).
   rebuildCrossIndexes();
-  renderOneCSection("parts");
-  renderOneCSection("consumables");
+  renderOcRows("parts");
+  renderOcRows("consumables");
+  mergeSortedRows("oc", "oc-body-", onec);
+  ocAfterRender();
+  if (typeof applyOcSearch === "function") applyOcSearch();
 }
 function ocFilterTitle() {
   let t = WH_CATS[ocFilter.cat];
@@ -3621,7 +3643,8 @@ function runOcRowAction(section, index, btn) {
   }
 }
 function handleOneCClick(e) {
-  const section = e.currentTarget.id.replace("oc-body-", "");
+  const row = e.target.closest("tr[data-section]");
+  const section = row ? row.dataset.section : e.currentTarget.id.replace("oc-body-", "");
   const btn = e.target.closest("button");
   if (btn) {
     const index = parseInt(btn.dataset.index, 10);
@@ -3720,8 +3743,7 @@ document.getElementById("ocEditSave").addEventListener("click", () => {
   renderWarehouseAll();
   if (sectionChanged) {
     renderOneCAll();
-    const tbody = document.getElementById("oc-body-" + newSection);
-    const rows = tbody.querySelectorAll("tr");
+    const rows = document.querySelectorAll(`#viewOneC tr[data-section="${newSection}"]`);
     flashRow(rows[rows.length - 1]);
   } else {
     renderOneCSection(section);
@@ -3798,7 +3820,7 @@ function runSearch(k, bodyPrefix, store, matchFn) {
     // фильтром, и с группировкой по моделям на «Учёте». Заголовки групп
     // пропускаются сами — у них нет data-index.
     Array.prototype.forEach.call(tbody.querySelectorAll("tr[data-index]"), (tr) => {
-      const item = store[section][parseInt(tr.dataset.index, 10)];
+      const item = store[tr.dataset.section || section][parseInt(tr.dataset.index, 10)];
       if (!item) return;
       const hit = q.length > 0 && matchFn(item, q);
       tr.classList.toggle("row-match", hit);
@@ -4100,16 +4122,6 @@ function setTotal(id, value) {
   if (el) el.textContent = fmtTotal(value);
 }
 
-function updateWarehouseTotals() {
-  let oc = 0;
-  ["parts", "consumables"].forEach((section) => {
-    whFilteredPairs(section).forEach(({ item }) => {
-      const info = oneCInfoFor(item.code);
-      if (info) oc += info.qty;
-    });
-  });
-  setTotal("total-wh-ocqty", oc);
-}
 
 function updateOneCTotals() {
   let own = 0;
