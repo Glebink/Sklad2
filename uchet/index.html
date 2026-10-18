@@ -267,25 +267,6 @@
   </div>
 </div>
 
-<!-- Модалка редактирования позиции в списке потребления (с поиском по складу) -->
-<div class="modal-overlay" id="editItemOverlay">
-  <div class="modal-box pos-rel">
-    <p>Изменить позицию:</p>
-    <div class="field-label">Раздел</div>
-    <select id="editItemSection">
-      <option value="parts">Детали</option>
-      <option value="consumables">Расходники</option>
-    </select>
-    <div class="field-label">Наименование</div>
-    <input type="text" id="editItemInput" autocomplete="off">
-    <div class="suggest-box suggest-box-inset" id="editSuggestBox"></div>
-    <div class="modal-actions">
-      <button class="confirm-no" id="editItemCancel">Отмена</button>
-      <button class="confirm-yes accent" id="editItemSave">Сохранить</button>
-    </div>
-  </div>
-</div>
-
 <!-- Модалка: списать / добавить количество по позиции (вкладка «Учёт») -->
 <div class="modal-overlay" id="qtyAdjustOverlay">
   <div class="modal-box">
@@ -528,18 +509,6 @@
     <div class="modal-actions mt-10">
       <button class="confirm-no" id="ocImportClose">Отмена</button>
       <button class="confirm-yes accent" id="ocImportRun">Импортировать</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="whTransferOverlay">
-  <div class="modal-box wide">
-    <p id="whTransferTitle" class="modal-title">Список</p>
-    <textarea id="whTransferArea" class="paste-textarea"></textarea>
-    <div class="footer-note mt-6" id="whTransferHint"></div>
-    <div class="modal-actions mt-10">
-      <button class="confirm-no" id="whTransferClose">Закрыть</button>
-      <button class="confirm-yes accent" id="whTransferAction">Скопировать</button>
     </div>
   </div>
 </div>

@@ -527,7 +527,6 @@ const APP_VERSION = "v2.0";
 }
 
 const DATA_BY_DATE_KEY = "sklad2_data_by_date_v3";
-const LAST_DATE_KEY = "sklad2_last_date_v1";
 const WAREHOUSE_KEY = "sklad2_warehouse_v1";
 // Остатки второго склада («Бестужевская») — храним отдельно, в основной
 // список 1С они не подмешиваются. Нужны для будущего сравнения остатков
@@ -1455,101 +1454,6 @@ newItemInput.addEventListener("keydown", (e) => {
 });
 document.getElementById("newItemQty").addEventListener("keydown", (e) => {
   if (e.key === "Enter") document.getElementById("addItemBtn").click();
-});
-
-/* --- Редактирование позиции дневного списка (с поиском по складу) --- */
-let editingTarget = null; // { section, index }
-let editPicked = null;
-const editItemInput = document.getElementById("editItemInput");
-const editSuggestBox = document.getElementById("editSuggestBox");
-registerSuggestZone(editSuggestBox, [editItemInput]);
-
-function openEditItem(section, index) {
-  if (isShift()) return;
-  editingTarget = { section, index };
-  editPicked = null;
-  const item = itemAt(section, index);
-  editItemInput.value = item.name;
-  document.getElementById("editItemSection").value = section;
-  editSuggestBox.classList.remove("open");
-  openModal("editItemOverlay");
-  setTimeout(() => { editItemInput.focus(); editItemInput.select(); }, 50);
-}
-function closeEditItem() {
-  editingTarget = null;
-  closeModal("editItemOverlay");
-}
-editItemInput.addEventListener("input", () => {
-  editPicked = null;
-  renderSuggestions(editSuggestBox, editItemInput.value, (r) => {
-    editPicked = r;
-    editItemInput.value = r.name;
-  });
-});
-document.getElementById("editItemCancel").addEventListener("click", closeEditItem);
-document.getElementById("editItemOverlay").addEventListener("click", (e) => {
-  if (e.target.id === "editItemOverlay") closeEditItem();
-});
-document.getElementById("editItemSave").addEventListener("click", () => {
-  if (!editingTarget) return;
-  const { section, index } = editingTarget;
-  const newSection = document.getElementById("editItemSection").value;
-  const oldItem = itemAt(section, index);
-  const trimmed = editItemInput.value.trim();
-  if (!trimmed) { closeEditItem(); return; }
-  const code = (editPicked && editPicked.name === trimmed) ? editPicked.code : "";
-  const sectionChanged = newSection !== section;
-  if (!sectionChanged && trimmed === oldItem.name && code === oldItem.code) { closeEditItem(); return; }
-
-  // проверка дублей в разделе назначения — по КОДУ (см. пояснение при
-  // добавлении): одинаковые названия под разные модели допустимы.
-  const clash = sections[newSection].some((it, i) => {
-    if (!sectionChanged && i === index) return false;
-    return code ? (it.code === code) : (!it.code && it.name === trimmed);
-  });
-  if (clash) {
-    alert(sectionChanged
-      ? `Такая позиция уже есть в разделе «${newSection === "parts" ? "Детали" : "Расходники"}».`
-      : "Такая позиция уже есть в этом списке.");
-    return;
-  }
-
-  pushHistory();
-  const oldKey = countKey(section, oldItem);
-  const newItem = { name: trimmed, code };
-  const newKey = countKey(newSection, newItem);
-  const savedCount = counts[oldKey] || 0;
-  const savedChecked = checked[oldKey] || false;
-  const wasPicked = selectedCA[section].has(oldKey);
-
-  if (sectionChanged) {
-    sections[section].splice(index, 1);
-    sections[newSection].push(newItem);
-  } else {
-    sections[section][index] = newItem;
-  }
-
-  if (newKey !== oldKey) {
-    counts[newKey] = savedCount;
-    checked[newKey] = savedChecked;
-    delete counts[oldKey];
-    delete checked[oldKey];
-  }
-  selectedCA[section].delete(oldKey);
-  if (wasPicked) selectedCA[newSection].add(newKey);
-
-  persistCurrent();
-  if (sectionChanged) {
-    renderAll();
-    // подсветим, куда переехала позиция (она в своей группе, не в конце)
-    flashRow(rowByDataIndex("body-" + newSection, sections[newSection].length - 1));
-  } else {
-    renderSection(section);
-  }
-  closeEditItem();
-});
-editItemInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") document.getElementById("editItemSave").click();
 });
 
 /* ==================== История выдачи по позиции (только расход по дням) ==================== */
@@ -2707,26 +2611,6 @@ function findOcItemByName(name) {
   }
   return null;
 }
-function findOcItem(code, name) {
-  for (const section of ["parts", "consumables"]) {
-    const list = onec[section];
-    for (let i = 0; i < list.length; i++) {
-      const it = list[i];
-      if (code && it.code && codeVariants(it.code).some((v) => codeVariants(code).includes(v))) {
-        return { section, index: i };
-      }
-    }
-  }
-  if (!name) return null;
-  const target = name.toLowerCase();
-  for (const section of ["parts", "consumables"]) {
-    const list = onec[section];
-    for (let i = 0; i < list.length; i++) {
-      if ((list[i].name || "").toLowerCase() === target) return { section, index: i };
-    }
-  }
-  return null;
-}
 function openOcImport() {
   document.getElementById("ocImportArea").value = "";
   document.getElementById("ocImportFile").value = "";
@@ -3275,92 +3159,6 @@ document.getElementById("backupFileInput").addEventListener("change", (e) => {
   const file = e.target.files && e.target.files[0];
   if (file) restoreBackup(file);
   e.target.value = "";
-});
-
-/* ==================== Копировать / Вставить список склада (перенос между файлами) ==================== */
-let whTransferMode = null; // { type: 'copy'|'paste', section: 'parts'|'consumables' }
-const whTransferArea = document.getElementById("whTransferArea");
-const whTransferHint = document.getElementById("whTransferHint");
-const whTransferAction = document.getElementById("whTransferAction");
-
-function openWhCopy() {
-  whTransferMode = { type: "copy" };
-  document.getElementById("whTransferTitle").textContent = "Копировать весь склад";
-  const pack = (arr) => arr.map((it) => ({ code: it.code, name: it.name, qty: it.qty || 0 }));
-  whTransferArea.value = JSON.stringify({ parts: pack(warehouse.parts), consumables: pack(warehouse.consumables) });
-  whTransferArea.readOnly = true;
-  whTransferHint.textContent = "Текст ниже уже выделен — нажмите «Скопировать в буфер» (или Ctrl+C), затем вставьте его кнопкой «Вставить весь склад» в другом файле.";
-  whTransferAction.textContent = "Скопировать в буфер";
-  openModal("whTransferOverlay");
-  setTimeout(() => { whTransferArea.focus(); whTransferArea.select(); }, 60);
-}
-
-function openWhPaste() {
-  whTransferMode = { type: "paste" };
-  document.getElementById("whTransferTitle").textContent = "Вставить весь склад";
-  whTransferArea.value = "";
-  whTransferArea.readOnly = false;
-  whTransferHint.textContent = "Вставьте сюда (Ctrl+V или долгим тапом) текст, скопированный кнопкой «Копировать весь склад».";
-  whTransferAction.textContent = "Заменить склад";
-  openModal("whTransferOverlay");
-  setTimeout(() => whTransferArea.focus(), 60);
-}
-
-function closeWhTransfer() {
-  whTransferMode = null;
-  closeModal("whTransferOverlay");
-}
-document.getElementById("whTransferClose").addEventListener("click", closeWhTransfer);
-document.getElementById("whTransferOverlay").addEventListener("click", (e) => {
-  if (e.target.id === "whTransferOverlay") closeWhTransfer();
-});
-
-
-whTransferAction.addEventListener("click", () => {
-  if (!whTransferMode) return;
-  if (whTransferMode.type === "copy") {
-    whTransferArea.focus();
-    whTransferArea.select();
-    let copied = false;
-    try { copied = document.execCommand("copy"); } catch (e) {}
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(whTransferArea.value).catch(() => {});
-    }
-    const old = whTransferAction.textContent;
-    whTransferAction.textContent = copied ? "✓ Скопировано" : "Текст выделен — нажмите Ctrl+C";
-    setTimeout(() => { whTransferAction.textContent = old; }, 1500);
-    return;
-  }
-  // paste — вставляется всегда весь склад целиком
-  const raw = whTransferArea.value.trim();
-  if (!raw) { alert("Вставьте список в поле перед импортом."); return; }
-  let parsed;
-  try { parsed = JSON.parse(raw); } catch (e) {
-    alert("Не удалось распознать список — проверьте, что скопирован именно текст из кнопки «Копировать весь склад».");
-    return;
-  }
-  if (!parsed || !Array.isArray(parsed.parts) || !Array.isArray(parsed.consumables)) {
-    alert("Ожидался полный список с разделами «Детали» и «Расходники».");
-    return;
-  }
-  const clean = (items) => items
-    .filter((it) => it && typeof it === "object" && it.name)
-    .map((it) => ({
-      code: String(it.code || "").trim(),
-      name: String(it.name).trim(),
-      qty: parseInt(it.qty, 10) || 0,
-    }));
-  const p = clean(parsed.parts), c = clean(parsed.consumables);
-  if (p.length + c.length === 0) { alert("В списке не найдено позиций с названием."); return; }
-  if (!confirm(`Заменить склад целиком (сейчас ${warehouse.parts.length} + ${warehouse.consumables.length} поз.) на вставленный (${p.length} + ${c.length} поз.)?`)) return;
-  pushWhHistory();
-  warehouse.parts = p;
-  warehouse.consumables = c;
-  selectedWH.parts.clear();
-  selectedWH.consumables.clear();
-  saveWarehouse();
-  renderWarehouseAll();
-  closeWhTransfer();
 });
 
 /* ==================== ВКЛАДКА 1C: справочник номенклатуры ====================
