@@ -3010,33 +3010,41 @@ document.getElementById("ocImportRun").addEventListener("click", () => {
   }
   if (!rows || rows.length === 0) { alert("Не удалось распознать ни одной строки."); return; }
 
-  // Сопоставление: КОД в приоритете. Позицию, уже занятую совпадением по
-  // коду, нельзя переопределить более поздней строкой с тем же названием —
-  // иначе одноимённые детали разных моделей (например «Main Cable» под
-  // Wind 4.0 и 5.0) перетирали бы остатки друг друга.
+  // Импорт только обновляет остаток имеющихся позиций и добавляет новые;
+  // названия, модели и категории не трогает. Одинаковые коды в файле
+  // складываются; остаток пишется во ВСЕ позиции 1С с этим кодом (дубли тоже).
+  // По названию сопоставляются только строки и позиции без кода — иначе
+  // одноимённые детали разных моделей перетирали бы остатки друг друга.
+  const normName = (n) => String(n || "").toLowerCase().replace(/\s+/g, " ").trim();
+  const merged = new Map();
+  rows.forEach((r) => {
+    const k = r.code ? "c:" + codeVariants(r.code).join("/") : "n:" + normName(r.name);
+    const m = merged.get(k);
+    if (m) m.qty += r.qty; else merged.set(k, { code: r.code, name: r.name, qty: r.qty });
+  });
   const claimed = new Set();
   const pending = [];
   let updated = 0, added = 0;
-  const byName = [];
-  rows.forEach((r) => {
-    if (!r.code) { byName.push(r); return; }
-    const found = findOcItemByCode(r.code);
-    if (found) {
-      const key = found.section + "|" + found.index;
-      if (!claimed.has(key)) {
-        claimed.add(key); updated++;
-        pending.push({ type: "update", found, qty: r.qty });
-        return;
-      }
+  merged.forEach((r) => {
+    let found = [];
+    if (r.code) {
+      const want = codeVariants(r.code);
+      ["parts", "consumables"].forEach((section) => onec[section].forEach((it, index) => {
+        if (it.code && codeVariants(it.code).some((v) => want.includes(v))) found.push({ section, index });
+      }));
+    } else {
+      ["parts", "consumables"].forEach((section) => onec[section].forEach((it, index) => {
+        if (!it.code && normName(it.name) === normName(r.name)) found.push({ section, index });
+      }));
     }
-    byName.push(r);
-  });
-  byName.forEach((r) => {
-    const found = findOcItemByName(r.name);
-    const key = found ? (found.section + "|" + found.index) : null;
-    if (found && !claimed.has(key)) {
-      claimed.add(key); updated++;
-      pending.push({ type: "update", found, qty: r.qty });
+    if (found.length) {
+      updated++;
+      found.forEach((f) => {
+        const key = f.section + "|" + f.index;
+        if (claimed.has(key)) return;
+        claimed.add(key);
+        pending.push({ type: "update", found: f, qty: r.qty });
+      });
     } else {
       added++; pending.push({ type: "add", row: r });
     }
@@ -3077,14 +3085,18 @@ document.getElementById("ocImportRun").addEventListener("click", () => {
     : "";
   if (!confirm(`Импорт: обновить остаток у ${updated} поз., добавить новых в 1С — ${added}.${zeroMsg}\n\nСклад не изменится. Продолжить?`)) return;
 
+  rebuildCrossIndexes();
   pushOcHistory();
   pending.forEach((p) => {
     if (p.type === "update") {
       onec[p.found.section][p.found.index].qty = p.qty;   // только остаток
     } else {
       const item = { code: p.row.code, name: p.row.name, qty: p.row.qty };
-      const model = detectModelFromName(p.row.name);
-      if (model) item.model = model;
+      // Модель — как у позиции склада с этим кодом, иначе по метке в названии
+      const w = p.row.code ? warehouseInfoFor(p.row.code) : null;
+      const wi = w && warehouse[w.section][w.index];
+      if (wi && wi.model) { item.model = wi.model; if (wi.model2) item.model2 = wi.model2; }
+      else { const model = detectModelFromName(p.row.name); if (model) item.model = model; }
       onec.parts.push(item);
     }
   });
@@ -3489,11 +3501,13 @@ function jumpToWarehouse(code, fromSection, fromIndex) {
    позиции склада, иначе по тем же правилам. Дополнительно: «Остаток меньше N».
    Только просмотр, выбор запоминается на устройстве. */
 const OC_FILTER_KEY = "sklad2_oc_filter_v2";
+// Категории «1С» = категории «Склада» + «Не на складе» (позиции, не добавленные на склад «+»).
+const OC_CATS = Object.assign({}, WH_CATS, { nowh: "Не на складе" });
 let ocFilter = loadOcFilter();
 function loadOcFilter() {
   try {
     const f = JSON.parse(localStorage.getItem(OC_FILTER_KEY) || "null");
-    if (f && WH_CATS[f.cat]) return { cat: f.cat, model: f.model || "all", stock: !!f.stock, qty: Number.isFinite(f.qty) ? f.qty : 20 };
+    if (f && OC_CATS[f.cat]) return { cat: f.cat, model: f.model || "all", stock: !!f.stock, qty: Number.isFinite(f.qty) ? f.qty : 20 };
   } catch (e) {}
   return { cat: "scooter", model: "all", stock: false, qty: 20 };
 }
@@ -3503,10 +3517,12 @@ function saveOcFilter() {
 function ocCatOf(item) {
   const w = item.code ? warehouseInfoFor(item.code) : null;
   const wi = w && warehouse[w.section] && warehouse[w.section][w.index];
-  return wi ? whCatOf(wi) : guessWhCat(item);
+  return wi ? whCatOf(wi) : whCatOf(item);
 }
 function ocMatches(item) {
-  if (ocCatOf(item) !== ocFilter.cat) return false;
+  if (ocFilter.cat === "nowh") {
+    if (item.code && warehouseInfoFor(item.code)) return false;
+  } else if (ocCatOf(item) !== ocFilter.cat) return false;
   if (ocFilter.stock && !((item.qty || 0) < (ocFilter.qty || 0))) return false;
   if (ocFilter.cat !== "scooter" || ocFilter.model === "all") return true;
   if (ocFilter.model === "none") return modelsOf(item).length === 0;
@@ -3569,7 +3585,7 @@ function renderOneCAll() {
   if (typeof applyOcSearch === "function") applyOcSearch();
 }
 function ocFilterTitle() {
-  let t = WH_CATS[ocFilter.cat];
+  let t = OC_CATS[ocFilter.cat];
   if (ocFilter.cat === "scooter" && ocFilter.model !== "all") t += " · " + (ocFilter.model === "none" ? "без модели" : ocFilter.model);
   if (ocFilter.stock) t += " · < " + ocFilter.qty;
   return t;
