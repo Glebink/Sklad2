@@ -1717,6 +1717,11 @@ function modelsOf(it) {
   return out.sort((a, b) => r(a) - r(b));
 }
 function hasModel(it, m) { return modelsOf(it).indexOf(m) !== -1; }
+// Модель позиции 1С: если она есть на складе — модель склада (одна на пару), иначе своя.
+function ocModelsOf(it) {
+  const w = it && it.code ? warehouseInfoFor(it.code, it.name) : null;
+  return w ? modelsOf(w) : modelsOf(it);
+}
 function modelBadgesHtml(models, stripYgw) {
   if (!models || !models.length) return "";
   return `<span class="model-badges">${models.map((m) =>
@@ -2144,7 +2149,7 @@ document.getElementById("whEditSave").addEventListener("click", () => {
   selectedWH[section].delete(oldKey);
   if (wasPicked) selectedWH[newSection].add(newKey);
 
-  syncModelByCode(code, model, model2);   // модели едины для склада и 1С
+  syncModelByCode(code, model, model2, [name, newItem.ocName]);   // модели едины для склада и 1С
   saveWarehouse();
   saveOneCLocalOnly();
   renderOneCAll();
@@ -3373,15 +3378,20 @@ function oneCMatchesFor(code, wh) {
    одинаковой на «Складе» и в «1С». Меняешь в одном месте — меняется в
    обоих; сопоставляем по коду. */
 // model2 === undefined — вторую модель не трогаем.
-function syncModelByCode(code, model, model2) {
+// names — названия этой позиции (склад: своё и 1С; 1С: своё): для кодов-заглушек
+// модель меняется только у позиций с этими названиями, а не у всех с тем же кодом.
+function syncModelByCode(code, model, model2, names) {
   if (!code) return 0;
   const want = codeVariants(code);
+  rebuildCrossIndexes();
+  const only = isAmbiguousCode(code) && names ? new Set(names.filter(Boolean).map(normItemName)) : null;
   let changed = 0;
-  [["warehouse", warehouse], ["onec", onec]].forEach(([, store]) => {
+  [["warehouse", warehouse], ["onec", onec]].forEach(([kind, store]) => {
     ["parts", "consumables"].forEach((section) => {
       store[section].forEach((it) => {
         if (!it.code) return;
         if (!codeVariants(it.code).some((v) => want.includes(v))) return;
+        if (only && !only.has(normItemName(it.name)) && !(kind === "warehouse" && it.ocName && only.has(normItemName(it.ocName)))) return;
         let ch = false;
         if ((it.model || "") !== (model || "")) { it.model = model; ch = true; }
         if (model2 !== undefined && (it.model2 || "") !== (model2 || "")) {
@@ -3572,8 +3582,8 @@ function ocMatches(item) {
   } else if (ocCatOf(item) !== ocFilter.cat) return false;
   if (ocFilter.stock && !((item.qty || 0) < (ocFilter.qty || 0))) return false;
   if (ocFilter.cat !== "scooter" || ocFilter.model === "all") return true;
-  if (ocFilter.model === "none") return modelsOf(item).length === 0;
-  return hasModel(item, ocFilter.model);
+  if (ocFilter.model === "none") return ocModelsOf(item).length === 0;
+  return ocModelsOf(item).indexOf(ocFilter.model) !== -1;
 }
 function ocFilterShowItem(item) {
   ocFilter = { cat: ocCatOf(item), model: "all", stock: false, qty: ocFilter.qty };
@@ -3596,7 +3606,7 @@ function renderOcRows(section) {
         <div class="main-name">${escapeHtml(item.name)}</div>
         ${altNameHtml(item.code, whInfo, true)}
         <span class="oc-side">
-        <span class="wh-corner">${modelBadgesHtml(modelsOf(item), true)}<span class="wh-oc-qty" title="Остаток 1С">${item.qty || 0}</span></span>
+        <span class="wh-corner">${modelBadgesHtml(ocModelsOf(item), true)}<span class="wh-oc-qty" title="Остаток 1С">${item.qty || 0}</span></span>
         <span class="oc-btns">
         ${whInfo ? "" : `<button class="oc-addwh oc-addwh-badge" data-section="${section}" data-index="${i}" title="Добавить эту позицию на склад">+</button>`}
         <div class="menu-wrap oc-menu-wrap">
@@ -3762,7 +3772,7 @@ function openOcEdit(section, index) {
   document.getElementById("ocEditSection").value = section;
   document.getElementById("ocEditCode").value = item.code || "";
   document.getElementById("ocEditName").value = item.name;
-  setModelsSwitch(document.getElementById("ocEditModel"), modelsOf(item));
+  setModelsSwitch(document.getElementById("ocEditModel"), ocModelsOf(item));
   openModal("ocEditOverlay");
 }
 function closeOcEdit() {
@@ -3798,7 +3808,7 @@ document.getElementById("ocEditSave").addEventListener("click", () => {
   } else {
     onec[section][index] = updated;
   }
-  syncModelByCode(code, model, model2);   // модель едина для склада и 1С
+  syncModelByCode(code, model, model2, [updated.name]);   // модель едина для склада и 1С
   saveOneC();
   saveWarehouseLocalOnly();
   renderWarehouseAll();
@@ -4157,7 +4167,7 @@ document.getElementById("ocToWhSave").addEventListener("click", () => {
   warehouse.parts.push(newWh);
   // ту же модель проставляем и позиции в 1С, чтобы не расходились
   if (model || model2) {
-    syncModelByCode(code, model, model2);
+    syncModelByCode(code, model, model2, [name, item.name]);
     saveOneCLocalOnly();
   }
   saveWarehouse();
