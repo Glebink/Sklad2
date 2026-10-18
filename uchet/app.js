@@ -956,7 +956,7 @@ const CA_MODEL_ORDER = ["9Bot", "YGW 4.0", "YGW 5.0"];
 // Группа в «Учёте»: у детали с двумя моделями — YGW 5.0, если она среди них,
 // иначе первая по порядку CA_MODEL_ORDER. В строке при этом видны обе модели.
 function caModelOf(item) {
-  const info = item.code ? warehouseInfoFor(item.code) : null;
+  const info = item.code ? warehouseInfoFor(item.code, item.name) : null;
   const ms = modelsOf(info);
   if (!ms.length) return "";
   if (ms.indexOf("YGW 5.0") !== -1) return "YGW 5.0";
@@ -1317,7 +1317,7 @@ function renderSuggestionsFrom(box, query, onPick, store, emptyText, opts) {
     // получают — там пусто, а не ноль: это разные вещи.
     let ocQty = "";
     if (withOcQty && r.code) {
-      const ocInfo = oneCInfoFor(r.code);
+      const ocInfo = oneCInfoFor(r.code, r);
       if (ocInfo) ocQty = `<span class="suggest-oc-qty">${ocInfo.qty}</span>`;
     }
     // Остаток стоит ПЕРВЫМ в разметке: он прижат к правому краю через float,
@@ -1789,7 +1789,7 @@ function renderWhRows(section) {
   const picked = selectedWH[section];
   tbody.innerHTML = whFilteredPairs(section).map(({ item, i }) => {
     const key = countKey(section, item);
-    const ocInfo = oneCInfoFor(item.code);
+    const ocInfo = oneCInfoFor(item.code, item);
     return `<tr data-key="${escapeHtml(key)}" data-index="${i}" data-section="${section}"${picked.has(key) ? ' class="row-picked"' : ""}>
       <td class="num"></td>
       <td class="code">${item.code ? `<span class="code-text" data-code="${escapeHtml(item.code)}">${formatCodeDisplay(item.code)}</span>` : "—"}</td>
@@ -2104,8 +2104,8 @@ document.getElementById("whEditSave").addEventListener("click", () => {
   if (!name) { closeWhEdit(); return; }
   const sectionChanged = newSection !== section;
 
-  // проверка дублей по коду в разделе назначения
-  if (code) {
+  // проверка дублей по коду (у кодов-заглушек 1С одинаковый код у разных позиций — можно)
+  if (code && !isAmbiguousCode(code)) {
     const clash = warehouse[newSection].some((it, i) => {
       if (!sectionChanged && i === index) return false;
       return it.code === code;
@@ -2121,6 +2121,12 @@ document.getElementById("whEditSave").addEventListener("click", () => {
   const oldKey = countKey(section, oldItem);
   const newItem = Object.assign({}, oldItem, { code, name, qty, model });
   if (model2) newItem.model2 = model2; else delete newItem.model2;
+  // Код-заглушка: при переименовании запоминаем название 1С, иначе пара потеряется
+  if (!newItem.ocName && name !== oldItem.name && code === oldItem.code && isAmbiguousCode(code)) {
+    rebuildCrossIndexes();
+    const m = oneCMatchesFor(code, oldItem);
+    if (m.length) newItem.ocName = onec[m[0].section][m[0].index].name;
+  }
   const cat = getModelSwitch(document.getElementById("whEditCat"));
   if (WH_CATS[cat]) newItem.cat = cat;
   const newKey = countKey(newSection, newItem);
@@ -2223,7 +2229,7 @@ function getSortValue(table, section, item, col) {
   if (table === "ca" && col === "count") return counts[countKey(section, item)] || 0;
   if ((table === "wh" || table === "oc") && col === "qty") return item.qty || 0;
   if (table === "wh" && col === "ocqty") {
-    const info = oneCInfoFor(item.code);
+    const info = oneCInfoFor(item.code, item);
     return info ? info.qty : -1;
   }
   return 0;
@@ -3102,7 +3108,7 @@ document.getElementById("ocImportRun").addEventListener("click", () => {
     } else {
       const item = { code: p.row.code, name: p.row.name, qty: p.row.qty };
       // Модель — как у позиции склада с этим кодом, иначе по метке в названии
-      const w = p.row.code ? warehouseInfoFor(p.row.code) : null;
+      const w = p.row.code ? warehouseInfoFor(p.row.code, p.row.name) : null;
       const wi = w && warehouse[w.section][w.index];
       if (wi && wi.model) { item.model = wi.model; if (wi.model2) item.model2 = wi.model2; }
       else { const model = detectModelFromName(p.row.name); if (model) item.model = model; }
@@ -3313,7 +3319,7 @@ function buildWarehouseIndex() {
   ["parts", "consumables"].forEach((section) => {
     warehouse[section].forEach((it, index) => {
       codeVariants(it.code).forEach((c) => {
-        if (!map[c]) map[c] = { name: it.name, qty: it.qty || 0, code: it.code, model: it.model || "", model2: it.model2 || "", section, index };
+        (map[c] = map[c] || []).push({ name: it.name, ocName: it.ocName || "", qty: it.qty || 0, code: it.code, model: it.model || "", model2: it.model2 || "", section, index });
       });
     });
   });
@@ -3322,13 +3328,25 @@ function buildWarehouseIndex() {
 
 let oneCIndex = {};
 let warehouseIndex = {};
+// Коды-заглушки: в 1С под одним кодом несколько разных названий
+// (ВРЕМЕННЫЙ, Б210426…). Для них связь «Склад ↔ 1С» — по коду И названию.
+let ambiguousCodes = new Set();
 function rebuildCrossIndexes() {
   oneCIndex = buildOneCIndex();
   warehouseIndex = buildWarehouseIndex();
+  ambiguousCodes = new Set();
+  Object.keys(oneCIndex).forEach((c) => {
+    if (new Set(oneCIndex[c].map((m) => normItemName(m.name))).size > 1) ambiguousCodes.add(c);
+  });
 }
+function normItemName(n) { return String(n || "").toLowerCase().replace(/\s+/g, " ").trim(); }
+function isAmbiguousCode(code) { return codeVariants(code).some((c) => ambiguousCodes.has(c)); }
+// Название позиции склада, по которому ищется пара в 1С: сохранённое при «+» или своё.
+function whOcName(w) { return normItemName((w && (w.ocName || w.name)) || ""); }
 
-/* Позиции 1C, совпадающие с данным кодом склада */
-function oneCMatchesFor(code) {
+/* Позиции 1C, совпадающие с данным кодом склада. wh — позиция склада
+   (нужна для кодов-заглушек: тогда сверяется и название). */
+function oneCMatchesFor(code, wh) {
   const out = [];
   const seen = new Set();
   const lookup = (c) => {
@@ -3341,6 +3359,10 @@ function oneCMatchesFor(code) {
     lookup(c);
     (linkWhToOc[c] || []).forEach(lookup);   // ручная связка
   });
+  if (isAmbiguousCode(code)) {
+    const want = whOcName(wh);
+    return want ? out.filter((m) => normItemName(m.name) === want) : [];
+  }
   return out;
 }
 
@@ -3370,20 +3392,33 @@ function syncModelByCode(code, model, model2) {
   });
   return changed;
 }
-function warehouseInfoFor(code) {
+/* Позиция склада для кода 1С. name — название позиции 1С: для кодов-заглушек
+   (и если на складе несколько позиций с этим кодом) сверяется и оно. */
+function warehouseInfoFor(code, name) {
+  const pick = (list) => {
+    if (!list || !list.length) return null;
+    if (isAmbiguousCode(code) || list.length > 1) {
+      if (name === undefined) return isAmbiguousCode(code) ? null : list[0];
+      const want = normItemName(name);
+      return list.find((w) => whOcName(w) === want || normItemName(w.name) === want) || (isAmbiguousCode(code) ? null : list[0]);
+    }
+    return list[0];
+  };
   for (const c of codeVariants(code)) {
-    if (warehouseIndex[c]) return warehouseIndex[c];
+    const hit = pick(warehouseIndex[c]);
+    if (hit) return hit;
     const linked = linkOcToWh[c] || [];
     for (const w of linked) {
-      if (warehouseIndex[w]) return warehouseIndex[w];
+      const h = pick(warehouseIndex[w]);
+      if (h) return h;
     }
   }
   return null;
 }
 
 /* Первая позиция 1C, связанная с данным кодом склада */
-function oneCInfoFor(code) {
-  const m = oneCMatchesFor(code);
+function oneCInfoFor(code, wh) {
+  const m = oneCMatchesFor(code, wh);
   if (m.length === 0) return null;
   const item = onec[m[0].section][m[0].index];
   return item ? { name: item.name, code: item.code, qty: item.qty || 0 } : null;
@@ -3483,7 +3518,7 @@ function revealRow(tab, section, index) {
 
 /* Переход «Склад» -> 1C с подсветкой */
 function jumpToOneC(code, fromSection, fromIndex) {
-  const matches = oneCMatchesFor(code);
+  const matches = oneCMatchesFor(code, warehouse[fromSection] && warehouse[fromSection][fromIndex]);
   if (matches.length === 0) return;
   switchTab("onec");
   showBackBtn("warehouse", fromSection, fromIndex, "onec");
@@ -3494,7 +3529,8 @@ function jumpToOneC(code, fromSection, fromIndex) {
 
 /* Переход 1C -> «Склад» с подсветкой */
 function jumpToWarehouse(code, fromSection, fromIndex) {
-  const info = warehouseInfoFor(code);
+  const it = onec[fromSection] && onec[fromSection][fromIndex];
+  const info = warehouseInfoFor(code, it ? it.name : undefined);
   if (!info) return;
   switchTab("warehouse");
   showBackBtn("onec", fromSection, fromIndex, "warehouse");
@@ -3524,13 +3560,13 @@ function saveOcFilter() {
   try { localStorage.setItem(OC_FILTER_KEY, JSON.stringify(ocFilter)); } catch (e) {}
 }
 function ocCatOf(item) {
-  const w = item.code ? warehouseInfoFor(item.code) : null;
+  const w = item.code ? warehouseInfoFor(item.code, item.name) : null;
   const wi = w && warehouse[w.section] && warehouse[w.section][w.index];
   return wi ? whCatOf(wi) : whCatOf(item);
 }
 function ocMatches(item) {
   if (ocFilter.cat === "nowh") {
-    if (item.code && warehouseInfoFor(item.code)) return false;
+    if (item.code && warehouseInfoFor(item.code, item.name)) return false;
   } else if (ocCatOf(item) !== ocFilter.cat) return false;
   if (ocFilter.stock && !((item.qty || 0) < (ocFilter.qty || 0))) return false;
   if (ocFilter.cat !== "scooter" || ocFilter.model === "all") return true;
@@ -3551,7 +3587,7 @@ function renderOcRows(section) {
   const picked = selectedOC[section];
   tbody.innerHTML = ocFilteredPairs(section).map(({ item, i }) => {
     const key = section + "::" + item.code + "::" + item.name;
-    const whInfo = warehouseInfoFor(item.code);
+    const whInfo = warehouseInfoFor(item.code, item.name);
     return `<tr data-key="${escapeHtml(key)}" data-index="${i}" data-section="${section}"${picked.has(key) ? ' class="row-picked"' : ""}>
       <td class="num"></td>
       <td class="code">${item.code ? `<span class="code-text" data-code="${escapeHtml(item.code)}">${formatCodeDisplay(item.code)}</span>` : "—"}</td>
@@ -4075,7 +4111,7 @@ let ocToWhTarget = null;
 function openOcToWh(section, index) {
   const item = onec[section][index];
   if (!item) return;
-  if (warehouseInfoFor(item.code)) {          // связь уже есть — нечего добавлять
+  if (warehouseInfoFor(item.code, item.name)) {          // связь уже есть — нечего добавлять
     alert("Эта позиция уже есть на складе.");
     return;
   }
@@ -4109,11 +4145,12 @@ document.getElementById("ocToWhSave").addEventListener("click", () => {
   const qty = 0;   // количество склада больше не ведётся
   if (!name) { alert("Укажите наименование для склада."); return; }
   const code = item.code || "";
-  if (code && warehouseInfoFor(code)) { alert("Позиция с таким кодом уже есть на складе."); closeOcToWh(); return; }
+  if (code && warehouseInfoFor(code, item.name)) { alert("Эта позиция уже есть на складе."); closeOcToWh(); return; }
 
   const [model = "", model2 = ""] = getModelsSwitch(document.getElementById("ocToWhModel"));
   pushWhHistory();
   const newWh = { code, name, qty, model };
+  if (name !== item.name) newWh.ocName = item.name;   // по нему ищется пара в 1С, если склад переименован
   if (model2) newWh.model2 = model2;
   warehouse.parts.push(newWh);
   // ту же модель проставляем и позиции в 1С, чтобы не расходились
@@ -4127,7 +4164,9 @@ document.getElementById("ocToWhSave").addEventListener("click", () => {
   closeOcToWh();
 
   // подсветим строку 1C — у неё появилась зелёная связь со складом
-  flashRow(revealRow("oc", section, index));
+  // (в фильтре «Не на складе» строка уже скрыта — фильтр не переключаем)
+  const ocRow = rowByDataIndex("oc-body-" + section, index);
+  if (ocRow) flashRow(ocRow);
 });
 document.getElementById("ocToWhName").addEventListener("keydown", (e) => {
   if (e.key === "Enter") document.getElementById("ocToWhSave").click();
