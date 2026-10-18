@@ -515,11 +515,7 @@ document.addEventListener("pointerup", handleTabPress);   // страховка 
 // Номер версии файлов — держим руками синхронно с CACHE_NAME в ../sw.js (общий для всего сервиса)
 // (при каждом поднятии кэша меняем и тут). Просто отображается в углу
 // шапки — чтобы проверить, долетело ли обновление до устройства.
-//
-// НУМЕРАЦИЯ: шаг 0.1 на каждое обновление — v1.0, v1.1, v1.2 и так далее.
-// Раньше был сплошной счётчик (…v98, v99, v100), с версии v1.0 — этот
-// формат. Версия нигде не сравнивается как число, только показывается и
-// пишется в резервную копию, так что смена формата ничего не ломает.
+// Версия только показывается и пишется в копию, как число не сравнивается.
 const APP_VERSION = "v2.0";
 {
   const el = document.getElementById("appVersionBadge");
@@ -1263,7 +1259,6 @@ document.getElementById("confirmYes").addEventListener("click", () => {
   closeConfirm();
 });
 
-
 /* ==================== Поиск по складу/1С (автоподбор для панелей добавления/редактирования) ====================
    Раньше searchWarehouse/searchOneC и renderSuggestions/renderOneCSuggestions
    были парами почти одинаковых функций — отличались только тем, в каком
@@ -1425,9 +1420,7 @@ document.getElementById("addItemBtn").addEventListener("click", () => {
     code ? (it.code === code) : (!it.code && it.name === name)
   );
   if (dupIndex !== -1) {
-    // Позиция уже в списке — ПРИБАВЛЯЕМ количество к набранному. Раньше
-    // здесь был отказ «такая позиция уже есть», и дописать ещё столько-то
-    // можно было только кнопками +/− в самой строке.
+    // Позиция уже в списке — прибавляем количество к набранному.
     const existing = sections[section][dupIndex];
     const key = countKey(section, existing);
     pushHistory();
@@ -2006,13 +1999,10 @@ function handleWarehouseClick(e) {
 document.getElementById("wh-body-parts").addEventListener("click", handleWarehouseClick);
 document.getElementById("wh-body-consumables").addEventListener("click", handleWarehouseClick);
 document.addEventListener("click", (e) => {
-  // Само меню теперь лежит в <body>, а не внутри .menu-wrap, поэтому проверяем
-  // и его: иначе промах мимо кнопки внутри меню считался бы «кликом мимо» и
-  // закрывал бы его.
+  // Меню лежит в <body>, поэтому клик внутри него не считается «мимо».
   if (!e.target.closest(".wh-menu-wrap") && !e.target.closest(".wh-menu-panel")) closeAllWhMenus();
   if (!e.target.closest(".oc-menu-wrap") && !e.target.closest(".oc-menu-panel")) closeAllOcMenus();
 });
-
 
 /* ==================== Переключатель модели (3 положения) ====================
    Общие функции для .model-switch: читаем/ставим значение и подсвечиваем
@@ -2168,12 +2158,6 @@ function switchTab(target) {
   //    вкладка уже переключилась и экран не «залипнет».
   try {
     showSearchBarFor(target);
-    // Дата-пикер теперь виден на всех вкладках — шапка одинаковая
-    // везде (сам он всегда управляет датой «Учёта», даже если открыта
-    // «Склад»/«1С» — эти вкладки от даты не зависят, так что показ поля
-    // им не мешает).
-
-
     if (backTarget && target !== backTarget.dest) hideBackBtn();
     if (target === "warehouse") renderWarehouseAll();
     if (target === "onec") renderOneCAll();
@@ -2194,7 +2178,6 @@ document.getElementById("modUchetBtn").addEventListener("click", (e) => {
   const open = sub.classList.toggle("open");
   e.currentTarget.setAttribute("aria-expanded", open ? "true" : "false");
 });
-
 
 /* ==================== Сортировка по клику на заголовок столбца ====================
    Учёт: Наименование (алфавит), Код (по первым 3 цифрам), Кол-во (числовое).
@@ -2377,10 +2360,8 @@ function applyCaSearch() { applySearchFns.ca(); }
 function applyWhSearch() { applySearchFns.wh(); }
 function applyOcSearch() { applySearchFns.oc(); }
 
-/* Панель добавления перенесена в общую шапку, поэтому её видимость больше не
-   определяется вкладкой автоматически (раньше она лежала внутри «Учёта»).
-   Показываем её только на «Учёте» и только когда устройство не в режиме
-   просмотра, и сразу пересчитываем высоту распорки под шапкой. */
+/* Панель добавления (в общей шапке) — только на «Учёте» и не в режиме
+   просмотра; после смены пересчитываем распорку под шапкой. */
 let currentTab = "consumption";
 function updateAddPanelVisibility() {
   const panel = document.getElementById("addPanelConsumption");
@@ -2852,9 +2833,7 @@ function runOcCompare() {
         found = idx.byName[n] || null;
       }
       const other = found ? (found.qty || 0) : 0;
-      // «Бестужевская > 0» — показываем всё, что там есть в наличии
-      // (раньше условие было «больше, чем у меня», и позиции с небольшим,
-      // но реальным остатком в список не попадали).
+      // «Бестужевская > 0» — всё, что там есть в наличии.
       if (mode === "more" && !(other > 0)) return;
       out.push({ code: it.code || "", name: it.name, model: it.model || "", mine, other, missing: !found });
     });
@@ -3284,7 +3263,6 @@ CODE_LINKS.forEach((l) => {
   (linkOcToWh[o] = linkOcToWh[o] || []).push(w);
 });
 
-
 /* code -> [{section, index, name}] по справочнику 1C */
 function buildOneCIndex() {
   const map = {};
@@ -3493,7 +3471,6 @@ function jumpToWarehouse(code, fromSection, fromIndex) {
     highlightRows([revealRow("wh", info.section, info.index)]);
   }, 60);
 }
-
 
 /* ==================== Фильтр списка 1С ====================
    Как на «Складе»: одна таблица (детали и расходники подряд), выбор по
@@ -3788,7 +3765,6 @@ function pickIntoWhEdit(r) {
 });
 registerSuggestZone(whEditSuggestBox, [whEditCodeInput, whEditNameInput]);
 
-
 /* ==================== Кнопка «наверх» ==================== */
 const topBtn = document.getElementById("topBtn");
 window.addEventListener("scroll", () => {
@@ -3877,7 +3853,6 @@ function goToMatch(k, delta) {
 const nameOrCode = (item, q) =>
   nameMatchesQuery(item.name, q) || (item.code && item.code.toLowerCase().includes(q));
 
-
 /* ==================== Закрепление общей шапки (дата/вкладки/⋮ + поиск) ====================
    Шапка ВСЕГДА position:fixed (см. .sticky-top в style.css) — без
    переключения между sticky/fixed по прокрутке. Раньше здесь была
@@ -3960,7 +3935,6 @@ if (window.visualViewport) {
   window.visualViewport.addEventListener("resize", () => { stickyCalibAtY = -1; scheduleStickyRecalibrate(); });
 }
 
-
 /* ==================== Отмена / повтор на «Складе» ==================== */
 const WH_HISTORY_LIMIT = 50;
 
@@ -4021,7 +3995,6 @@ document.addEventListener("paste", (e) => {
   el.dispatchEvent(new Event("input", { bubbles: true }));
 });
 
-
 /* ==================== Отмена / повтор во вкладке 1C ==================== */
 function ocSnapshot() { return JSON.stringify(onec); }
 function restoreOcSnapshot(json) {
@@ -4044,7 +4017,6 @@ const ocHistory = makeUndoRedo({
 });
 function pushOcHistory() { ocHistory.push(); }
 
-
 /* ==================== Ноль в числовых полях ====================
    При установке курсора в поле со значением 0 оно очищается,
    чтобы ввод не превращался в «0129». Если ушли, ничего не введя,
@@ -4061,7 +4033,6 @@ document.addEventListener("focusout", (e) => {
   const el = e.target;
   if (isNumberField(el) && el.value.trim() === "") el.value = "0";
 });
-
 
 /* ==================== Перенос позиции 1C на склад ====================
    Кнопка «+» есть только у позиций без связи со складом. Код берётся из 1C —
@@ -4129,7 +4100,6 @@ document.getElementById("ocToWhSave").addEventListener("click", () => {
 document.getElementById("ocToWhName").addEventListener("keydown", (e) => {
   if (e.key === "Enter") document.getElementById("ocToWhSave").click();
 });
-
 
 /* ==================== Итоги по колонкам ====================
    Под заголовком показывается сумма по разделу. Позиции без связи
@@ -4381,13 +4351,8 @@ function describeSyncAttempt(dataSnapshot) {
   if (!prev) return ["Первая синхронизация — сохранено текущее состояние"];
   return buildChangeSummary(prev, dataSnapshot);
 }
-// Неудачная попытка отправки/загрузки — раньше просто показывала ошибку на
-// секунду в статус-строке и всё, при следующем открытии приложения не было
-// и следа, что попытка вообще была ("будто ничего и не было"). Теперь
-// каждая неудача — отдельная запись в истории с красной точкой; сами
-// данные при этом остаются "грязными" (isDirty() не сбрасывается), так что
-// следующая же попытка (новая правка, возврат в приложение, восстановление
-// сети — см. обработчики ниже) отправит их снова.
+// Неудачная отправка/загрузка — запись в истории с красной точкой; данные
+// остаются «грязными», следующая попытка отправит их снова.
 function logSyncFailure(kind, dataSnapshot, errorMessage) {
   const lines = dataSnapshot ? describeSyncAttempt(dataSnapshot) : [];
   lines.push("Ошибка: " + errorMessage);
@@ -5265,7 +5230,6 @@ document.addEventListener("click", (e) => {
   if (!span) return;
   copyCodeText(span);
 });
-
 
 /* ==================== PWA: регистрация service worker ====================
    Нужно для установки на главный экран телефона и офлайн-работы.

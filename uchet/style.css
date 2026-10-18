@@ -52,7 +52,7 @@
   }
   .section-head h2.section-title { margin: 0; }
   .section-head .util { margin-top: 0; }
-  
+
   h2.section-title {
     font-size: 16px;
     margin: 22px 0 8px 0;
@@ -86,7 +86,7 @@
   /* Распорка занимает в потоке ровно ту же высоту, что и шапка — её
      реальный размер выставляет JS (syncStickyTopHeight). Без этого
      контент под шапкой (панель добавления и т.д.) был бы перекрыт. */
-  .sticky-top-placeholder { }
+
   .app-header {
     display: flex;
     align-items: center;
@@ -118,11 +118,7 @@
   /* Одна кнопка-переключатель вкладок вместо трёх на всю ширину — экономит
      место. Не используем класс .tab-btn, чтобы её не подхватывал глобальный
      обработчик переключения вкладок (иначе второй тап сбрасывал на «Учёт»). */
-  
-  
-  
-  
-  
+
   #tabsMenuPanel { background: var(--surface); border-color: var(--line-strong); }
   #tabsMenuPanel .tab-btn { background: var(--surface-2); color: var(--fg); border-color: var(--line); }
   #tabsMenuPanel .tab-btn:active { background: var(--accent-soft); }
@@ -271,7 +267,7 @@
   .code-split { display: inline-flex; flex-direction: column; align-items: flex-start; line-height: 1.25; user-select: none; -webkit-user-select: none; }
   .code-split .code-line { user-select: none; -webkit-user-select: none; }
   .code-split .code-line + .code-line { border-top:1px solid var(--line-strong); margin-top: 2px; padding-top: 2px; }
-  
+
   .code-text { cursor: pointer; border-radius:3px; padding: 1px 2px; }
   .code-text.code-copied { background:var(--s-ordered-bg); }
   td.name { width: auto; min-width: 198px; cursor: pointer; user-select: text; -webkit-user-select: text; touch-action: manipulation; position: relative; }
@@ -298,7 +294,7 @@
   .oc-addwh-badge:active { background:var(--accent-ink); }
   /* Версия модели — серой подписью в ячейке КОДА, отдельной строкой под
      самим кодом (раньше висела абсолютом в углу ячейки имени). */
-  
+
   .ca-del-badge {
     position: absolute;
     right: 6px;
@@ -348,34 +344,9 @@
   td.count input::-webkit-inner-spin-button {
     -webkit-appearance: none; margin: 0;
   }
-  /* «Учёт»: объединённая колонка «Шт» — 3 яруса: число / «+» / «–» */
-  td.count-merged {
-    width: 46px;
-    padding: 0;
-    vertical-align: middle;
-  }
-  .count-tier {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .count-tier + .count-tier { border-top:1px solid var(--border); }
-  .count-tier-num { padding: 6px 4px; }
-  .count-tier-num input { margin: 0 auto; }
-  .count-tier .btn {
-    width: 100%;
-    height: auto;
-    padding: 7px 0;
-    border-radius:0;
-  }
 
   /* «Склад»: объединённая колонка «Склад / 1С» — 2 яруса, как «Шт» в «Учёте»:
      сверху — редактируемое количество на складе, снизу — остаток из 1С (только чтение). */
-  
-  
-  
-  
-  
 
   td.buttons { width: 68px; white-space: nowrap; }
   td.buttons > div {
@@ -398,7 +369,7 @@
   .btn.plus { background:var(--accent); }
   .btn.minus { background:var(--danger); }
   .btn.del { background:var(--muted); font-size: 12px; }
-  
+
   .btn:active { opacity: 0.75; }
 
   .add-panel {
@@ -418,7 +389,6 @@
   }
   .add-panel input[type="text"] { flex: 1; min-width: 160px; }
   .add-panel input[type="number"] { width: 90px; }
-  
 
   .suggest-box {
     position: absolute;
@@ -477,7 +447,7 @@
       width: 72px; font-size: 9.5px; white-space: nowrap;
       padding-left: 2px; padding-right: 2px;
     }
-    
+
     td.name { min-width: 0; font-size: 13px; line-height: 1.25; }
     .oc-addwh-badge { width: 22px; height: 22px; font-size: 15px; right: 4px; bottom: 4px; }
     .ca-del-badge { width: 22px; height: 22px; font-size: 12px; right: 4px; bottom: 4px; }
@@ -493,16 +463,11 @@
     td.buttons.wh-buttons .wh-menu-btn { width: 26px; height: 26px; font-size: 15px; }
     td.buttons.oc-buttons { width: 32px; }
     td.buttons.oc-buttons .oc-menu-btn { width: 26px; height: 26px; font-size: 15px; }
-    /* «Учёт»: объединённая колонка «Шт» на мобильном — уже, кнопки чуть меньше */
-    td.count-merged { width: 40px; }
-    .count-tier-num { padding: 4px 2px; }
-    .count-tier .btn { padding: 5px 0; }
     /* «Склад»: объединённая колонка «Склад / 1С» на мобильном */
-    
-    
+
     .btn { width: 20px; height: 20px; font-size: 11px; border-radius:5px; }
     .btn.del { font-size: 9px; }
-    
+
     .add-panel { padding: 8px; gap: 6px; }
     .add-panel select, .add-panel input[type="text"], .add-panel input[type="number"] {
       padding: 8px; font-size: 16px;
@@ -532,8 +497,7 @@
   .modal-actions .confirm-yes.accent { background:var(--accent); }
   .modal-actions .confirm-no { background:var(--s-new-bg); color:var(--fg); }
   .full-w { width: 100%; }
-  /* Выпадающий список внутри модалки — раньше один и тот же длинный набор
-     свойств дублировался инлайном в трёх формах редактирования. */
+  /* Выпадающий список внутри модалки */
   .modal-box select {
     width: 100%;
     padding: 9px;
@@ -621,8 +585,7 @@
   .history-row .h-date { font-weight: 600; color:var(--muted); }
   .history-row .h-minus { color:var(--danger); font-weight: 700; }
   .history-empty { padding: 16px; text-align: center; font-size: 13px; color:var(--muted); }
-  
-  
+
   .btn.onec {
     background:var(--ok); font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
     border-radius:6px; width: auto; height: 22px; padding: 0 7px;
@@ -658,8 +621,7 @@
   .sync-dot.err { background: var(--danger); }
   .sync-dot.busy { background: var(--accent); animation: sync-pulse 1s ease-in-out infinite; }
   @keyframes sync-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
-  
-  
+
   /* Маленький номер версии файлов (совпадает с CACHE_NAME в sw.js) — в
      углу шапки, рядом с облачком. Чисто для проверки «долетело» ли
      обновление на устройство. */
@@ -784,13 +746,6 @@
   .alt-name .alt-code { font-family: monospace; font-size: 12px; opacity: 0.85; }
   .alt-link { cursor: pointer; }
   .alt-link:hover { opacity: 0.75; }
-  
-  
-  
-  
-  
-  
-  
 
   #printArea { display: none; }
   #printArea .print-labels-grid {
@@ -905,9 +860,7 @@
   .add-panel.one-row select {
     flex: 0 0 auto;
     min-width: 0;
-    /* Системный вид списка убран: на iOS он добавляет свою широкую стрелку и
-       внутренние поля, из-за которых рамка была заметно шире текста. Рисуем
-       компактную стрелку сами — тогда ширина ровно по выбранному пункту. */
+    /* Своя стрелка вместо системной (на iOS системная раздувает ширину) */
     -webkit-appearance: none;
     appearance: none;
     padding-left: 8px;
@@ -1038,7 +991,6 @@
 
   .iconbtn.danger { background:var(--danger); color:var(--solid-fg); }
   .iconbtn.danger:active { background:var(--bad-ink); }
-  
 
   @media print {
     /* Голый белый лист: фон body (--bg, серый) при печати просвечивал
@@ -1082,17 +1034,16 @@
   .paste-textarea.tall { min-height: 180px; }
   .flex-row { display: flex; gap: 10px; }
   .flex-row.gap-8 { gap: 8px; }
-  
-  
+
   .mt-6  { margin-top: 6px; }
-  
+
   .mt-10 { margin-top: 10px; }
   .mt-12 { margin-top: 12px; }
   .mb-6  { margin-bottom: 6px; }
   .mb-8  { margin-bottom: 8px; }
   .mb-10 { margin-bottom: 10px; }
   .modal-actions.stack { flex-direction: column; gap: 8px; }
-  /* Сравнение остатков — строка фильтров и строка поиска (раньше — инлайн) */
+  /* Сравнение остатков — строка фильтров и строка поиска */
   .cmp-filter-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 8px; }
   .cmp-search-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
   /* Тумблер «главное устройство» в настройках синхронизации */
@@ -1112,21 +1063,15 @@
 
   /* ==================== Меню разделов ==================== */
   .mod-menu-wrap { flex: 0 0 auto; }
-  
+
   .mod-panel { display: none; position: absolute; top: 100%; left: 0; margin-top: 6px; min-width: 210px; padding: 6px;
-    background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 6px 16px rgba(0,0,0,0.14); z-index: 210; }
+    background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 6px 16px rgba(0,0,0,0.14); }
   .mod-panel.open { display: grid; gap: 4px; }
   .mod-item { display: block; padding: 11px 14px; border-radius: 8px; color: var(--fg); text-decoration: none; font-weight: 600; font-size: 15px; white-space: nowrap; }
   .mod-item:active { background: var(--accent-soft); }
   .mod-item.active { background: var(--accent-soft); color: var(--accent-ink); }
 
   /* ==================== Шапка: одинаковые кнопки-иконки ==================== */
-  
-  
-  
-  
-  
-  
 
 /* ==================== Макет как в заявках: верхняя панель + левый столбец заявок ==================== */
 :root { --topbar-h: 60px; --list-w-old: clamp(300px, 24vw, 440px); --list-w: clamp(210px, 16.8vw, 308px); --edge: 16px; --top0: max(6px, env(safe-area-inset-top)); }
@@ -1158,12 +1103,12 @@ button.iconbtn.profile-btn:active { background: var(--s-new-bg); }
 .t-search[hidden] { display: none; }
 .t-search input { width: 100%; min-height: 44px; box-sizing: border-box; border: 1px solid var(--line-strong); border-radius: 8px; padding: 0 12px; background: var(--surface); color: var(--fg); font: inherit; }
 .t-cards { display: flex; flex-direction: column; gap: 10px; }
-.t-card { display: block; width: 100%; text-align: left; font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; cursor: pointer; }
-.t-card.sel { border: 2px solid var(--accent); padding: 13px; }
+.t-card { display: block; width: 100%; text-align: left; font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }
+.t-card.sel { border: 2px solid var(--accent); }
 .t-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .t-row .mono { font-family: var(--mono, ui-monospace, monospace); font-weight: 500; }
 .t-date, .t-sub { color: var(--muted); font-size: 13px; }
-.t-sub { margin-top: 4px; }
+
 .t-hit { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 13px; }
 .t-hit-name { min-width: 0; }
 .t-hit-meta { flex: none; color: var(--muted); white-space: nowrap; }
@@ -1230,7 +1175,7 @@ body.shift-ro .btn.plus, body.shift-ro .btn.minus { display: none !important; }
 
 /* Поле количества в блоке добавления: компактное (оно text, а не number, поэтому общие правила
    для текстовых полей делали его огромным) */
-.add-panel.one-row input#newItemQty { flex: 0 0 auto; width: 75px; min-width: 0; max-width: 75px; text-align: center; padding-left: 4px; padding-right: 4px; }
+.add-panel.one-row input#newItemQty { flex: 0 0 auto; min-width: 0; text-align: center; padding-left: 4px; padding-right: 4px; }
 
 /* ПК: код детали в таблице учёта крупнее и жирнее */
 @media (min-width: 900px) {
@@ -1248,14 +1193,14 @@ body.ca-search-collapsed #caSearchBar { display: none !important; }
 body:not(.ca-search-collapsed) .ca-search-toggle, body:not([data-tab="consumption"]) .ca-search-toggle, body.no-ticket .ca-search-toggle { display: none !important; }
 
 /* Лупа в одной строке с вводом; строка поиска раскрывается под ней */
-.add-panel.one-row .ca-search-toggle.in-row { flex: 0 0 auto; width: 44px; height: auto; align-self: stretch; margin: 0; }
+.add-panel.one-row .ca-search-toggle.in-row { flex: 0 0 auto; height: auto; align-self: stretch; margin: 0; }
 
 /* Строка ввода одним блоком: без промежутков, только перегородки между ячейками */
 .add-panel.one-row { gap: 0; }
 .add-panel.one-row .add-name-wrap { flex: 1 1 auto; }
-.add-panel.one-row .add-name-wrap input[type="text"] { border-radius: 8px 0 0 8px; }
+
 .add-panel.one-row input#newItemQty { width: 64px; max-width: 64px; border-radius: 0; margin-left: -1px; }
-.add-panel.one-row .ca-search-toggle.in-row { border-radius: 0; margin-left: -1px; width: 44px; }
+.add-panel.one-row .ca-search-toggle.in-row { width: 44px; }
 .add-panel.one-row button.util#addItemBtn { border-radius: 0 8px 8px 0; margin-left: -1px; }
 
 /* Лупа — первой в строке; внутренняя рамка панели убрана */
@@ -1306,39 +1251,13 @@ body:not(.ca-search-collapsed) .ca-search-toggle, body:not([data-tab="consumptio
 .mod-sub .tab-btn.active { background: var(--accent); color: var(--solid-fg, #fff); border-color: var(--accent); }
 body.role-shift #modUchetBtn .mod-sub-caret { display: none; }
 
-/* «Учёт»: колонка «Шт» — число крупно, «+» и «–» в один ряд с вертикальной перегородкой */
-td.count-merged { width: 84px; }
-.count-tier-num { padding: 12px 4px; }
-.count-tier-num input { font-size: 20px; min-width: 52px; }
-.count-tier-pm { display: flex; align-items: stretch; }
-.count-tier-pm .btn { flex: 1 1 50%; width: 50%; padding: 7px 0; }
-.count-tier-pm .btn.plus { border-right: 1px solid var(--border); }
-@media (max-width: 899px) { td.count-merged { width: 72px; } .count-tier-num input { font-size: 18px; min-width: 44px; } }
-body.shift-ro .count-tier-pm { display: none !important; }
-td.count-merged .count-tier-num { padding: 14px 4px; }
-td.count-merged .count-tier-num input.countInput { font-size: 22px !important; min-width: 56px; height: 40px; padding: 4px 2px; }
-td.count-merged .count-tier-pm .btn { padding: 11px 0; font-size: 20px; line-height: 1; }
-/* порядок «–» «+» */
-.count-tier-pm .btn.plus { border-right: 0; }
-.count-tier-pm .btn.minus { border-right: 1px solid var(--border); }
 #viewConsumption td.code, #viewConsumption td.code .code-text { font-weight: 700; }
-/* телефон: ячейки ниже на 30%, зона «Шт» уже на 15% */
-@media (max-width: 899px) {
-  td.count-merged { width: 61px; }
-  td.count-merged .count-tier-num { padding: 6px 3px; }
-  td.count-merged .count-tier-num input.countInput { font-size: 18px !important; min-width: 40px; height: 30px; padding: 2px; }
-  td.count-merged .count-tier-pm .btn { padding: 7px 0; font-size: 18px; }
-  #viewConsumption td { padding-top: 3px; padding-bottom: 3px; }
-}
 @media (max-width: 899px) {
   #viewConsumption td.code { font-size: 11.5px; width: 90px; }
 }
 /* телефон: код как на ПК (цвет, насыщенность), размер прежний; строки ниже ещё на 20% */
 @media (max-width: 899px) {
   #viewConsumption td.code, #viewConsumption td.code .code-text { color: var(--fg); font-weight: 700; letter-spacing: .02em; }
-  td.count-merged .count-tier-num { padding: 3px 3px; }
-  td.count-merged .count-tier-num input.countInput { height: 26px; font-size: 17px !important; }
-  td.count-merged .count-tier-pm .btn { padding: 6px 0; font-size: 17px; }
   #viewConsumption td { padding-top: 1px; padding-bottom: 1px; }
 }
 
@@ -1414,23 +1333,9 @@ td.wh-empty { text-align: center; color: var(--muted); padding: 18px 8px; }
   .brand-btn { width: 252px; white-space: nowrap; }
   .brand-btn .brand-caret { margin-left: auto; }
 }
-/* «Учёт»: число — весь прямоугольник над «−/+» (без рамки-окна внутри) */
-td.count-merged .count-tier-num { padding: 0; }
-td.count-merged .count-tier-num input.countInput {
-  display: block; width: 100% !important; min-width: 0; margin: 0;
-  border: 0; border-radius: 0; background: transparent; box-shadow: none;
-  text-align: center; font-weight: 700; padding: 0 2px;
-}
-td.count-merged .count-tier-num input.countInput:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
-@media (max-width: 899px) {
-  td.count-merged .count-tier-num input.countInput { height: 32px; font-size: 18px !important; }
-}
 /* «Учёт» на ПК: строки ниже (ширина колонок не меняется) — больше строк на экране без прокрутки */
 @media (min-width: 900px) {
   #viewConsumption td { padding-top: 1px; padding-bottom: 1px; }
-  #viewConsumption td.count-merged .count-tier-num { padding: 0; }
-  #viewConsumption td.count-merged .count-tier-num input.countInput { height: 32px; font-size: 20px !important; padding: 0 2px; }
-  #viewConsumption td.count-merged .count-tier-pm .btn { padding: 3px 0; font-size: 16px; line-height: 1; }
   #viewConsumption .ca-del-badge { width: 20px; height: 20px; bottom: 3px; font-size: 11px; }
 }
 /* Карточка заявки на учёт: «Удалить» под числом позиций (только у hleb) */
@@ -1444,4 +1349,26 @@ td.count-merged .count-tier-num input.countInput:focus { outline: 2px solid var(
 .t-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 4px; }
 .t-foot .t-del { margin-top: 0; padding: 2px 8px; }
 .t-foot .t-author { margin-top: 0; }
+
+/* ==================== «Учёт»: колонка «Шт» (все правила здесь) ====================
+   Сверху число во весь прямоугольник, под ним «–» и «+» в один ряд с перегородкой. */
+td.count-merged { width: 84px; padding: 0; vertical-align: middle; }
+.count-tier { display: flex; align-items: center; justify-content: center; }
+.count-tier + .count-tier { border-top: 1px solid var(--border); }
+td.count-merged .count-tier-num { padding: 0; }
+td.count-merged .count-tier-num input.countInput {
+  display: block; width: 100% !important; min-width: 0; height: 32px; margin: 0; padding: 0 2px;
+  border: 0; border-radius: 0; background: transparent; box-shadow: none;
+  text-align: center; font-weight: 700; font-size: 20px !important;
+}
+td.count-merged .count-tier-num input.countInput:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+.count-tier-pm { display: flex; align-items: stretch; }
+td.count-merged .count-tier-pm .btn { flex: 1 1 50%; width: 50%; height: auto; padding: 3px 0; border-radius: 0; font-size: 16px; line-height: 1; }
+.count-tier-pm .btn.plus { border-right: 0; }
+.count-tier-pm .btn.minus { border-right: 1px solid var(--border); }
+body.shift-ro .count-tier-pm { display: none !important; }
+@media (max-width: 899px) {
+  td.count-merged { width: 61px; padding-left: 1px; padding-right: 1px; }
+  td.count-merged .count-tier-num input.countInput { font-size: 18px !important; }
+  td.count-merged .count-tier-pm .btn { padding: 6px 0; font-size: 17px; }
 }
