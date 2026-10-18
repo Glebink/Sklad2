@@ -3589,14 +3589,13 @@ function renderOcRows(section) {
     const key = section + "::" + item.code + "::" + item.name;
     const whInfo = warehouseInfoFor(item.code, item.name);
     return `<tr data-key="${escapeHtml(key)}" data-index="${i}" data-section="${section}"${picked.has(key) ? ' class="row-picked"' : ""}>
-      <td class="num"></td>
       <td class="code">${item.code ? `<span class="code-text" data-code="${escapeHtml(item.code)}">${formatCodeDisplay(item.code)}</span>` : "—"}</td>
       <td class="name">
         <div class="main-name">${escapeHtml(item.name)}</div>
         ${altNameHtml(item.code, whInfo, true)}
+        <span class="oc-side">
         <span class="wh-corner">${modelBadgesHtml(modelsOf(item), true)}<span class="wh-oc-qty" title="Остаток 1С">${item.qty || 0}</span></span>
-      </td>
-      <td class="buttons oc-buttons">
+        <span class="oc-btns">
         ${whInfo ? "" : `<button class="oc-addwh oc-addwh-badge" data-section="${section}" data-index="${i}" title="Добавить эту позицию на склад">+</button>`}
         <div class="menu-wrap oc-menu-wrap">
           <button class="iconbtn oc-menu-btn" data-section="${section}" data-index="${i}" title="Действия">⋮</button>
@@ -3606,14 +3605,15 @@ function renderOcRows(section) {
             <button class="oc-del danger" data-section="${section}" data-index="${i}" title="Удалить из 1C">✕</button>
           </div>
         </div>
+        </span>
+        </span>
       </td>
     </tr>`;
   }).join("");
 }
 // Одна таблица: сквозная нумерация, общий итог, пустое состояние, заголовок.
 function ocAfterRender() {
-  let n = 0;
-  document.querySelectorAll("#oc-body-parts td.num, #oc-body-consumables td.num").forEach((td) => { td.textContent = ++n; });
+  const n = document.querySelectorAll("#oc-body-parts tr[data-index], #oc-body-consumables tr[data-index]").length;
   const empty = document.getElementById("oc-body-empty");
   if (empty) empty.hidden = n > 0;
   updateOcFilterUI();
