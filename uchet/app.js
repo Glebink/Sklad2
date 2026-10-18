@@ -3013,39 +3013,46 @@ document.getElementById("ocImportRun").addEventListener("click", () => {
   if (!rows || rows.length === 0) { alert("Не удалось распознать ни одной строки."); return; }
 
   // Импорт только обновляет остаток имеющихся позиций и добавляет новые;
-  // названия, модели и категории не трогает. Одинаковые коды в файле
-  // складываются; остаток пишется во ВСЕ позиции 1С с этим кодом (дубли тоже).
-  // По названию сопоставляются только строки и позиции без кода — иначе
-  // одноимённые детали разных моделей перетирали бы остатки друг друга.
+  // названия, модели и категории не трогает. Ключ строки — код + название:
+  // в 1С бывают «коды-заглушки» (ВРЕМЕННЫЙ, Б210426…) у разных товаров, их
+  // нельзя сливать. Строки с одинаковыми кодом и названием складываются.
+  // Позиция 1С с тем же кодом и названием получает остаток (все дубли);
+  // если код в файле у одного названия, а в списке названия другие — это
+  // переименование в 1С, обновляем по коду. Без кода — только по названию.
   const normName = (n) => String(n || "").toLowerCase().replace(/\s+/g, " ").trim();
+  const codeKey = (c) => codeVariants(c).join("/");
   const merged = new Map();
+  const namesByCode = new Map();
   rows.forEach((r) => {
-    const k = r.code ? "c:" + codeVariants(r.code).join("/") : "n:" + normName(r.name);
+    const ck = r.code ? codeKey(r.code) : "";
+    const k = ck + "|" + normName(r.name);
     const m = merged.get(k);
     if (m) m.qty += r.qty; else merged.set(k, { code: r.code, name: r.name, qty: r.qty });
+    if (ck) { if (!namesByCode.has(ck)) namesByCode.set(ck, new Set()); namesByCode.get(ck).add(normName(r.name)); }
   });
+  const all = [];
+  ["parts", "consumables"].forEach((section) => onec[section].forEach((it, index) => all.push({ section, index, it })));
   const claimed = new Set();
   const pending = [];
   let updated = 0, added = 0;
   merged.forEach((r) => {
-    let found = [];
+    let found;
     if (r.code) {
       const want = codeVariants(r.code);
-      ["parts", "consumables"].forEach((section) => onec[section].forEach((it, index) => {
-        if (it.code && codeVariants(it.code).some((v) => want.includes(v))) found.push({ section, index });
-      }));
+      const byCode = all.filter(({ it }) => it.code && codeVariants(it.code).some((v) => want.includes(v)));
+      found = byCode.filter(({ it }) => normName(it.name) === normName(r.name));
+      if (!found.length && namesByCode.get(codeKey(r.code)).size === 1 &&
+          new Set(byCode.map(({ it }) => normName(it.name))).size === 1) found = byCode;
     } else {
-      ["parts", "consumables"].forEach((section) => onec[section].forEach((it, index) => {
-        if (!it.code && normName(it.name) === normName(r.name)) found.push({ section, index });
-      }));
+      found = all.filter(({ it }) => !it.code && normName(it.name) === normName(r.name));
     }
     if (found.length) {
       updated++;
-      found.forEach((f) => {
-        const key = f.section + "|" + f.index;
+      found.forEach(({ section, index }) => {
+        const key = section + "|" + index;
         if (claimed.has(key)) return;
         claimed.add(key);
-        pending.push({ type: "update", found: f, qty: r.qty });
+        pending.push({ type: "update", found: { section, index }, qty: r.qty });
       });
     } else {
       added++; pending.push({ type: "add", row: r });
