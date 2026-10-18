@@ -1791,10 +1791,11 @@ function renderWhRows(section) {
     const key = countKey(section, item);
     const ocInfo = oneCInfoFor(item.code, item);
     return `<tr data-key="${escapeHtml(key)}" data-index="${i}" data-section="${section}"${picked.has(key) ? ' class="row-picked"' : ""}>
-      <td class="num"></td>
       <td class="code">${item.code ? `<span class="code-text" data-code="${escapeHtml(item.code)}">${formatCodeDisplay(item.code)}</span>` : "—"}</td>
-      <td class="name"><div class="main-name">${escapeHtml(item.name)}</div>${ocInfo ? altNameHtml(item.code, ocInfo, true) : ""}<span class="wh-corner">${modelBadgesHtml(modelsOf(item), true)}<span class="wh-oc-qty" title="Остаток 1С">${ocInfo ? ocInfo.qty : "—"}</span></span></td>
-      <td class="buttons wh-buttons">
+      <td class="name"><div class="main-name">${escapeHtml(item.name)}</div>${ocInfo ? altNameHtml(item.code, ocInfo, true) : ""}
+        <span class="oc-side">
+        <span class="wh-corner">${modelBadgesHtml(modelsOf(item), true)}<span class="wh-oc-qty" title="Остаток 1С">${ocInfo ? ocInfo.qty : "—"}</span></span>
+        <span class="oc-btns">
         <div class="menu-wrap wh-menu-wrap">
           <button class="iconbtn wh-menu-btn" data-section="${section}" data-index="${i}" title="Действия">⋮</button>
           <div class="menu-panel wh-menu-panel">
@@ -1804,6 +1805,8 @@ function renderWhRows(section) {
             <button class="wh-del danger" data-section="${section}" data-index="${i}" title="Удалить со склада">✕</button>
           </div>
         </div>
+        </span>
+        </span>
       </td>
     </tr>`;
   }).join("");
@@ -1825,8 +1828,7 @@ function mergeSortedRows(table, prefix, store) {
 }
 // Детали и расходники идут одной таблицей: сквозная нумерация, общий итог 1С, пустое состояние.
 function whAfterRender() {
-  let n = 0;
-  document.querySelectorAll("#wh-body-parts td.num, #wh-body-consumables td.num").forEach((td) => { td.textContent = ++n; });
+  const n = document.querySelectorAll("#wh-body-parts tr[data-index], #wh-body-consumables tr[data-index]").length;
   const empty = document.getElementById("wh-body-empty");
   if (empty) empty.hidden = n > 0;
   updateWhFilterUI();
