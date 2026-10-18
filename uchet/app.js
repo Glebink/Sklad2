@@ -1786,8 +1786,7 @@ function renderWarehouseSection(section) {
     return `<tr data-key="${escapeHtml(key)}" data-index="${i}"${picked.has(key) ? ' class="row-picked"' : ""}>
       <td class="num"></td>
       <td class="code">${item.code ? `<span class="code-text" data-code="${escapeHtml(item.code)}">${formatCodeDisplay(item.code)}</span>` : "—"}</td>
-      <td class="name"><div class="main-name">${escapeHtml(item.name)}</div>${ocInfo ? altNameHtml(item.code, ocInfo, true) : ""}${modelBadgesHtml(modelsOf(item), true)}</td>
-      <td class="wh-oc-qty">${ocInfo ? ocInfo.qty : "—"}</td>
+      <td class="name"><div class="main-name">${escapeHtml(item.name)}</div>${ocInfo ? altNameHtml(item.code, ocInfo, true) : ""}<span class="wh-corner">${modelBadgesHtml(modelsOf(item), true)}<span class="wh-oc-qty" title="Остаток 1С">${ocInfo ? ocInfo.qty : "—"}</span></span></td>
       <td class="buttons wh-buttons">
         <div class="menu-wrap wh-menu-wrap">
           <button class="iconbtn wh-menu-btn" data-section="${section}" data-index="${i}" title="Действия">⋮</button>
@@ -2207,7 +2206,7 @@ function getSortValue(table, section, item, col) {
   return 0;
 }
 function updateSortArrows(table, section) {
-  document.querySelectorAll(`th.sortable[data-table="${table}"][data-section="${section}"]`).forEach((th) => {
+  document.querySelectorAll(`.sortable[data-table="${table}"][data-section="${section}"]`).forEach((th) => {
     const col = th.dataset.col;
     const state = sortState[table][section];
     const arrow = th.querySelector(".sort-arrow");
@@ -2294,8 +2293,9 @@ function sortTable(table, section, col) {
   }
   updateSortArrows(table, section);
 }
-document.querySelectorAll("th.sortable").forEach((th) => {
-  th.addEventListener("click", () => {
+document.querySelectorAll(".sortable").forEach((th) => {
+  th.addEventListener("click", (e) => {
+    e.stopPropagation();   // «1С» внутри заголовка «Наименование» на «Складе»
     sortTable(th.dataset.table, th.dataset.section, th.dataset.col);
   });
 });
@@ -3205,17 +3205,6 @@ function runModelMigrationOnce() {
   // Трогаем только позиции, у которых поле model ещё НИ РАЗУ не задавалось
   // (undefined) — явно выбранное «без версии» (пустая строка) не перетираем.
   let touched = false;
-  // Коды вида «AB.xx.xxxx» — это номенклатура 9Bot. Раньше они шли отдельной
-  // категорией «временные», теперь просто помечаем моделью. Ставим даже
-  // поверх пустого значения, потому что раньше эти позиции сохранялись
-  // без модели вовсе.
-  ["parts", "consumables"].forEach((section) => {
-    [warehouse[section], onec[section]].forEach((list) => {
-      list.forEach((it) => {
-        if (isAbCode(it.code) && (it.model || "") !== "9Bot") { it.model = "9Bot"; touched = true; }
-      });
-    });
-  });
   ["parts", "consumables"].forEach((section) => {
     warehouse[section].forEach((it) => {
       const model = detectModelFromName(it.name);
@@ -3490,7 +3479,6 @@ function loadOcFilter() {
 function saveOcFilter() {
   try { localStorage.setItem(OC_FILTER_KEY, JSON.stringify(ocFilter)); } catch (e) {}
 }
-function isAbCode(code) { return /^AB[\s.]/i.test(String(code || "")); }
 function ocCatOf(item) {
   const w = item.code ? warehouseInfoFor(item.code) : null;
   const wi = w && warehouse[w.section] && warehouse[w.section][w.index];
