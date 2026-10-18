@@ -1401,11 +1401,13 @@ newItemQtyInput.addEventListener("focus", () => {
 
 document.getElementById("addItemBtn").addEventListener("click", () => {
   if (!canEditCurrent()) return;
-  // Раздел определяет выбранная из подсказок позиция; ввод вручную — «Детали».
-  const section = (addPicked && addPicked.section) || "parts";
+  // Разделов больше нет: всё идёт в один список (parts). В старой заявке
+  // позиция могла остаться в consumables — тогда прибавляем туда, без дубля.
   const name = newItemInput.value.trim();
   if (!name) return;
   const code = (addPicked && addPicked.name === name) ? addPicked.code : "";
+  const inOld = (it) => code ? it.code === code : (!it.code && it.name === name);
+  const section = (sections.consumables || []).some(inOld) ? "consumables" : "parts";
   const qtyInput = document.getElementById("newItemQty");
   let qty = parseInt(qtyInput.value, 10);
   if (isNaN(qty) || qty < 1) qty = 1;   // не указали — считаем как 1
@@ -2109,7 +2111,7 @@ document.getElementById("whEditSave").addEventListener("click", () => {
       return it.code === code;
     });
     if (clash) {
-      alert(`Позиция с кодом «${code}» уже есть в разделе «${newSection === "parts" ? "Детали" : "Расходники"}».`);
+      alert(`Позиция с кодом «${code}» уже есть на складе.`);
       return;
     }
   }
@@ -2886,7 +2888,7 @@ function renderOcCompareList() {
       String(r.name || "").toLowerCase().includes(q) ||
       String(r.code || "").toLowerCase().includes(q));
 
-  const secName = { parts: "Детали", consumables: "Расходники", all: "Все разделы" }[
+  const secName = { parts: "Детали", consumables: "Расходники", all: "все позиции" }[
     document.getElementById("ocCompareSection").value] || "";
   const mdl = document.getElementById("ocCompareModel").value;
   const mdlName = mdl === "all" ? "" : " · " + (mdl === "none" ? "без версии" : mdl);
@@ -3549,11 +3551,10 @@ function renderOcRows(section) {
       <td class="name">
         <div class="main-name">${escapeHtml(item.name)}</div>
         ${altNameHtml(item.code, whInfo, true)}
-        ${modelBadgesHtml(modelsOf(item), true)}
-        ${whInfo ? "" : `<button class="oc-addwh oc-addwh-badge" data-section="${section}" data-index="${i}" title="Добавить эту позицию на склад">+</button>`}
+        <span class="wh-corner">${modelBadgesHtml(modelsOf(item), true)}<span class="wh-oc-qty" title="Остаток 1С">${item.qty || 0}</span></span>
       </td>
-      <td class="wh-oc-qty">${item.qty || 0}</td>
       <td class="buttons oc-buttons">
+        ${whInfo ? "" : `<button class="oc-addwh oc-addwh-badge" data-section="${section}" data-index="${i}" title="Добавить эту позицию на склад">+</button>`}
         <div class="menu-wrap oc-menu-wrap">
           <button class="iconbtn oc-menu-btn" data-section="${section}" data-index="${i}" title="Действия">⋮</button>
           <div class="menu-panel oc-menu-panel">
@@ -3572,7 +3573,6 @@ function ocAfterRender() {
   document.querySelectorAll("#oc-body-parts td.num, #oc-body-consumables td.num").forEach((td) => { td.textContent = ++n; });
   const empty = document.getElementById("oc-body-empty");
   if (empty) empty.hidden = n > 0;
-  updateOneCTotals();
   updateOcFilterUI();
 }
 function renderOneCAll() {
@@ -4073,7 +4073,6 @@ function openOcToWh(section, index) {
     return;
   }
   ocToWhTarget = { section, index };
-  document.getElementById("ocToWhSection").value = section === "parts" ? "Детали" : "Расходники";
   document.getElementById("ocToWhCode").value = item.code || "";
   document.getElementById("ocToWhName").value = item.name;
   // Модель берём из позиции 1С; если там пусто — пробуем определить по
@@ -4109,7 +4108,7 @@ document.getElementById("ocToWhSave").addEventListener("click", () => {
   pushWhHistory();
   const newWh = { code, name, qty, model };
   if (model2) newWh.model2 = model2;
-  warehouse[section].push(newWh);
+  warehouse.parts.push(newWh);
   // ту же модель проставляем и позиции в 1С, чтобы не расходились
   if (model || model2) {
     syncModelByCode(code, model, model2);
@@ -4139,11 +4138,6 @@ function setTotal(id, value) {
 }
 
 
-function updateOneCTotals() {
-  let own = 0;
-  ["parts", "consumables"].forEach((section) => ocFilteredPairs(section).forEach(({ item }) => { own += item.qty || 0; }));
-  setTotal("total-oc-qty", own);
-}
 
 /* ==================== Синхронизация через Supabase ====================
    Данные лежат в таблице sklad_kv: одна строка на ключ (учёт по датам, склад,
@@ -4404,13 +4398,12 @@ function diffItemList(oldList, newList, qtyOf) {
 function diffStore(oldStore, newStore) {
   const lines = [];
   ["parts", "consumables"].forEach((sec) => {
-    const secLabel = sec === "parts" ? "Детали" : "Расходники";
     const oldList = oldStore ? oldStore[sec] : [];
     const newList = newStore ? newStore[sec] : [];
     const { added, removed, changed } = diffItemList(oldList, newList, (it) => it.qty);
-    added.forEach((it) => lines.push("+ " + secLabel + ": " + labelItem(it) + " (" + it.qty + ")"));
-    removed.forEach((it) => lines.push("− " + secLabel + ": " + labelItem(it)));
-    changed.forEach((c) => lines.push("~ " + secLabel + ": " + labelItem(c.item) + "  " + c.from + " → " + c.to));
+    added.forEach((it) => lines.push("+ " + labelItem(it) + " (" + it.qty + ")"));
+    removed.forEach((it) => lines.push("− " + labelItem(it)));
+    changed.forEach((c) => lines.push("~ " + labelItem(c.item) + "  " + c.from + " → " + c.to));
   });
   return lines;
 }
@@ -4421,12 +4414,11 @@ function diffDateEntry(oldEntry, newEntry) {
   const oldCounts = (oldEntry && oldEntry.counts) || {};
   const newCounts = (newEntry && newEntry.counts) || {};
   ["parts", "consumables"].forEach((sec) => {
-    const secLabel = sec === "parts" ? "Детали" : "Расходники";
     const oldList = (oldEntry && oldEntry.sections && oldEntry.sections[sec]) || [];
     const newList = (newEntry && newEntry.sections && newEntry.sections[sec]) || [];
     const { added, removed } = diffItemList(oldList, newList, null);
-    added.forEach((it) => lines.push("+ " + secLabel + ": " + labelItem(it) + " (" + (newCounts[countKey(sec, it)] || 0) + ")"));
-    removed.forEach((it) => lines.push("− " + secLabel + ": " + labelItem(it)));
+    added.forEach((it) => lines.push("+ " + labelItem(it) + " (" + (newCounts[countKey(sec, it)] || 0) + ")"));
+    removed.forEach((it) => lines.push("− " + labelItem(it)));
     const oldMap = new Map(oldList.map((it) => [itemDiffKey(it), it]));
     newList.forEach((it) => {
       const key = itemDiffKey(it);
@@ -4434,7 +4426,7 @@ function diffDateEntry(oldEntry, newEntry) {
       if (!oldItem) return;
       const a = oldCounts[countKey(sec, oldItem)] || 0;
       const b = newCounts[countKey(sec, it)] || 0;
-      if (a !== b) lines.push("~ " + secLabel + ": " + labelItem(it) + "  " + a + " → " + b);
+      if (a !== b) lines.push("~ " + labelItem(it) + "  " + a + " → " + b);
     });
   });
   return lines;

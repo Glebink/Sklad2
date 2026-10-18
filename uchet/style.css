@@ -1268,11 +1268,11 @@ body.role-shift #modUchetBtn .mod-sub-caret { display: none; }
 #viewWarehouse td.code, #viewWarehouse td.code .code-text { color: var(--fg); font-weight: 700; letter-spacing: .02em; }
 #viewWarehouse td.name { padding-right: 64px; }
 /* Остаток 1С — в правом нижнем углу ячейки названия, под моделями */
-#viewWarehouse td.name { height: 54px; }
+#viewWarehouse td.name, #viewOneC td.name { height: 54px; }
 .wh-corner { position: absolute; top: 4px; right: 8px; bottom: 4px; display: flex; flex-direction: column;
   justify-content: space-between; align-items: flex-end; pointer-events: none; }
 .wh-corner .model-badges { position: static; }
-#viewWarehouse td.name:has(.model-badges span + span) { height: 62px; }   /* две модели + остаток */
+#viewWarehouse td.name:has(.model-badges span + span), #viewOneC td.name:has(.model-badges span + span) { height: 62px; }   /* две модели + остаток */
 .wh-corner .wh-oc-qty { margin-top: auto; font-size: 15px; font-weight: 700; line-height: 1.2; color: var(--muted); }
 .wh-oc-sort { float: right; margin-left: 8px; text-align: right; cursor: pointer; }
 .wh-oc-sort .col-total { margin-top: 0; }
@@ -1287,7 +1287,7 @@ body.role-shift #modUchetBtn .mod-sub-caret { display: none; }
   #viewWarehouse td.code { font-size: 11.5px; width: 124px; white-space: nowrap; }   /* коды 9Bot (AB.16.02.00.3903) в одну строку */
   #viewWarehouse td.name { padding-right: 46px; }
   .wh-corner .wh-oc-qty { font-size: 13px; }
-  #viewWarehouse td.name { height: 48px; }
+  #viewWarehouse td.name, #viewOneC td.name { height: 48px; }
 }
 /* «Склад»: фильтр категорий (подменю моделей у «Самокатов»), пустая категория, переключатель категории */
 #whFilterPanel { min-width: 190px; }
@@ -1313,16 +1313,14 @@ td.wh-empty { text-align: center; color: var(--muted); padding: 18px 8px; }
 #ocFilterPanel .oc-stock-row { display: flex; gap: 6px; align-items: center; border-top: 1px solid var(--border); padding-top: 8px; }
 #ocFilterPanel .oc-stock-row .util { flex: 1 1 auto; }
 #ocFilterPanel #ocFilterQty { width: 64px; flex: none; text-align: center; }
-#viewOneC td.name:has(.oc-addwh-badge) { padding-bottom: 30px; }   /* «+» внизу не налезает на модель в углу */
 #viewOneC td.buttons.oc-buttons { width: 56px; }
-td.wh-oc-qty { width: 72px; text-align: center; font-size: 16px; font-weight: 700; color: var(--muted); }
-@media (max-width: 899px) { td.wh-oc-qty { width: 40px; font-size: 13px; } }
+/* «+» (добавить на склад) — под «⋮» */
+#viewOneC td.oc-buttons .oc-addwh-badge { position: static; margin: 0 auto 6px; box-shadow: none; }
 @media (min-width: 900px) {
   #viewOneC table { table-layout: fixed; width: 100%; }
   #viewOneC thead th:nth-child(1) { width: 56px; }
   #viewOneC thead th:nth-child(2) { width: 220px; }
-  #viewOneC thead th:nth-child(4) { width: 72px; }
-  #viewOneC thead th:nth-child(5) { width: 56px; }
+  #viewOneC thead th:nth-child(4) { width: 56px; }
   #viewOneC td.code { width: auto; min-width: 0; font-size: 18px; overflow-wrap: anywhere; white-space: normal; }
 }
 @media (max-width: 899px) {
@@ -1381,4 +1379,16 @@ body.shift-ro .count-tier-pm { display: none !important; }
   td.count-merged { width: 61px; padding-left: 1px; padding-right: 1px; }
   td.count-merged .count-tier-num input.countInput { font-size: 18px !important; }
   td.count-merged .count-tier-pm .btn { padding: 6px 0; font-size: 17px; }
+}
+
+/* Телефон: таблицы «Склада» и «1С» строго по ширине экрана, без прокрутки влево-вправо.
+   Ширины колонок фиксированы, длинные слова в названии переносятся. */
+@media (max-width: 899px) {
+  #viewWarehouse table, #viewOneC table { table-layout: fixed; width: 100%; }
+  #viewWarehouse thead th:nth-child(1), #viewOneC thead th:nth-child(1) { width: 22px; }
+  #viewWarehouse thead th:nth-child(2), #viewOneC thead th:nth-child(2) { width: 124px; }
+  #viewWarehouse thead th:nth-child(4) { width: 44px; }
+  #viewOneC thead th:nth-child(4) { width: 44px; }
+  #viewWarehouse td.name, #viewOneC td.name { min-width: 0; overflow-wrap: break-word; hyphens: auto; -webkit-hyphens: auto; }
+  #viewWarehouse .table-scroll, #viewOneC .table-scroll { overflow-x: hidden; }
 }

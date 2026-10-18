@@ -105,7 +105,7 @@
 <div class="view active" id="viewConsumption">
 
   <div class="section-head">
-    <h2 class="section-title">Детали</h2>
+    <h2 class="section-title">Позиции</h2>
     <button class="iconbtn" id="undoBtn" disabled title="Отменить последнее действие">↶</button>
     <button class="iconbtn" id="redoBtn" disabled title="Повторить действие">↷</button>
   </div>
@@ -121,21 +121,7 @@
       </tr>
     </thead>
     <tbody id="body-parts"></tbody>
-  </table>
-  </div>
-
-  <h2 class="section-title">Расходники</h2>
-  <div class="table-scroll">
-  <table>
-    <thead>
-      <tr>
-        <th>№</th>
-        <th class="sortable" data-table="ca" data-section="consumables" data-col="code">Код <span class="sort-arrow">↕</span></th>
-        <th class="sortable" data-table="ca" data-section="consumables" data-col="name">Наименование <span class="sort-arrow">↕</span></th>
-        <th></th>
-        <th class="sortable" data-table="ca" data-section="consumables" data-col="count">Шт <span class="sort-arrow">↕</span></th>
-      </tr>
-    </thead>
+    <!-- старые заявки: позиции бывшего раздела «Расходники» — тем же списком ниже -->
     <tbody id="body-consumables"></tbody>
   </table>
   </div>
@@ -222,15 +208,14 @@
       <tr>
         <th>№</th>
         <th class="sortable" data-table="oc" data-section="parts" data-col="code">Код <span class="sort-arrow">↕</span></th>
-        <th class="sortable" data-table="oc" data-section="parts" data-col="name">Наименование <span class="sort-arrow">↕</span></th>
-        <th class="sortable narrow" data-table="oc" data-section="parts" data-col="qty">1С <span class="sort-arrow">↕</span><div class="col-total"><span id="total-oc-qty"></span></div></th>
+        <th class="sortable" data-table="oc" data-section="parts" data-col="name">Наименование <span class="sort-arrow">↕</span><span class="sortable wh-oc-sort" data-table="oc" data-section="parts" data-col="qty" title="Сортировать по остатку 1С">1С <span class="sort-arrow">↕</span></span></th>
         <th></th>
       </tr>
     </thead>
     <!-- Детали и расходники — одна таблица: два tbody подряд (данные по-прежнему в двух разделах) -->
     <tbody id="oc-body-parts"></tbody>
     <tbody id="oc-body-consumables"></tbody>
-    <tbody id="oc-body-empty" hidden><tr><td colspan="5" class="wh-empty">В этой категории ничего нет</td></tr></tbody>
+    <tbody id="oc-body-empty" hidden><tr><td colspan="4" class="wh-empty">В этой категории ничего нет</td></tr></tbody>
   </table>
   </div>
 
@@ -295,8 +280,8 @@
 <div class="modal-overlay" id="whEditOverlay">
   <div class="modal-box">
     <p>Изменить позицию на складе:</p>
-    <div class="field-label">Раздел</div>
-    <select id="whEditSection">
+    <div class="field-label" hidden>Раздел</div>
+    <select id="whEditSection" hidden>
       <option value="parts">Детали</option>
       <option value="consumables">Расходники</option>
     </select>
@@ -337,8 +322,6 @@
 <div class="modal-overlay" id="ocToWhOverlay">
   <div class="modal-box">
     <p>Добавить на склад:</p>
-    <div class="field-label">Раздел</div>
-    <input type="text" id="ocToWhSection" readonly class="readonly-field">
     <div class="field-label">Код (из 1C, менять нельзя — по нему создаётся связь)</div>
     <input type="text" id="ocToWhCode" readonly class="readonly-field mono-field">
     <div class="field-label">Наименование на складе</div>
@@ -364,8 +347,8 @@
 <div class="modal-overlay" id="ocEditOverlay">
   <div class="modal-box">
     <p>Изменить позицию 1C:</p>
-    <div class="field-label">Раздел</div>
-    <select id="ocEditSection">
+    <div class="field-label" hidden>Раздел</div>
+    <select id="ocEditSection" hidden>
       <option value="parts">Детали</option>
       <option value="consumables">Расходники</option>
     </select>
@@ -448,11 +431,9 @@
           <option value="none">Без версии</option>
         </select>
       </div>
-      <div class="field-w106">
+      <div class="field-w106" hidden>
         <div class="field-label">Раздел</div>
         <select id="ocCompareSection">
-          <option value="parts">Детали</option>
-          <option value="consumables">Расходники</option>
           <option value="all">Все</option>
         </select>
       </div>
