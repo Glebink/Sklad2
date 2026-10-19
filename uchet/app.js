@@ -2260,6 +2260,11 @@ function switchTab(target) {
     if (backTarget && target !== backTarget.dest) hideBackBtn();
     if (target === "warehouse") renderWarehouseAll();
     if (target === "onec") renderOneCAll();
+    // Возврат в «Учёт» — всегда с начала списка (а не с места прокрутки «Склада»/«1С»)
+    if (target === "consumption") {
+      window.scrollTo(0, 0);
+      requestAnimationFrame(() => window.scrollTo(0, 0));
+    }
   } catch (err) {
     console.error("Ошибка при переключении вкладки:", err);
   }
