@@ -1408,3 +1408,15 @@ body.shift-ro .count-tier-pm { display: none !important; }
 .t-act:hover { background: var(--s-new-bg); }
 .t-act.danger { color: var(--danger); }
 
+
+/* ПК: размер кода подстраивается под ширину таблицы (окна), чтобы коды не переносились.
+   --code-fs — кегль кода от ширины вкладки; колонка кода = ~10 знаков кода + отступы. */
+@media (min-width: 900px) {
+  #viewConsumption, #viewWarehouse, #viewOneC { container-type: inline-size; }
+  /* в узком окне таблица шире 72% зоны (не меньше 680px), чтобы кегль не мельчал */
+  #viewConsumption, #viewWarehouse, #viewOneC { width: min(100%, max(calc(0.72 * (100vw - var(--list-w-old) - 48px)), 680px)); }
+  #viewConsumption table, #viewWarehouse table, #viewOneC table { --code-fs: clamp(11px, 2cqi, 18px); }
+  #viewConsumption thead th:nth-child(2) { width: calc(10 * var(--code-fs) + 22px); }
+  #viewWarehouse thead th:nth-child(1), #viewOneC thead th:nth-child(1) { width: calc(10 * var(--code-fs) + 22px); }
+  #body-parts td.code, #body-consumables td.code, #viewWarehouse td.code, #viewOneC td.code { font-size: var(--code-fs); overflow-wrap: normal; word-break: normal; }
+}
