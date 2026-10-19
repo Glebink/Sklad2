@@ -3780,6 +3780,7 @@ function openOcEdit(section, index) {
   document.getElementById("ocEditCode").value = item.code || "";
   document.getElementById("ocEditName").value = item.name;
   setModelsSwitch(document.getElementById("ocEditModel"), ocModelsOf(item));
+  setModelSwitch(document.getElementById("ocEditCat"), ocCatOf(item));
   openModal("ocEditOverlay");
 }
 function closeOcEdit() {
@@ -3809,6 +3810,14 @@ document.getElementById("ocEditSave").addEventListener("click", () => {
   // остаток не правится вручную — только импортом из 1С
   const updated = Object.assign({}, onec[section][index], { code, name, model });
   if (model2) updated.model2 = model2; else delete updated.model2;
+  // Категория: у позиции 1С своя (для «Не на складе»), у связанной позиции склада — та же
+  const cat = getModelSwitch(document.getElementById("ocEditCat"));
+  if (WH_CATS[cat]) {
+    updated.cat = cat;
+    const w = warehouseInfoFor(onec[section][index].code, onec[section][index].name);
+    const wi = w && warehouse[w.section][w.index];
+    if (wi && wi.cat !== cat) { wi.cat = cat; saveWarehouseLocalOnly(); }
+  }
   if (sectionChanged) {
     onec[section].splice(index, 1);
     onec[newSection].push(updated);
@@ -4141,6 +4150,7 @@ function openOcToWh(section, index) {
   // названию (метка wind/ygw в тексте), чтобы не выбирать руками.
   setModelsSwitch(document.getElementById("ocToWhModel"),
     modelsOf(item).length ? modelsOf(item) : [detectModelFromName(item.name)]);
+  setModelSwitch(document.getElementById("ocToWhCat"), whCatOf(item));
   openModal("ocToWhOverlay");
   setTimeout(() => {
     const n = document.getElementById("ocToWhName");
@@ -4171,6 +4181,8 @@ document.getElementById("ocToWhSave").addEventListener("click", () => {
   const newWh = { code, name, qty, model };
   if (name !== item.name) newWh.ocName = item.name;   // по нему ищется пара в 1С, если склад переименован
   if (model2) newWh.model2 = model2;
+  const cat = getModelSwitch(document.getElementById("ocToWhCat"));
+  if (WH_CATS[cat]) { newWh.cat = cat; item.cat = cat; }
   warehouse.parts.push(newWh);
   // ту же модель проставляем и позиции в 1С, чтобы не расходились
   if (model || model2) {
