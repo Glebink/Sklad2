@@ -660,6 +660,7 @@ function warehouseFromCatalog() {
   const conv = (a) => a.map((it) => {
     const o = { code: it.code || "", name: it.name || "", model: it.model || "", model2: it.model2 || "", qty: 0 };
     if (it.ocqty !== undefined) o.ocqty = it.ocqty;   // остаток 1С — считает сервер при сборке каталога
+    if (it.ocName) o.ocName = it.ocName;
     return o;
   });
   return { parts: conv(c.parts), consumables: conv(c.consumables) };
@@ -1316,6 +1317,7 @@ function searchStore(store, query) {
       if (nameMatchesQuery(name, q) || code.includes(q)) {
         const r = { section, code: item.code || "", name: item.name, model: item.model || "", model2: item.model2 || "" };
         if (item.ocqty !== undefined) r.ocqty = item.ocqty;   // у сменщика — остаток 1С из каталога
+        if (item.ocName) r.ocName = item.ocName;              // название в 1С — для кодов-заглушек
         results.push(r);
       }
     });
