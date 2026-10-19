@@ -1421,3 +1421,9 @@ html { touch-action: manipulation; }
 .add-panel.one-row .add-clear { top: 50%; right: 8px; transform: translateY(-50%); z-index: 2; }
 /* Телефон: у «Инвентаризации» только значок, чтобы шапка «1С» умещалась в строку */
 @media (max-width: 899px) { #ocInventoryBtn .inv-label { display: none; } }
+/* iPhone увеличивает страницу при фокусе на поле с шрифтом меньше 16px (окно «+»/«–» и др.) —
+   на телефоне все поля ввода в окнах не мельче 16px, тогда зума нет. */
+@media (max-width: 899px) {
+  .modal-box input:not([type="file"]):not([type="checkbox"]), .modal-box select, .modal-box textarea,
+  #ocFilterQty, .history-range input { font-size: 16px !important; }
+}
