@@ -1417,3 +1417,5 @@ body.shift-ro .count-tier-pm { display: none !important; }
 }
 /* Телефон: без зума страницы от двойного тапа по «+»/«–» */
 html { touch-action: manipulation; }
+/* Крестик очистки в поле «Деталь» — по центру поля по высоте, внутри рамки */
+.add-panel.one-row .add-clear { top: 50%; right: 8px; transform: translateY(-50%); z-index: 2; }
