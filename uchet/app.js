@@ -642,9 +642,26 @@ function loadCatalogLocal() {
   } catch (e) {}
   return { parts: [], consumables: [] };
 }
+// Сменщик: остаток 1С из каталога; для ручной связки кодов (CODE_LINKS) — по связанному коду.
+function shiftOcQty(r) {
+  if (r.ocqty !== undefined) return r.ocqty;
+  for (const c of codeVariants(r.code)) {
+    for (const oc of (linkWhToOc[c] || [])) {
+      for (const s of ["parts", "consumables"]) {
+        const hit = warehouse[s].find((it) => it.ocqty !== undefined && codeVariants(it.code).includes(oc));
+        if (hit) return hit.ocqty;
+      }
+    }
+  }
+  return undefined;
+}
 function warehouseFromCatalog() {
   const c = loadCatalogLocal();
-  const conv = (a) => a.map((it) => ({ code: it.code || "", name: it.name || "", model: it.model || "", model2: it.model2 || "", qty: 0 }));
+  const conv = (a) => a.map((it) => {
+    const o = { code: it.code || "", name: it.name || "", model: it.model || "", model2: it.model2 || "", qty: 0 };
+    if (it.ocqty !== undefined) o.ocqty = it.ocqty;   // остаток 1С — считает сервер при сборке каталога
+    return o;
+  });
   return { parts: conv(c.parts), consumables: conv(c.consumables) };
 }
 function loadWarehouse() {
@@ -1297,7 +1314,9 @@ function searchStore(store, query) {
       const name = (item.name || "").toLowerCase();
       const code = (item.code || "").toLowerCase();
       if (nameMatchesQuery(name, q) || code.includes(q)) {
-        results.push({ section, code: item.code || "", name: item.name, model: item.model || "", model2: item.model2 || "" });
+        const r = { section, code: item.code || "", name: item.name, model: item.model || "", model2: item.model2 || "" };
+        if (item.ocqty !== undefined) r.ocqty = item.ocqty;   // у сменщика — остаток 1С из каталога
+        results.push(r);
       }
     });
   });
@@ -1314,15 +1333,15 @@ function renderSuggestionsFrom(box, query, onPick, store, emptyText, opts) {
     box.classList.add("open");
     return;
   }
-  const withOcQty = !!(opts && opts.ocQty) && !isShift();
+  const withOcQty = !!(opts && opts.ocQty);
   box.innerHTML = results.map((r, idx) => {
     // Остаток из «1С» в конце строки: сразу видно, есть ли деталь в наличии,
     // не выходя из формы добавления. Позиции без пары в «1С» остатка не
     // получают — там пусто, а не ноль: это разные вещи.
     let ocQty = "";
     if (withOcQty && r.code) {
-      const ocInfo = oneCInfoFor(r.code, r);
-      if (ocInfo) ocQty = `<span class="suggest-oc-qty">${ocInfo.qty}</span>`;
+      const q = isShift() ? shiftOcQty(r) : (oneCInfoFor(r.code, r) || {}).qty;
+      if (q !== undefined && q !== null) ocQty = `<span class="suggest-oc-qty">${q}</span>`;
     }
     // Остаток стоит ПЕРВЫМ в разметке: он прижат к правому краю через float,
     // а float цепляется за ту строку, в которой объявлен. Иначе у названий,
