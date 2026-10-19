@@ -1578,7 +1578,7 @@ function updateLayoutClasses() {
 function ticketMatches(key, e, q) {
   // возвращает null (не подходит), [] (подходит по номеру/дате) или список найденных позиций
   const num = ticketNumberMap()[key];
-  const head = ("№" + num + " " + num + " " + ticketDateLong(key) + " " + formatShort(key)).toLowerCase();
+  const head = ("№" + num + " " + num + " " + ticketDateLong(key) + " " + formatShort(key) + " " + (e.note || "")).toLowerCase();
   const found = [];
   ["parts", "consumables"].forEach((s) => {
     ((e.sections && e.sections[s]) || []).forEach((it) => {
@@ -1609,7 +1609,7 @@ function renderTicketList() {
     }).join("");
     const more = found.length > 6 ? `<div class="t-hit-more">и ещё ${found.length - 6}</div>` : "";
     out.push(`<button class="t-card${k === currentDate ? " sel" : ""}" data-key="${escapeHtml(k)}">`
-      + `<div class="t-row"><span class="mono">№ ${nums[k]}</span><span class="t-date">${ticketDateLong(k)}</span></div>`
+      + `<div class="t-row"><span class="mono">№ ${nums[k]}</span>${e.note ? `<span class="t-note">${escapeHtml(e.note)}</span>` : ""}<span class="t-date">${ticketDateLong(k)}</span></div>`
       + `<div class="t-sub">${pluralRu(cnt, "позиция", "позиции", "позиций")}</div>`
       + ((canDeleteTickets() || e.by) ? `<div class="t-foot">`
           + (canDeleteTickets() ? `<span class="t-del" role="button" tabindex="0" data-del="${escapeHtml(k)}" title="Удалить заявку">🗑 Удалить</span>` : "<span></span>")
@@ -1637,7 +1637,7 @@ function selectTicket(key) {
   try { if (currentDate) sessionStorage.setItem("sklad2_sel_ticket", currentDate); else sessionStorage.removeItem("sklad2_sel_ticket"); } catch (e) {}
   afterTicketChange();
 }
-function createTicket() {
+function createTicket(note) {
   if (shiftTodayTicket()) return;
   persistCurrentLocalOnly();
   const d = todayStr();
@@ -1646,15 +1646,16 @@ function createTicket() {
   dataByDate[key] = emptyEntry();
   dataByDate[key].created = Date.now();          // пустая заявка удалится сама через час
   if (MY_LOGIN) dataByDate[key].by = MY_LOGIN;   // автор заявки (показывается в карточке)
+  if (note) dataByDate[key].note = note;         // комментарий hleb — рядом с номером в карточке
   currentDate = key;
   bindCurrent();
   saveDataByDate();
   try { sessionStorage.setItem("sklad2_sel_ticket", currentDate); } catch (e) {}
   afterTicketChange();
 }
-// Одна заявка в день на аккаунт: если своя за сегодня уже есть, открываем её, а не создаём новую.
+// Одна заявка в день на аккаунт (кроме hleb): если своя за сегодня уже есть, открываем её, а не создаём новую.
 function shiftTodayTicket() {
-  if (!MY_LOGIN) return null;
+  if (!MY_LOGIN || MY_LOGIN === "hleb") return null;
   const t = todayStr();
   return ticketKeys().find((k) => k.slice(0, 10) === t && dataByDate[k].by === MY_LOGIN) || null;
 }
@@ -1664,6 +1665,9 @@ document.getElementById("ticketNewBtn").addEventListener("click", () => {
   const n = ticketKeys().length + 1;
   document.getElementById("newTicketText").textContent =
     "Создать новую заявку на учёт № " + n + " за " + formatFull(todayStr()) + "?";
+  const note = document.getElementById("newTicketNote");
+  note.value = "";
+  note.hidden = MY_LOGIN !== "hleb";
   openModal("newTicketOverlay");
 });
 document.getElementById("newTicketNo").addEventListener("click", () => closeModal("newTicketOverlay"));
@@ -1672,7 +1676,7 @@ document.getElementById("newTicketOverlay").addEventListener("click", (e) => {
 });
 document.getElementById("newTicketYes").addEventListener("click", () => {
   closeModal("newTicketOverlay");
-  createTicket();
+  createTicket(MY_LOGIN === "hleb" ? document.getElementById("newTicketNote").value.trim() : "");
 });
 document.getElementById("ticketBackBtn").addEventListener("click", () => selectTicket(null));
 document.getElementById("ticketCards").addEventListener("click", (e) => {

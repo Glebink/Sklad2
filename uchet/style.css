@@ -1393,3 +1393,7 @@ body.shift-ro .count-tier-pm { display: none !important; }
 /* «1С» в заголовке — над остатком, а не над «⋮» */
 #viewWarehouse .wh-oc-sort, #viewOneC .wh-oc-sort { margin-right: 38px; }
 @media (max-width: 899px) { #viewWarehouse .wh-oc-sort, #viewOneC .wh-oc-sort { margin-right: 30px; } }
+/* Комментарий заявки (hleb) — сразу после номера, длинный обрезается */
+.t-row .t-note { flex: 1 1 auto; min-width: 0; margin: 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 14px; font-weight: 600; }
+#newTicketNote { margin: 4px 0 12px; padding: 10px; font-size: 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--fg); box-sizing: border-box; }
+
