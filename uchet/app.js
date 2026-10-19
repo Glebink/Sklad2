@@ -990,9 +990,9 @@ function renderSection(section) {
   const tbody = document.getElementById("body-" + section);
   tbody.innerHTML = "";
   const groups = caGroups(section);
-  // Заголовок нужен, только если групп больше одной: у «Расходников» модели
-  // обычно нет вовсе, и единственная надпись «Без модели» была бы мусором.
-  const showHeaders = groups.length > 1;
+  // Заголовок модели показываем всегда, даже если вся заявка одной модели;
+  // не нужен только единственный заголовок «Без модели».
+  const showHeaders = groups.length > 1 || (groups.length === 1 && !!groups[0].model);
   groups.forEach(({ model, pairs }) => {
     let rowNo = 0;                     // нумерация своя внутри каждой модели
     if (showHeaders) {
