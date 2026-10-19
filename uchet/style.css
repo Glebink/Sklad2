@@ -1164,7 +1164,7 @@ body.no-ticket .sticky-top { display: none; }
 .t-author { margin-top: 6px; text-align: right; color: var(--muted); font-size: 13px; }
 
 /* Режим сменщика: только добавление и просмотр */
-body.role-shift .ca-del-badge, body.role-shift #undoBtn, body.role-shift #redoBtn, body.role-shift #tabWarehouseBtn, body.role-shift #tabOneCBtn, body.role-shift #backupSaveBtn, body.role-shift #backupLoadBtn, body.role-shift .shift-hide, body.role-shift a.mod-item[href*="zayavki"] { display: none !important; }
+body.shift-ro .ca-del-badge, body.shift-ro #undoBtn, body.shift-ro #redoBtn, body.role-shift #tabWarehouseBtn, body.role-shift #tabOneCBtn, body.role-shift #backupSaveBtn, body.role-shift #backupLoadBtn, body.role-shift .shift-hide, body.role-shift a.mod-item[href*="zayavki"] { display: none !important; }
 body.shift-ro .countInput { pointer-events: none; }
 body.shift-ro .btn.plus, body.shift-ro .btn.minus { display: none !important; }
 

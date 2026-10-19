@@ -749,11 +749,12 @@ function bindCurrent() {
 }
 bindCurrent();
 
-// Сменщик правит только свою заявку за сегодня (и вчерашнюю — до 04:00 МСК); остальные — только просмотр.
+// Сменщик правит позиции любой заявки (чья бы ни была) за сегодня и вчерашней — до 04:00 МСК;
+// более старые — только просмотр. Комментарий и удаление всей заявки — только hleb (меню «⋮»).
 function canEditCurrent() {
   if (!isShift()) return true;
   const e = currentDate && dataByDate[currentDate];
-  if (!e || e.by !== MY_LOGIN) return false;
+  if (!e) return false;
   const day = currentDate.slice(0, 10);
   return day === todayStr() || (day === mskDateStr(-1) && mskParts(0).h < SHIFT_GRACE_HOUR);
 }
@@ -1056,7 +1057,7 @@ function handleCountClick(e) {
     if (!item) return;
     const key = countKey(section, item);
     // «–»/«+» обрабатывает setupQtyButtons (окно ввода количества).
-    if (isShift() && !btn.classList.contains("chk-toggle")) return;   // сменщик только отмечает, не удаляет
+    if (!btn.classList.contains("chk-toggle") && !canEditCurrent()) return;   // закрытая заявка — только отметки
     if (btn.classList.contains("chk-toggle")) {
       checked[key] = !checked[key];
       // Отметка «учтено» — рабочая пометка для себя, а не изменение данных:
