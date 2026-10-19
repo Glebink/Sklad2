@@ -1419,3 +1419,5 @@ body.shift-ro .count-tier-pm { display: none !important; }
 html { touch-action: manipulation; }
 /* Крестик очистки в поле «Деталь» — по центру поля по высоте, внутри рамки */
 .add-panel.one-row .add-clear { top: 50%; right: 8px; transform: translateY(-50%); z-index: 2; }
+/* Телефон: у «Инвентаризации» только значок, чтобы шапка «1С» умещалась в строку */
+@media (max-width: 899px) { #ocInventoryBtn .inv-label { display: none; } }
