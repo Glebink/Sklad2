@@ -1612,7 +1612,9 @@ function renderTicketList() {
       + `<div class="t-row"><span class="mono">№ ${nums[k]}</span>${e.note ? `<span class="t-note">${escapeHtml(e.note)}</span>` : ""}<span class="t-date">${ticketDateLong(k)}</span></div>`
       + `<div class="t-sub">${pluralRu(cnt, "позиция", "позиции", "позиций")}</div>`
       + ((canDeleteTickets() || e.by) ? `<div class="t-foot">`
-          + (canDeleteTickets() ? `<span class="t-del" role="button" tabindex="0" data-del="${escapeHtml(k)}" title="Удалить заявку">🗑 Удалить</span>` : "<span></span>")
+          + (canDeleteTickets() ? `<span class="t-menu-wrap"><span class="t-menu-btn" role="button" tabindex="0" title="Действия">⋮</span>`
+              + `<span class="t-menu"><span class="t-act" role="button" data-act="note" data-key="${escapeHtml(k)}">✎ Комментарий</span>`
+              + `<span class="t-act danger" role="button" data-act="del" data-key="${escapeHtml(k)}">🗑 Удалить</span></span></span>` : "<span></span>")
           + (e.by ? `<span class="t-author">${escapeHtml(authorLabel(e.by))}</span>` : "")
           + `</div>` : "")
       + `${shown}${more}`
@@ -1679,18 +1681,53 @@ document.getElementById("newTicketYes").addEventListener("click", () => {
   createTicket(MY_LOGIN === "hleb" ? document.getElementById("newTicketNote").value.trim() : "");
 });
 document.getElementById("ticketBackBtn").addEventListener("click", () => selectTicket(null));
+function closeTicketMenus() { document.querySelectorAll(".t-menu-wrap.open").forEach((w) => w.classList.remove("open")); }
+document.addEventListener("click", (e) => { if (!e.target.closest(".t-menu-wrap")) closeTicketMenus(); });
+// Комментарий заявки (только hleb): правка в отдельном окне
+let ticketNoteKey = null;
+function openTicketNote(key) {
+  ticketNoteKey = key;
+  document.getElementById("ticketNoteTitle").textContent = "Комментарий к заявке № " + ticketNumberMap()[key];
+  const inp = document.getElementById("ticketNoteInput");
+  inp.value = (dataByDate[key] && dataByDate[key].note) || "";
+  openModal("ticketNoteOverlay");
+  setTimeout(() => { inp.focus(); inp.select(); }, 50);
+}
+function closeTicketNote() { ticketNoteKey = null; closeModal("ticketNoteOverlay"); }
+document.getElementById("ticketNoteCancel").addEventListener("click", closeTicketNote);
+document.getElementById("ticketNoteOverlay").addEventListener("click", (e) => { if (e.target.id === "ticketNoteOverlay") closeTicketNote(); });
+document.getElementById("ticketNoteSave").addEventListener("click", () => {
+  const key = ticketNoteKey;
+  if (!key || !dataByDate[key] || !canDeleteTickets()) { closeTicketNote(); return; }
+  const v = document.getElementById("ticketNoteInput").value.trim();
+  if (v) dataByDate[key].note = v; else delete dataByDate[key].note;
+  saveDataByDate();
+  closeTicketNote();
+  renderTicketList();
+});
 document.getElementById("ticketCards").addEventListener("click", (e) => {
-  const del = e.target.closest(".t-del");
-  if (del) {
+  const mb = e.target.closest(".t-menu-btn");
+  if (mb) {
     e.stopPropagation();
+    const w = mb.parentElement, was = w.classList.contains("open");
+    closeTicketMenus();
+    w.classList.toggle("open", !was);
+    return;
+  }
+  const act = e.target.closest(".t-act");
+  if (act) {
+    e.stopPropagation();
+    closeTicketMenus();
     if (!canDeleteTickets()) return;
-    const key = del.dataset.del;
+    const key = act.dataset.key;
     const e2 = dataByDate[key];
     if (!e2) return;
+    if (act.dataset.act === "note") { openTicketNote(key); return; }
     openConfirmDelete("ticket",
       `Удалить заявку на учёт № ${ticketNumberMap()[key]} за ${formatFull(key)} (${pluralRu(entryItemCount(e2), "позиция", "позиции", "позиций")})? Удаление уйдёт на сервер и на все устройства.`, key);
     return;
   }
+  if (e.target.closest(".t-menu")) return;
   const c = e.target.closest(".t-card");
   if (c) selectTicket(c.dataset.key === currentDate ? null : c.dataset.key);   // повторный тап снимает выбор
 });
