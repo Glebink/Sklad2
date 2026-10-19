@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Учёт потребления деталей</title>
 <link rel="manifest" href="../manifest.json">
 <meta name="theme-color" content="#2B4C9B">
@@ -384,20 +384,6 @@
 
 <!-- Модалка копирования/вставки списка склада (для переноса в другой файл) -->
 <!-- Модалка: импорт остатков из Excel в 1С -->
-<!-- Ручная вставка строк из Excel (вынесена из окна импорта) -->
-<div class="modal-overlay" id="ocPasteOverlay">
-  <div class="modal-box wide">
-    <p class="modal-title">Вставить строки Excel</p>
-    <div class="footer-note mb-6">
-      Скопируйте столбцы Код / Наименование / Остаток и вставьте сюда.
-    </div>
-    <textarea id="ocImportArea" class="paste-textarea tall" placeholder="Вставьте строки из Excel"></textarea>
-    <div class="modal-actions mt-10">
-      <button class="confirm-no" id="ocPasteCancel">Отмена</button>
-      <button class="confirm-yes accent" id="ocPasteApply">Применить</button>
-    </div>
-  </div>
-</div>
 
 <!-- Список на перемещение (что заказать со второго склада) -->
 <div class="modal-overlay" id="ocTransferOverlay">
@@ -483,7 +469,6 @@
     <div class="field-label">Склад «Бестужевская» — второй (сохранится отдельно)</div>
     <input type="file" id="ocImportFileBest" accept=".xlsx" class="file-input">
     <div class="footer-note mb-6" id="ocImportFileBestInfo"></div>
-    <button class="util full-w mb-8" id="ocPasteBtn">📋 Вставить строки Excel</button>
     <button class="util full-w mb-8" id="ocCompareBtn">⚖️ Сравнить остатки</button>
     <button class="util full-w mb-8" id="ocTransferBtn">🚚 Перемещение</button>
     <div class="footer-note mt-6" id="ocImportHint">

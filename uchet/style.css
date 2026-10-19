@@ -484,7 +484,7 @@
   /* Окна, которые открываются ПОВЕРХ другого окна (сравнение и вставка
      вызываются из окна импорта) — иначе они появлялись под ним, так как
      z-index у всех модалок одинаковый. */
-  #ocCompareOverlay, #ocPasteOverlay, #ocTransferOverlay { z-index: 1100; }
+  #ocCompareOverlay, #ocTransferOverlay { z-index: 1100; }
   .modal-box { background:var(--surface); border-radius:12px; padding: 20px; max-width: 340px; width: 90%; text-align: center; }
   .modal-box p { font-size: 15px; margin: 0 0 12px 0; }
   .modal-actions { display: flex; gap: 10px; justify-content: center; margin-top: 4px; }
@@ -1027,11 +1027,6 @@
   .bg-danger-soft { background:var(--s-rejected-bg); }
   .file-input { width: 100%; font-size: 13px; }
   .suggest-box-inset { left: 20px; right: 20px; }
-  .paste-textarea {
-    width: 100%; min-height: 170px; font-family: monospace; font-size: 12px;
-    padding: 8px; border:1px solid var(--border); border-radius:8px; box-sizing: border-box;
-  }
-  .paste-textarea.tall { min-height: 180px; }
   .flex-row { display: flex; gap: 10px; }
   .flex-row.gap-8 { gap: 8px; }
 
@@ -1420,3 +1415,5 @@ body.shift-ro .count-tier-pm { display: none !important; }
   #viewWarehouse thead th:nth-child(1), #viewOneC thead th:nth-child(1) { width: calc(10 * var(--code-fs) + 22px); }
   #body-parts td.code, #body-consumables td.code, #viewWarehouse td.code, #viewOneC td.code { font-size: var(--code-fs); overflow-wrap: normal; word-break: normal; }
 }
+/* Телефон: без зума страницы от двойного тапа по «+»/«–» */
+html { touch-action: manipulation; }

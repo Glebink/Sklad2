@@ -2605,40 +2605,6 @@ async function parseXlsxFile(file) {
   return out;
 }
 
-function parseExcelRows(raw) {
-  const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  const rows = [];
-  lines.forEach((line) => {
-    // Excel копирует через табы; поддержим и «;» как запасной разделитель
-    const cells = (line.includes("\t") ? line.split("\t") : line.split(";")).map((c) => c.trim());
-    if (cells.length < 2) return;
-    rows.push(cells);
-  });
-  if (rows.length === 0) return [];
-  // Определяем, какой столбец что означает: ищем заголовок, иначе — по виду
-  let header = null;
-  const first = rows[0].map((c) => c.toLowerCase());
-  if (first.some((c) => /код|наимен|назван|остат|кол-?во|количест/.test(c))) header = first;
-  let iCode = 0, iName = 1, iQty = 2;
-  if (header) {
-    header.forEach((h, i) => {
-      if (/код|артикул/.test(h)) iCode = i;
-      else if (/наимен|назван|товар/.test(h)) iName = i;
-      else if (/остат|кол-?во|количест|шт/.test(h)) iQty = i;
-    });
-    rows.shift();
-  }
-  const out = [];
-  rows.forEach((cells) => {
-    const code = String(cells[iCode] || "").trim();
-    const name = String(cells[iName] || "").trim();
-    const qtyRaw = String(cells[iQty] || "").replace(/\s|\u00a0/g, "").replace(",", ".");
-    const qty = Math.max(0, Math.round(parseFloat(qtyRaw) || 0));
-    if (!name && !code) return;
-    out.push({ code, name, qty });
-  });
-  return out;
-}
 // Поиск позиции 1С отдельно по коду и отдельно по названию — так импорт
 // может сначала разобрать все совпадения по коду (приоритет), и только
 // потом добирать оставшиеся по названию.
@@ -2670,7 +2636,6 @@ function findOcItemByName(name) {
   return null;
 }
 function openOcImport() {
-  document.getElementById("ocImportArea").value = "";
   document.getElementById("ocImportFile").value = "";
   document.getElementById("ocImportFileBest").value = "";
   ocImportFileRows = null;
@@ -2847,24 +2812,6 @@ document.getElementById("ocTransferPrint").addEventListener("click", () => {
   window.print();
 });
 
-/* --- Ручная вставка строк Excel (вынесена в отдельное окно) --- */
-document.getElementById("ocPasteBtn").addEventListener("click", () => {
-  openModal("ocPasteOverlay");
-});
-document.getElementById("ocPasteCancel").addEventListener("click", () => {
-  closeModal("ocPasteOverlay");
-});
-document.getElementById("ocPasteApply").addEventListener("click", () => {
-  const raw = document.getElementById("ocImportArea").value.trim();
-  if (!raw) { alert("Поле пустое."); return; }
-  const rows = parseExcelRows(raw);
-  if (rows.length === 0) { alert("Не удалось распознать ни одной строки."); return; }
-  ocImportFileRows = rows;               // подставляем как источник для «Импортировать»
-  document.getElementById("ocImportFileInfo").textContent =
-    `Из вставленного текста: ${rows.length} строк. Нажмите «Импортировать».`;
-  closeModal("ocPasteOverlay");
-});
-
 /* ==================== Сравнение остатков между складами ====================
    Берём свои позиции 1С с остатком меньше порога и ищем их на втором
    складе («Бестужевская», загружается отдельным файлом). Сопоставляем по
@@ -3032,9 +2979,7 @@ document.getElementById("ocCompareCopy").addEventListener("click", async () => {
     await navigator.clipboard.writeText(text);
     alert("Список скопирован.");
   } catch (e) {
-    const ta = document.getElementById("ocImportArea");
-    ta.value = text; ta.select();
-    alert("Скопируйте текст вручную из поля вставки.");
+    window.prompt("Не удалось скопировать автоматически. Скопируйте текст вручную:", text);
   }
 });
 document.getElementById("ocComparePrint").addEventListener("click", () => {
@@ -3056,15 +3001,9 @@ document.getElementById("ocComparePrint").addEventListener("click", () => {
 });
 
 document.getElementById("ocImportRun").addEventListener("click", () => {
-  let rows;
-  if (ocImportFileRows && ocImportFileRows.length) {
-    rows = ocImportFileRows;
-  } else {
-    const raw = document.getElementById("ocImportArea").value.trim();
-    if (!raw) { alert("Выберите файл .xlsx или вставьте строки из Excel."); return; }
-    rows = parseExcelRows(raw);
-  }
-  if (!rows || rows.length === 0) { alert("Не удалось распознать ни одной строки."); return; }
+  const rows = ocImportFileRows;
+  if (!rows) { alert("Выберите файл .xlsx."); return; }
+  if (rows.length === 0) { alert("Не удалось распознать ни одной строки."); return; }
 
   // Импорт только обновляет остаток имеющихся позиций и добавляет новые;
   // названия, модели и категории не трогает. Ключ строки — код + название:
