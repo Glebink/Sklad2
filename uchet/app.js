@@ -1037,6 +1037,9 @@ function renderSection(section) {
   if (typeof applyCaSearch === "function") applyCaSearch();
 }
 function renderAll() {
+  // Модели групп «Учёта» берутся со склада (у сменщика — из каталога): индекс должен быть свежим,
+  // иначе у сменщика, который не открывает «Склад»/«1С», он оставался пустым и группы не показывались.
+  rebuildCrossIndexes();
   renderSection("parts");
   renderSection("consumables");
   document.getElementById("dateDisplayText").textContent = currentDate ? formatShort(currentDate) : "—";
