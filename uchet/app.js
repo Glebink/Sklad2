@@ -495,6 +495,9 @@ let lastTabSwitch = 0;
 function handleTabPress(e) {
   const btn = e.target && e.target.closest ? e.target.closest(".tab-btn") : null;
   if (!btn) return;
+  // Вкладки — ссылки (#warehouse и т.п.): колесо мыши, Ctrl/Cmd/Shift+клик открывают в новой вкладке браузера
+  if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+  e.preventDefault();
   const now = Date.now();
   if (now - lastTabSwitch < 400) return;   // click + pointerup на тачскрине
   lastTabSwitch = now;
@@ -2262,6 +2265,8 @@ function switchTab(target) {
     if (backTarget && target !== backTarget.dest) hideBackBtn();
     if (target === "warehouse") renderWarehouseAll();
     if (target === "onec") renderOneCAll();
+    // Вкладка — в адресе (#warehouse), чтобы её можно было открыть в новой вкладке и обновить страницу на ней
+    try { history.replaceState(null, "", target === "consumption" ? location.pathname + location.search : "#" + target); } catch (e) {}
     // Возврат в «Учёт» — всегда с начала списка (а не с места прокрутки «Склада»/«1С»)
     if (target === "consumption") {
       window.scrollTo(0, 0);
@@ -5198,6 +5203,13 @@ renderAll();
 renderTicketList();
 updateAddPanelVisibility();
 renderWarehouseAll();
+// Вкладка из адреса (#warehouse / #onec) — открыта колесом мыши или после обновления страницы.
+// Сменщику «Склад» и «1С» недоступны.
+(function () {
+  const h = (location.hash || "").replace("#", "");
+  if ((h === "warehouse" || h === "onec") && !isShift()) switchTab(h);
+  else if (h) { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} }
+})();
 renderOneCAll();
 
 updateDirtyIndicator();
