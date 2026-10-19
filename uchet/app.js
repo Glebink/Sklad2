@@ -1714,7 +1714,7 @@ function openTicketNote(key) {
   const inp = document.getElementById("ticketNoteInput");
   inp.value = (dataByDate[key] && dataByDate[key].note) || "";
   openModal("ticketNoteOverlay");
-  setTimeout(() => { inp.focus(); inp.select(); }, 50);
+  setTimeout(() => { inp.focus(); const end = inp.value.length; inp.setSelectionRange(end, end); }, 50);
 }
 function closeTicketNote() { ticketNoteKey = null; closeModal("ticketNoteOverlay"); }
 document.getElementById("ticketNoteCancel").addEventListener("click", closeTicketNote);
@@ -4159,7 +4159,8 @@ function openOcToWh(section, index) {
   openModal("ocToWhOverlay");
   setTimeout(() => {
     const n = document.getElementById("ocToWhName");
-    n.focus(); n.select();
+    n.focus();
+    const end = n.value.length; n.setSelectionRange(end, end);   // курсор в конец, без выделения всего названия
   }, 50);
 }
 function closeOcToWh() {
