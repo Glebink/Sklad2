@@ -53,6 +53,6 @@ self.addEventListener("fetch", (event) => {
     fetch(req, { cache: "no-cache" }).then((res) => {
       if (res.ok) { const copy = res.clone(); caches.open(CACHE_NAME).then((c) => c.put(req, copy)); }
       return res;
-    }).catch(() => caches.match(req).then((hit) => hit || caches.match(url.pathname.includes("/zayavki/") ? "zayavki/index.html" : "uchet/index.html")))
+    }).catch(() => caches.match(req, { ignoreSearch: true }).then((hit) => hit || caches.match(url.pathname.includes("/zayavki/") ? "zayavki/index.html" : "uchet/index.html")))
   );
 });
