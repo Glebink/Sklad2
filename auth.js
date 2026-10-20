@@ -53,13 +53,17 @@
   }
 
   var MARK = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg>';
+  // Логин из адреса (?login=sklad — QR-код на складе): подставляется в форму входа.
+  function presetLogin() {
+    try { return (new URLSearchParams(location.search).get('login') || '').replace(/[^a-z0-9_.-]/gi, '').slice(0, 32); } catch (e) { return ''; }
+  }
   function loginHTML(msg) {
     return '<div class="auth-wrap"><form class="auth-card" id="authform" autocomplete="on">'
       + '<div class="auth-mark">' + MARK + '</div>'
       + '<h1>Склад</h1>'
       + '<p class="auth-sub">Учёт потребления · Заявки на закупку</p>'
       + (msg ? '<p class="auth-msg">' + esc(msg) + '</p>' : '')
-      + '<label class="auth-field"><span>Логин</span><input class="auth-input" name="login" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" required></label>'
+      + '<label class="auth-field"><span>Логин</span><input class="auth-input" name="login" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" required value="' + esc(presetLogin()) + '"></label>'
       + '<label class="auth-field"><span>Пароль</span><input class="auth-input" name="password" type="password" autocomplete="current-password" required></label>'
       + '<label class="auth-check"><input type="checkbox" name="remember" checked><span>Запомнить на этом устройстве<small>Если снять галочку, вход действует только в этом окне.</small></span></label>'
       + '<div class="auth-err" id="authErr" role="alert"></div>'
@@ -80,7 +84,7 @@
       btn.disabled = false; btn.textContent = 'Войти';
       err.textContent = ok === false ? 'Неверный логин или пароль.' : ok;
     });
-    var first = f.login; if (first && !opts.noFocus) { try { first.focus(); } catch (e) {} }
+    var first = presetLogin() ? f.password : f.login; if (first && !opts.noFocus) { try { first.focus(); } catch (e) {} }
   }
 
   // Ответ дольше timeoutMs считаем зависанием (например, блокировка входа занята другим окном).

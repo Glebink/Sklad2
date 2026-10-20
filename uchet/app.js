@@ -5205,11 +5205,23 @@ updateAddPanelVisibility();
 renderWarehouseAll();
 // Вкладка из адреса (#warehouse / #onec) — открыта колесом мыши или после обновления страницы.
 // Сменщику «Склад» и «1С» недоступны.
+// #today (QR-код на складе): после входа и обмена с сервером открыть последнюю заявку за сегодня,
+// а если её нет — создать (от имени вошедшего аккаунта).
+let openTodayPending = false;
 (function () {
   const h = (location.hash || "").replace("#", "");
-  if ((h === "warehouse" || h === "onec") && !isShift()) switchTab(h);
+  if (h === "today") openTodayPending = true;   // #today снимается после открытия заявки (вход может перезагрузить страницу)
+  else if ((h === "warehouse" || h === "onec") && !isShift()) switchTab(h);
   else if (h) { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} }
 })();
+function openTodayTicket() {
+  openTodayPending = false;
+  switchTab("consumption");
+  const t = todayStr();
+  const keys = ticketKeys().filter((k) => k.slice(0, 10) === t);
+  if (keys.length) selectTicket(keys[keys.length - 1]);
+  else createTicket();
+}
 renderOneCAll();
 
 updateDirtyIndicator();
@@ -5239,7 +5251,11 @@ if (window.Auth) {
       updateDirtyIndicator();
       setSyncStatus("idle", manualModeStatusText());
       refreshAccountLine();
-      if (!isAutoSyncOff()) syncNow("safe", { auto: true });
+      if (openTodayPending) {
+        // сначала забираем заявки с сервера — иначе можно создать вторую заявку на сегодня
+        if (!isAutoSyncOff()) { try { await syncNow("safe", { auto: true }); } catch (e) {} }
+        openTodayTicket();
+      } else if (!isAutoSyncOff()) syncNow("safe", { auto: true });
       startRealtime();
     },
     onLogout: () => {
