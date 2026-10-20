@@ -635,6 +635,20 @@ let ROLE = null, MY_LOGIN = "";
   try { const c = window.Auth && Auth.cachedRole(); if (c) { ROLE = c.role; MY_LOGIN = c.login || ""; } } catch (e) {}
 })();
 function isShift() { return ROLE === "shift"; }
+// Сменщик: hleb нажал «Сгенерировать новый» QR — все устройства, вошедшие в sklad раньше, выходят
+// (сервер перестаёт отдавать им данные). Проверка при входе, при возврате на вкладку и раз в минуту.
+async function shiftSessionAlive() {
+  if (!isShift() || !window.Auth) return true;
+  let r;
+  try { r = await Auth.sb.rpc("sklad_session_ok"); } catch (e) { return true; }   // нет связи — не выкидываем
+  if (r.error || r.data !== false) return true;
+  Auth.logout("Выдан новый QR-код — отсканируйте его, чтобы войти.");
+  return false;
+}
+if (isShift()) {
+  setInterval(() => { if (!document.hidden && syncUserOk) shiftSessionAlive(); }, 60000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && syncUserOk) shiftSessionAlive(); });
+}
 // Удалять заявки на учёт может только аккаунт hleb (так же проверяет сервер).
 function canDeleteTickets() { return MY_LOGIN === "hleb"; }
 document.body.classList.toggle("role-shift", isShift());
@@ -1748,7 +1762,7 @@ async function qrShiftCall(fn) {
   document.getElementById("qrShiftClose").addEventListener("click", () => closeModal("qrShiftOverlay"));
   document.getElementById("qrShiftOverlay").addEventListener("click", (e) => { if (e.target.id === "qrShiftOverlay") closeModal("qrShiftOverlay"); });
   document.getElementById("qrShiftNew").addEventListener("click", async () => {
-    if (!confirm("Сгенерировать новый QR-код? Старый сразу перестанет работать.")) return;
+    if (!confirm("Сгенерировать новый QR-код? Старый сразу перестанет работать, а все устройства, вошедшие в sklad, выйдут из аккаунта.")) return;
     try { showQrShift(await qrShiftCall("sklad_qr_new")); } catch (e) { alert("Не удалось создать QR-код: " + ((e && e.message) || e)); }
   });
 }
@@ -5290,7 +5304,7 @@ if (window.Auth) {
         if (r) MY_LOGIN = r.login;
         { const qb = document.getElementById("qrShiftBtn"); if (qb) qb.hidden = MY_LOGIN !== "hleb"; }
       } catch (e) {}
-      if (isShift()) await loadCatalogFromServer();
+      if (isShift()) { if (!(await shiftSessionAlive())) return; await loadCatalogFromServer(); }
       syncUserOk = true;
       updateDirtyIndicator();
       setSyncStatus("idle", manualModeStatusText());

@@ -175,7 +175,7 @@
     });
     gateReady = true;
   }
-  function logout() { clearSession(); if (gateOpts) { if (gateOpts.onLogout) gateOpts.onLogout(); showGate(); } }
+  function logout(msg) { clearSession(); if (gateOpts) { if (gateOpts.onLogout) gateOpts.onLogout(); showGate(msg); } }
 
   window.Auth = {
     sb: sb, authStore: authStore, emailOf: emailOf, doLogin: doLogin, renderLogin: renderLogin,
