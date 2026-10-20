@@ -175,10 +175,20 @@
     });
     gateReady = true;
   }
+  // Как вошли в текущую сессию: 'password' (логин и пароль) или 'otp' (QR-код). Из токена доступа (amr).
+  async function loginMethod() {
+    try {
+      var r = await sb.auth.getSession(), t = r && r.data && r.data.session && r.data.session.access_token;
+      if (!t) return null;
+      var b = t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      var amr = JSON.parse(atob(b + '==='.slice((b.length + 3) % 4))).amr || [];
+      return amr.length ? String(amr[0].method || '') : null;
+    } catch (e) { return null; }
+  }
   function logout(msg) { clearSession(); if (gateOpts) { if (gateOpts.onLogout) gateOpts.onLogout(); showGate(msg); } }
 
   window.Auth = {
     sb: sb, authStore: authStore, emailOf: emailOf, doLogin: doLogin, renderLogin: renderLogin,
-    getUser: getUser, loadRole: loadRole, cachedRole: cachedRole, withTimeout: withTimeout, gate: gate, logout: logout, clearSession: clearSession, hasStoredSession: hasStoredSession
+    getUser: getUser, loadRole: loadRole, cachedRole: cachedRole, withTimeout: withTimeout, gate: gate, logout: logout, loginMethod: loginMethod, clearSession: clearSession, hasStoredSession: hasStoredSession
   };
 })();

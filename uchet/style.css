@@ -1437,3 +1437,8 @@ a.tab-btn { display: block; box-sizing: border-box; text-decoration: none; color
 .qr-box .qr-empty { padding: 30px 10px; color: var(--muted); text-align: center; }
 
 .u-list .tool-btn[hidden] { display: none; }
+
+/* Вход по QR (сменщик): только сегодняшняя заявка */
+body.qr-kiosk .u-list, body.qr-kiosk #ticketBackBtn, body.qr-kiosk .mod-menu-wrap, body.qr-kiosk .ticket-empty { display: none !important; }
+body.qr-kiosk #profileBtn, body.qr-kiosk #datePickerBox { pointer-events: none; }
+body.qr-kiosk.has-ticket #datePickerBox { display: flex !important; }

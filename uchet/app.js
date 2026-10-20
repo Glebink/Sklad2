@@ -635,6 +635,18 @@ let ROLE = null, MY_LOGIN = "";
   try { const c = window.Auth && Auth.cachedRole(); if (c) { ROLE = c.role; MY_LOGIN = c.login || ""; } } catch (e) {}
 })();
 function isShift() { return ROLE === "shift"; }
+// Вход по QR (сменщик): только сегодняшняя заявка — без списка заявок, разделов и меню аккаунта.
+// Режим запоминается на устройстве, чтобы экран сразу открывался закрытым; уточняется после входа.
+const QR_KIOSK_KEY = "sklad2_qr_kiosk";
+let QR_KIOSK = false;
+try { QR_KIOSK = isShift() && localStorage.getItem(QR_KIOSK_KEY) === "1"; } catch (e) {}
+function setQrKiosk(on) {
+  QR_KIOSK = !!on;
+  try { if (on) localStorage.setItem(QR_KIOSK_KEY, "1"); else localStorage.removeItem(QR_KIOSK_KEY); } catch (e) {}
+  document.body.classList.toggle("qr-kiosk", QR_KIOSK);
+  if (typeof updateLayoutClasses === "function") updateLayoutClasses();
+}
+document.body.classList.toggle("qr-kiosk", QR_KIOSK);
 // Сменщик: hleb нажал «Сгенерировать новый» QR — устройства, вошедшие в sklad по QR раньше, выходят (по паролю — нет)
 // (сервер перестаёт отдавать им данные). Проверка при входе, при возврате на вкладку и раз в минуту.
 async function shiftSessionAlive() {
@@ -1613,7 +1625,7 @@ function ticketDateLong(key) {
 }
 function updateLayoutClasses() {
   const cons = currentTab === "consumption";
-  document.body.classList.toggle("has-list", cons);
+  document.body.classList.toggle("has-list", cons && !QR_KIOSK);
   document.body.classList.toggle("no-ticket", cons && !currentDate);
   document.body.classList.toggle("has-ticket", cons && !!currentDate);
 }
@@ -1722,7 +1734,7 @@ document.getElementById("newTicketYes").addEventListener("click", () => {
   closeModal("newTicketOverlay");
   createTicket(MY_LOGIN === "hleb" ? document.getElementById("newTicketNote").value.trim() : "");
 });
-document.getElementById("ticketBackBtn").addEventListener("click", () => selectTicket(null));
+document.getElementById("ticketBackBtn").addEventListener("click", () => { if (!QR_KIOSK) selectTicket(null); });
 /* ==================== QR-вход для склада (только hleb) ====================
    Скан QR сразу входит в аккаунт sklad и открывает заявку на текущий день (#today).
    В QR — токен; сервер хранит один действующий, «Сгенерировать новый» отменяет старый. */
@@ -5302,6 +5314,7 @@ if (window.Auth) {
         const r = await Auth.loadRole();
         if (r && r.role !== ROLE) { location.reload(); return; }
         if (r) MY_LOGIN = r.login;
+        setQrKiosk(isShift() && /^(otp|magiclink)$/.test((await Auth.loginMethod()) || ""));
         { const qb = document.getElementById("qrShiftBtn"); if (qb) qb.hidden = MY_LOGIN !== "hleb"; }
       } catch (e) {}
       if (isShift()) { if (!(await shiftSessionAlive())) return; await loadCatalogFromServer(); }
@@ -5309,7 +5322,7 @@ if (window.Auth) {
       updateDirtyIndicator();
       setSyncStatus("idle", manualModeStatusText());
       refreshAccountLine();
-      if (openTodayPending) {
+      if (openTodayPending || QR_KIOSK) {
         // сначала забираем заявки с сервера — иначе можно создать вторую заявку на сегодня
         if (!isAutoSyncOff()) { try { await syncNow("safe", { auto: true }); } catch (e) {} }
         openTodayTicket();
@@ -5318,6 +5331,7 @@ if (window.Auth) {
     },
     onLogout: () => {
       syncUserOk = false;
+      setQrKiosk(false);
       stopRealtime();
       if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; }
       updateDirtyIndicator();
@@ -5333,6 +5347,13 @@ setInterval(() => {
   if (applyingRemote) return;
   if (cleanupEmptyTickets(true)) { bindCurrent(); renderTicketList(); renderAll(); updateAddPanelVisibility(); }
 }, 60000);
+// Вход по QR: всегда открыта заявка за текущий день (после полуночи — новая; пустую могла убрать очистка).
+function kioskKeepToday() {
+  if (!QR_KIOSK || !syncUserOk || applyingRemote) return;
+  if (!currentDate || !dataByDate[currentDate] || currentDate.slice(0, 10) !== todayStr()) openTodayTicket();
+}
+setInterval(kioskKeepToday, 60000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) kioskKeepToday(); });
 // Сменщик: в полночь и в 04:00 МСК меняется, какую заявку можно править — раз в минуту обновляем режим.
 if (isShift()) {
   let lastEditable = canEditCurrent();
