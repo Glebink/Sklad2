@@ -3,7 +3,7 @@
 const CACHE_NAME = "sklad2-cache-v2.0";
 const SHELL = [
   "./", "index.html", "manifest.json", "auth.js", "auth.css", "icon-192.png", "icon-512.png",
-  "uchet/", "uchet/index.html", "uchet/style.css", "uchet/app.js",
+  "uchet/", "uchet/index.html", "uchet/style.css", "uchet/app.js", "uchet/qrcode.js",
   "zayavki/", "zayavki/index.html", "zayavki/style.css", "zayavki/app.js"
 ];
 const LIB = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js";

@@ -1709,6 +1709,49 @@ document.getElementById("newTicketYes").addEventListener("click", () => {
   createTicket(MY_LOGIN === "hleb" ? document.getElementById("newTicketNote").value.trim() : "");
 });
 document.getElementById("ticketBackBtn").addEventListener("click", () => selectTicket(null));
+/* ==================== QR-вход для склада (только hleb) ====================
+   Скан QR сразу входит в аккаунт sklad и открывает заявку на текущий день (#today).
+   В QR — токен; сервер хранит один действующий, «Сгенерировать новый» отменяет старый. */
+function qrShiftUrl(token) { return location.origin + location.pathname + "?qr=" + token + "#today"; }
+function qrSvg(text) {
+  const m = window.QRLib.matrix(text, "M"), b = 4, n = m.size + b * 2;
+  let d = "";
+  for (let r = 0; r < m.size; r++) for (let c = 0; c < m.size; c++) if (m.dark(r, c)) d += `M${c + b} ${r + b}h1v1h-1z`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges"><rect width="${n}" height="${n}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+}
+function showQrShift(info) {
+  const box = document.getElementById("qrShiftBox"), line = document.getElementById("qrShiftInfo");
+  if (info && info.token && window.QRLib) {
+    box.innerHTML = qrSvg(qrShiftUrl(info.token));
+    const d = info.created_at ? new Date(info.created_at) : null;
+    line.textContent = "Скан сразу входит в аккаунт sklad и открывает заявку на текущий день." + (d ? " Код от " + d.toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) + "." : "");
+  } else {
+    box.innerHTML = `<div class="qr-empty">${info === null ? "QR-кода ещё нет — нажмите «Сгенерировать новый»." : "Не удалось загрузить QR-код (нет связи?)."}</div>`;
+    line.textContent = "";
+  }
+}
+async function qrShiftCall(fn) {
+  const r = await Auth.withTimeout(Auth.sb.rpc(fn), 15000);
+  if (r.error) throw r.error;
+  return r.data || null;
+}
+{
+  const qrBtn = document.getElementById("qrShiftBtn");
+  if (qrBtn && MY_LOGIN === "hleb") qrBtn.hidden = false;
+  if (qrBtn) qrBtn.addEventListener("click", async () => {
+    if (MY_LOGIN !== "hleb" || !window.Auth) return;
+    document.getElementById("qrShiftBox").innerHTML = `<div class="qr-empty">Загрузка…</div>`;
+    document.getElementById("qrShiftInfo").textContent = "";
+    openModal("qrShiftOverlay");
+    try { showQrShift(await qrShiftCall("sklad_qr_get")); } catch (e) { showQrShift(undefined); }
+  });
+  document.getElementById("qrShiftClose").addEventListener("click", () => closeModal("qrShiftOverlay"));
+  document.getElementById("qrShiftOverlay").addEventListener("click", (e) => { if (e.target.id === "qrShiftOverlay") closeModal("qrShiftOverlay"); });
+  document.getElementById("qrShiftNew").addEventListener("click", async () => {
+    if (!confirm("Сгенерировать новый QR-код? Старый сразу перестанет работать.")) return;
+    try { showQrShift(await qrShiftCall("sklad_qr_new")); } catch (e) { alert("Не удалось создать QR-код: " + ((e && e.message) || e)); }
+  });
+}
 function closeTicketMenus() { document.querySelectorAll(".t-menu-wrap.open").forEach((w) => w.classList.remove("open")); }
 document.addEventListener("click", (e) => { if (!e.target.closest(".t-menu-wrap")) closeTicketMenus(); });
 // Комментарий заявки (только hleb): правка в отдельном окне
@@ -5245,6 +5288,7 @@ if (window.Auth) {
         const r = await Auth.loadRole();
         if (r && r.role !== ROLE) { location.reload(); return; }
         if (r) MY_LOGIN = r.login;
+        { const qb = document.getElementById("qrShiftBtn"); if (qb) qb.hidden = MY_LOGIN !== "hleb"; }
       } catch (e) {}
       if (isShift()) await loadCatalogFromServer();
       syncUserOk = true;
