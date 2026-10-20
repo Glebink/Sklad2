@@ -635,7 +635,7 @@ let ROLE = null, MY_LOGIN = "";
   try { const c = window.Auth && Auth.cachedRole(); if (c) { ROLE = c.role; MY_LOGIN = c.login || ""; } } catch (e) {}
 })();
 function isShift() { return ROLE === "shift"; }
-// Сменщик: hleb нажал «Сгенерировать новый» QR — все устройства, вошедшие в sklad раньше, выходят
+// Сменщик: hleb нажал «Сгенерировать новый» QR — устройства, вошедшие в sklad по QR раньше, выходят (по паролю — нет)
 // (сервер перестаёт отдавать им данные). Проверка при входе, при возврате на вкладку и раз в минуту.
 async function shiftSessionAlive() {
   if (!isShift() || !window.Auth) return true;
@@ -1762,7 +1762,7 @@ async function qrShiftCall(fn) {
   document.getElementById("qrShiftClose").addEventListener("click", () => closeModal("qrShiftOverlay"));
   document.getElementById("qrShiftOverlay").addEventListener("click", (e) => { if (e.target.id === "qrShiftOverlay") closeModal("qrShiftOverlay"); });
   document.getElementById("qrShiftNew").addEventListener("click", async () => {
-    if (!confirm("Сгенерировать новый QR-код? Старый сразу перестанет работать, а все устройства, вошедшие в sklad, выйдут из аккаунта.")) return;
+    if (!confirm("Сгенерировать новый QR-код? Старый сразу перестанет работать, а устройства, вошедшие в sklad по QR, выйдут из аккаунта (вошедшие по паролю останутся).")) return;
     try { showQrShift(await qrShiftCall("sklad_qr_new")); } catch (e) { alert("Не удалось создать QR-код: " + ((e && e.message) || e)); }
   });
 }
