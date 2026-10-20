@@ -4623,6 +4623,22 @@ function formatHistoryTime(ts) {
   const pad = (n) => String(n).padStart(2, "0");
   return pad(d.getDate()) + "." + pad(d.getMonth() + 1) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes());
 }
+// Фильтр истории по действию: "+" добавление, "−" удаление, "~" изменение количества, "" — всё.
+// Оставляем только строки этого действия и заголовки («Учёт за 20.10:», «Склад:»), под которыми они есть.
+let syncHistoryFilter = "";
+function filterHistoryLines(lines, f) {
+  const out = [];
+  let head = null;
+  (lines || []).forEach((l) => {
+    const t = l.trim();
+    if (/^[+−~] /.test(t)) {
+      if (t[0] !== f) return;
+      if (head !== null) { out.push(head); head = null; }
+      out.push(l);
+    } else if (!t.startsWith("…")) head = l;
+  });
+  return out;
+}
 function renderSyncHistory() {
   const box = document.getElementById("syncHistoryList");
   if (!box) return;
@@ -4630,7 +4646,10 @@ function renderSyncHistory() {
     box.innerHTML = "<div class=\"sync-history-empty\">Пока нет записей — появятся после первого сохранения.</div>";
     return;
   }
-  box.innerHTML = syncHistory.map((entry) => {
+  const f = syncHistoryFilter;
+  const list = f ? syncHistory.map((e) => Object.assign({}, e, { lines: filterHistoryLines(e.lines, f) })).filter((e) => e.lines.length) : syncHistory;
+  if (!list.length) { box.innerHTML = "<div class=\"sync-history-empty\">Таких действий в истории нет.</div>"; return; }
+  box.innerHTML = list.map((entry) => {
     const isLocal = entry.kind === "local";
     const failed = entry.status === "failed";
     const skipped = entry.status === "skipped";
@@ -5240,6 +5259,18 @@ document.getElementById("syncLogoutBtn").addEventListener("click", () => {
   closeSyncModal();
   if (window.Auth) Auth.logout();
 });
+// Выбор действия; повторное нажатие на выбранное снимает выбор (снова вся история).
+// Перехват на погружении (capture) — раньше общего обработчика .model-switch, который выбор не снимает.
+document.getElementById("syncHistoryFilter").addEventListener("click", (e) => {
+  const btn = e.target.closest(".ms-opt");
+  if (!btn) return;
+  e.preventDefault(); e.stopPropagation();
+  const m = btn.dataset.model || "";
+  syncHistoryFilter = syncHistoryFilter === m ? "" : m;
+  setModelSwitch(e.currentTarget, syncHistoryFilter);
+  renderSyncHistory();
+  document.getElementById("syncHistoryList").scrollTop = 0;
+}, true);
 document.getElementById("syncHistoryBtn").addEventListener("click", () => {
   renderSyncHistory();
   openModal("syncHistoryOverlay");

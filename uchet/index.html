@@ -14,8 +14,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2610200851">
-<link rel="stylesheet" href="../auth.css?v=2610200851">
+<link rel="stylesheet" href="style.css?v=2610200903">
+<link rel="stylesheet" href="../auth.css?v=2610200903">
 </head>
 <body>
 
@@ -552,9 +552,10 @@
 <div class="modal-overlay" id="syncHistoryOverlay">
   <div class="modal-box wide">
     <p class="modal-title">История сохранений</p>
-    <div class="sync-status-line mb-8">
-      Что и когда менялось: добавленные позиции, изменённое количество, обмен с сервером.
-      Правки, сделанные в пределах минуты, показываются одной записью. Хранится только на этом устройстве.
+    <div class="model-switch hist-filter mb-8" id="syncHistoryFilter" data-value="">
+      <button type="button" class="ms-opt" data-model="+">Добавление</button>
+      <button type="button" class="ms-opt" data-model="−">Удаление</button>
+      <button type="button" class="ms-opt" data-model="~">Изменение кол‑ва</button>
     </div>
     <div id="syncHistoryList" class="sync-history-list"></div>
     <div class="modal-actions mt-10">
@@ -564,9 +565,9 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="../auth.js?v=2610200851"></script>
-<script src="qrcode.js?v=2610200851"></script>
-<script src="app.js?v=2610200851"></script>
+<script src="../auth.js?v=2610200903"></script>
+<script src="qrcode.js?v=2610200903"></script>
+<script src="app.js?v=2610200903"></script>
 
 </body>
 </html>
