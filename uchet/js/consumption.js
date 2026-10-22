@@ -37,6 +37,15 @@ function caGroups(section) {
     .map((model) => ({ model, pairs: byModel.get(model) }));
 }
 
+// Остаток позиции в 1С (как в подсказках при вводе); undefined — позиции нет в 1С.
+function caStockOf(item) {
+  if (!item.code) return undefined;
+  const w = warehouseInfoFor(item.code, item.name);
+  const wi = w && warehouse[w.section][w.index];
+  if (isShift()) return wi ? shiftOcQty(wi) : undefined;
+  const oc = oneCInfoFor(item.code, wi || item);
+  return oc ? oc.qty : undefined;
+}
 function renderSection(section) {
   const tbody = document.getElementById("body-" + section);
   tbody.innerHTML = "";
@@ -57,6 +66,7 @@ function renderSection(section) {
     const key = countKey(section, item);
     if (counts[key] === undefined) counts[key] = 0;
     const isChecked = !!checked[key];
+    const stock = caStockOf(item);
     const tr = document.createElement("tr");
     tr.dataset.key = key;
     tr.dataset.index = i;          // индекс в массиве: строки идут не по нему
@@ -71,9 +81,10 @@ function renderSection(section) {
         <button class="chk-toggle${isChecked ? " on" : ""}" data-section="${section}" data-index="${i}" title="Отметить как учтено">${isChecked ? "✓" : ""}</button>
       </td>
       <td class="count count-merged">
-        <div class="count-tier count-tier-num">
+        <div class="count-tier count-tier-num${stock !== undefined ? " has-stock" : ""}">
           <input type="number" min="0" value="${counts[key]}" class="countInput"
             data-section="${section}" data-index="${i}"${!canEditCurrent() ? " readonly" : ""}>
+          ${stock !== undefined ? `<span class="count-stock" title="Остаток в 1С">\u2009/\u2009${stock}</span>` : ""}
         </div>
         <div class="count-tier count-tier-pm">
           <button class="btn minus" data-section="${section}" data-index="${i}" title="Указать количество">–</button>
