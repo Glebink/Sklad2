@@ -4529,8 +4529,9 @@ async function runSync(policy) {
   (head.data || []).forEach((r) => { remoteAt[r.key] = r.updated_at; });
 
   // 2) что есть у нас
-  const local = {};
+  const local = {}, raw0 = {};
   for (const rk of SYNC_KEYS) {
+    raw0[rk] = localStorage.getItem(bkToLocal(rk));   // для проверки «не правили ли, пока шёл обмен»
     const v = readLocalValue(rk);
     if (v !== undefined) local[rk] = { v, h: await hashValue(v) };
   }
@@ -4574,24 +4575,27 @@ async function runSync(policy) {
     else if (m && m.h === L.h && m.at === cur) bases[rk] = L.v;   // ничего не менялось — запоминаем базу для будущих слияний
   }
 
-  // 5) забираем с сервера
-  if (toPull.length) {
+  // 5) Пока шли запросы, на устройстве могли что-то поправить. Такие ключи не трогаем
+  // (иначе правка затрётся данными сервера) — обмен повторится и учтёт её.
+  // Проверка и применение идут подряд без await — правка не может вклиниться между ними.
+  const mergedH = {};
+  for (const mg of toMerge) mergedH[mg.rk] = await hashValue(mg.value);
+  const untouched = (rk) => {
+    if (localStorage.getItem(bkToLocal(rk)) === raw0[rk]) return true;
+    res.raced = true;
+    return false;
+  };
+  const pull = toPull.filter(untouched), merge = toMerge.filter((mg) => untouched(mg.rk));
+  if (pull.length || merge.length) {
     const payload = {};
-    toPull.forEach((rk) => { payload[SYNC_FIELD[rk]] = remote[rk].value; });
+    pull.forEach((rk) => { payload[SYNC_FIELD[rk]] = remote[rk].value; });
+    merge.forEach((mg) => { payload[SYNC_FIELD[mg.rk]] = mg.value; local[mg.rk] = { v: mg.value, h: mergedH[mg.rk] }; });
     applySyncPayload(payload);
-    toPull.forEach((rk) => { meta[rk] = { at: remote[rk].at, h: remote[rk].h }; bases[rk] = remote[rk].value; res.pulled.push(rk); });
   }
-
-  // 5б) сливаем правки с обеих сторон: применяем результат у себя и отправляем на сервер
-  if (toMerge.length) {
-    const payload = {};
-    for (const mg of toMerge) {
-      payload[SYNC_FIELD[mg.rk]] = mg.value;
-      local[mg.rk] = { v: mg.value, h: await hashValue(mg.value) };
-    }
-    applySyncPayload(payload);
-    toMerge.forEach((mg) => { toPush.push({ rk: mg.rk, at: mg.at, merged: true }); res.merged.push(mg.rk); });
-  }
+  // забрали с сервера
+  pull.forEach((rk) => { meta[rk] = { at: remote[rk].at, h: remote[rk].h }; bases[rk] = remote[rk].value; res.pulled.push(rk); });
+  // слили правки с обеих сторон — результат отправляем на сервер
+  merge.forEach((mg) => { toPush.push({ rk: mg.rk, at: mg.at, merged: true }); res.merged.push(mg.rk); });
 
   // 6) отправляем на сервер
   for (const p of toPush) {

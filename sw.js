@@ -4,18 +4,15 @@ const CACHE_NAME = "sklad2-cache-v2.0";
 const SHELL = [
   "./", "index.html", "manifest.json", "auth.js", "auth.css", "icon-192.png", "icon-512.png",
   "uchet/", "uchet/index.html", "uchet/style.css", "uchet/app.js", "uchet/qrcode.js",
-  "zayavki/", "zayavki/index.html", "zayavki/style.css", "zayavki/app.js"
+  "zayavki/", "zayavki/index.html", "zayavki/style.css", "zayavki/app.js",
+  "lib/supabase-2.45.4.js"   // библиотека лежит в репозитории: CDN из РФ бывает недоступен
 ];
-const LIB = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
-      Promise.all([
-        // cache: "reload" — мимо HTTP-кэша браузера (GitHub Pages отдаёт файлы с max-age=600)
-        ...SHELL.map((u) => cache.add(new Request(u, { cache: "reload" })).catch(() => {})),
-        cache.add(LIB).catch(() => {})
-      ])
+      // cache: "reload" — мимо HTTP-кэша браузера (GitHub Pages отдаёт файлы с max-age=600)
+      Promise.all(SHELL.map((u) => cache.add(new Request(u, { cache: "reload" })).catch(() => {})))
     ).then(() => self.skipWaiting())
   );
 });
@@ -33,19 +30,8 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   // Supabase (данные, фото, вход) не кэшируем
   if (url.hostname.endsWith("supabase.co")) return;
-  // Библиотека с CDN и шрифты: из кэша, если есть
-  if (url.origin !== self.location.origin) {
-    event.respondWith(
-      caches.match(req).then((hit) => hit || fetch(req).then((res) => {
-        if (res.ok && url.hostname === "cdn.jsdelivr.net") {
-          const copy = res.clone();
-          caches.open(CACHE_NAME).then((c) => c.put(req, copy));
-        }
-        return res;
-      }))
-    );
-    return;
-  }
+  // Чужие адреса (шрифты) — как обычно, через браузер
+  if (url.origin !== self.location.origin) return;
   // Файлы приложения: сначала сеть (чтобы обновления доходили), без сети — из кэша
   event.respondWith(
     // cache: "no-cache" — всегда сверяться с сервером (ETag), а не брать файл из HTTP-кэша браузера:

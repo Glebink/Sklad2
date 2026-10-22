@@ -3,7 +3,8 @@ try { localStorage.setItem('sklad2_last_module', 'zayavki'); } catch (e) {}
 /* Заявки на закупку — PWA на Supabase. Без сборки, один файл. */
 const APP_VERSION = 'v2.0';
 // Клиент Supabase и вход общие для всех сервисов: см. ../auth.js
-const { sb, authStore, emailOf, doLogin } = Auth;
+// Нет Auth — не загрузилась библиотека входа: boot() покажет сообщение вместо пустого экрана.
+const { sb, authStore, emailOf, doLogin } = window.Auth || {};
 
 const STATUS = {
   new: { label: 'Новая', cls: 's-new' },
@@ -812,6 +813,10 @@ async function startApp() {
   render();
 }
 async function boot() {
+  if (!window.Auth) {
+    $('#app').innerHTML = '<div class="locked"><div><p class="muted">Не удалось загрузить приложение. Проверьте интернет.</p><button class="btn primary" onclick="location.reload()">Повторить</button></div></div>';
+    return;
+  }
   $('#app').innerHTML = '<div class="locked"><div class="muted">Загрузка…</div></div>';
   const p = new URLSearchParams(location.hash.replace(/^#/, ''));
   const u = p.get('u'), k = p.get('k');
