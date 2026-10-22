@@ -5,7 +5,18 @@ const SHELL = [
   "./", "index.html", "manifest.json", "auth.js", "auth.css", "icon-192.png", "icon-512.png",
   "uchet/", "uchet/index.html", "uchet/style.css", "uchet/app.js", "uchet/qrcode.js",
   "zayavki/", "zayavki/index.html", "zayavki/style.css", "zayavki/app.js",
-  "lib/supabase-2.45.4.js"   // библиотека лежит в репозитории: CDN из РФ бывает недоступен
+  "lib/supabase-2.45.4.js",  // библиотека и шрифты лежат в репозитории: CDN из РФ бывает недоступен
+  "lib/fonts/fonts.css",
+  "lib/fonts/ibm-plex-mono-cyrillic-500-normal.woff2",
+  "lib/fonts/ibm-plex-mono-latin-500-normal.woff2",
+  "lib/fonts/ibm-plex-sans-cyrillic-400-normal.woff2",
+  "lib/fonts/ibm-plex-sans-cyrillic-500-normal.woff2",
+  "lib/fonts/ibm-plex-sans-cyrillic-600-normal.woff2",
+  "lib/fonts/ibm-plex-sans-cyrillic-700-normal.woff2",
+  "lib/fonts/ibm-plex-sans-latin-400-normal.woff2",
+  "lib/fonts/ibm-plex-sans-latin-500-normal.woff2",
+  "lib/fonts/ibm-plex-sans-latin-600-normal.woff2",
+  "lib/fonts/ibm-plex-sans-latin-700-normal.woff2"
 ];
 
 self.addEventListener("install", (event) => {
@@ -30,7 +41,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   // Supabase (данные, фото, вход) не кэшируем
   if (url.hostname.endsWith("supabase.co")) return;
-  // Чужие адреса (шрифты) — как обычно, через браузер
+  // Чужие адреса — как обычно, через браузер
   if (url.origin !== self.location.origin) return;
   // Файлы приложения: сначала сеть (чтобы обновления доходили), без сети — из кэша
   event.respondWith(
