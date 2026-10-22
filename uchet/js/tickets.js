@@ -122,7 +122,10 @@ document.getElementById("newTicketYes").addEventListener("click", () => {
 document.getElementById("ticketBackBtn").addEventListener("click", () => { if (!QR_KIOSK) selectTicket(null); });
 /* ==================== QR-вход для склада (только hleb) ====================
    Скан QR сразу входит в аккаунт sklad и открывает заявку на текущий день (#today).
-   В QR — токен; сервер хранит один действующий, «Сгенерировать новый» отменяет старый. */
+   В QR — токен; сервер хранит один действующий, «Сгенерировать новый» отменяет старый,
+   а через 72 часа код перестаёт действовать сам. */
+// Код действует 72 часа с момента выдачи — так же проверяет сервер (функция qr-login).
+const QR_TTL_MS = 72 * 3600 * 1000;
 function qrShiftUrl(token) { return location.origin + location.pathname + "?qr=" + token + "#today"; }
 function qrSvg(text) {
   const m = window.QRLib.matrix(text, "M"), b = 4, n = m.size + b * 2;
@@ -135,7 +138,12 @@ function showQrShift(info) {
   if (info && info.token && window.QRLib) {
     box.innerHTML = qrSvg(qrShiftUrl(info.token));
     const d = info.created_at ? new Date(info.created_at) : null;
-    line.textContent = "Скан сразу входит в аккаунт sklad и открывает заявку на текущий день." + (d ? " Код от " + d.toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) + "." : "");
+    const until = d ? new Date(d.getTime() + QR_TTL_MS) : null;
+    const fmt = (x) => x.toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+    line.textContent = until && until <= new Date()
+      ? "Срок действия кода истёк " + fmt(until) + " — нажмите «Сгенерировать новый»."
+      : "Скан сразу входит в аккаунт sklad и открывает заявку на текущий день." + (until ? " Действует до " + fmt(until) + "." : "");
+    box.classList.toggle("qr-expired", !!until && until <= new Date());
   } else {
     box.innerHTML = `<div class="qr-empty">${info === null ? "QR-кода ещё нет — нажмите «Сгенерировать новый»." : "Не удалось загрузить QR-код (нет связи?)."}</div>`;
     line.textContent = "";
