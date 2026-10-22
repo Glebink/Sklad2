@@ -84,7 +84,7 @@ function renderSection(section) {
         <div class="count-tier count-tier-num${stock !== undefined ? " has-stock" : ""}">
           <input type="number" min="0" value="${counts[key]}" class="countInput"
             data-section="${section}" data-index="${i}"${!canEditCurrent() ? " readonly" : ""}>
-          ${stock !== undefined ? `<span class="count-stock" title="Остаток в 1С">\u2009/\u2009${stock}</span>` : ""}
+          ${stock !== undefined ? `<span class="count-stock" title="Остаток в 1С">${stock}</span>` : ""}
         </div>
         <div class="count-tier count-tier-pm">
           <button class="btn minus" data-section="${section}" data-index="${i}" title="Указать количество">–</button>
