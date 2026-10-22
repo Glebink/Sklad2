@@ -145,13 +145,60 @@ function closeModal(idOrEl) {
   if (el) el.classList.remove("open");
 }
 
+/* ==================== Один раздел позиций ====================
+   Разделов «Детали / Расходники» больше нет: все позиции лежат в parts.
+   Пустой consumables остаётся в данных только ради прежнего формата (сервер,
+   резервные копии старого склада). Если в старых данных позиции ещё лежат
+   в consumables, при чтении они переносятся в parts. */
+function emptySections() { return { parts: [], consumables: [] }; }
+function foldStock(v) {
+  if (!v || !Array.isArray(v.parts)) return v;
+  if (Array.isArray(v.consumables) && v.consumables.length) v.parts = v.parts.concat(v.consumables);
+  v.consumables = [];
+  return v;
+}
+function foldDay(e) {
+  const s = e && e.sections;
+  if (!s) return e;
+  s.parts = s.parts || [];
+  if (Array.isArray(s.consumables) && s.consumables.length) {
+    const have = new Set(s.parts.map((it) => countKey("parts", it)));
+    s.consumables.forEach((it) => { if (!have.has(countKey("parts", it))) s.parts.push(it); });
+  }
+  s.consumables = [];
+  ["counts", "checked"].forEach((f) => {
+    const m = e[f];
+    if (!m) return;
+    Object.keys(m).forEach((k) => {
+      if (k.indexOf("consumables::") !== 0) return;
+      const nk = "parts::" + k.slice("consumables::".length);
+      m[nk] = f === "counts" ? (m[nk] || 0) + (m[k] || 0) : (m[nk] || m[k]);
+      delete m[k];
+    });
+  });
+  return e;
+}
+function foldDays(d) {
+  if (d && typeof d === "object") Object.keys(d).forEach((k) => foldDay(d[k]));
+  return d;
+}
+// Значение ключа синхронизации (как в sklad_kv) — к одному разделу.
+function foldSyncValue(rk, v) {
+  if (rk === "potreblenie_data_by_date_v3") return foldDays(v);
+  if (rk === "potreblenie_warehouse_v1" || rk === "potreblenie_onec_v1") return foldStock(v);
+  return v;
+}
+/* Ключ позиции: если у позиции есть код склада — общий по коду (для сквозного расчёта
+   и связи учёта со складом), иначе — раздел + название. */
+function countKey(section, item) {
+  return item.code ? ("code::" + item.code) : (section + "::" + item.name);
+}
+
 /* ==================== Загрузка/сохранение ==================== */
 function loadDataByDate() {
   try {
-    const raw = localStorage.getItem(DATA_BY_DATE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return (parsed && typeof parsed === "object") ? parsed : {};
+    const parsed = JSON.parse(localStorage.getItem(DATA_BY_DATE_KEY));
+    return (parsed && typeof parsed === "object") ? foldDays(parsed) : {};
   } catch (e) { return {}; }
 }
 function saveDataByDate() {
@@ -201,19 +248,17 @@ document.body.classList.toggle("role-shift", isShift());
 function loadCatalogLocal() {
   try {
     const c = JSON.parse(localStorage.getItem(CATALOG_KEY) || "null");
-    if (c && Array.isArray(c.parts) && Array.isArray(c.consumables)) return c;
+    if (c && Array.isArray(c.parts)) return foldStock(c);
   } catch (e) {}
-  return { parts: [], consumables: [] };
+  return emptySections();
 }
 // Сменщик: остаток 1С из каталога; для ручной связки кодов (CODE_LINKS) — по связанному коду.
 function shiftOcQty(r) {
   if (r.ocqty !== undefined) return r.ocqty;
   for (const c of codeVariants(r.code)) {
     for (const oc of (linkWhToOc[c] || [])) {
-      for (const s of ["parts", "consumables"]) {
-        const hit = warehouse[s].find((it) => it.ocqty !== undefined && codeVariants(it.code).includes(oc));
-        if (hit) return hit.ocqty;
-      }
+      const hit = warehouse.parts.find((it) => it.ocqty !== undefined && codeVariants(it.code).includes(oc));
+      if (hit) return hit.ocqty;
     }
   }
   return undefined;
@@ -226,16 +271,16 @@ function warehouseFromCatalog() {
     if (it.ocName) o.ocName = it.ocName;
     return o;
   });
-  return { parts: conv(c.parts), consumables: conv(c.consumables) };
+  return { parts: conv(c.parts), consumables: [] };
 }
 function loadWarehouse() {
   if (isShift()) return warehouseFromCatalog();
   // Нет данных на устройстве — пусто: склад приходит с сервера при первом обмене.
   try {
     const parsed = JSON.parse(localStorage.getItem(WAREHOUSE_KEY));
-    if (parsed && Array.isArray(parsed.parts) && Array.isArray(parsed.consumables)) return parsed;
+    if (parsed && Array.isArray(parsed.parts)) return foldStock(parsed);
   } catch (e) {}
-  return { parts: [], consumables: [] };
+  return emptySections();
 }
 function saveWarehouse() {
   if (isShift()) return;
@@ -250,7 +295,7 @@ function saveWarehouseLocalOnly() {
 }
 
 let dataByDate = loadDataByDate();
-let warehouse = loadWarehouse(); // { parts: [{code,name,qty,model}], consumables: [...] }
+let warehouse = loadWarehouse(); // { parts: [{code,name,qty,model}], consumables: [] }
 // Дата при каждом открытии приложения — всегда сегодняшняя (а не та, на которой
 // остановились в прошлый раз): открыли на следующий день — календарь сам на нём.
 /* Учёт ведётся ЗАЯВКАМИ: каждая — запись в dataByDate с ключом «ГГГГ-ММ-ДД» (первая за день)
@@ -259,7 +304,7 @@ let warehouse = loadWarehouse(); // { parts: [{code,name,qty,model}], consumable
    заявка (currentDate = null) — рабочее поле пустое. */
 let currentDate = null;
 const TICKET_KEY_RE = /^\d{4}-\d{2}-\d{2}(#\d+)?$/;
-function emptyEntry() { return { sections: { parts: [], consumables: [] }, counts: {}, checked: {} }; }
+function emptyEntry() { return { sections: emptySections(), counts: {}, checked: {} }; }
 function ticketCmp(a, b) {
   const da = a.slice(0, 10), db = b.slice(0, 10);
   if (da !== db) return da < db ? -1 : 1;
@@ -270,8 +315,7 @@ function ticketCmp(a, b) {
 function ticketKeys() { return Object.keys(dataByDate).filter((k) => TICKET_KEY_RE.test(k)).sort(ticketCmp); }
 function ticketNumberMap() { const m = {}; ticketKeys().forEach((k, i) => { m[k] = i + 1; }); return m; }
 function entryItemCount(e) {
-  const s = (e && e.sections) || {};
-  return ((s.parts || []).length) + ((s.consumables || []).length);
+  return ((e && e.sections && e.sections.parts) || []).length;
 }
 // Пустые заявки за прошедшие дни (создали и забыли) убираем, чтобы не копились номера.
 /* Пустые заявки удаляются сами на любом устройстве: через час после создания, если
@@ -302,11 +346,9 @@ try {
 } catch (e) {}
 
 function entryFor(date) {
-  if (!dataByDate[date]) {
-    dataByDate[date] = { sections: { parts: [], consumables: [] }, counts: {}, checked: {} };
-  }
+  if (!dataByDate[date]) dataByDate[date] = emptyEntry();
   if (!dataByDate[date].checked) dataByDate[date].checked = {};
-  if (!dataByDate[date].sections) dataByDate[date].sections = { parts: [], consumables: [] };
+  if (!dataByDate[date].sections) dataByDate[date].sections = emptySections();
   return dataByDate[date];
 }
 
@@ -416,26 +458,19 @@ function firstDiffIndex(a, b) {
   return -1;
 }
 
-/* Ищет, в каком разделе и на какой строке произошло изменение */
+/* Ищет, на какой строке произошло изменение */
 function findChange(beforeLists, afterLists, beforeMap, afterMap, keyFn) {
-  for (const section of ["parts", "consumables"]) {
-    const i = firstDiffIndex(beforeLists[section], afterLists[section]);
-    if (i >= 0) {
-      const len = (afterLists[section] || []).length;
-      if (len === 0) continue;
-      return { section, index: Math.min(i, len - 1) };
-    }
-  }
+  const section = "parts";
+  const list = afterLists[section] || [];
+  const i = firstDiffIndex(beforeLists[section], list);
+  if (i >= 0 && list.length) return { section, index: Math.min(i, list.length - 1) };
   // списки совпали — значит изменилось значение по ключу (кол-во, галочка)
   if (beforeMap && afterMap) {
     const keys = new Set(Object.keys(beforeMap).concat(Object.keys(afterMap)));
     for (const k of keys) {
       if (beforeMap[k] === afterMap[k]) continue;
-      for (const section of ["parts", "consumables"]) {
-        const list = afterLists[section] || [];
-        const idx = list.findIndex((it) => keyFn(section, it) === k);
-        if (idx >= 0) return { section, index: idx };
-      }
+      const idx = list.findIndex((it) => keyFn(section, it) === k);
+      if (idx >= 0) return { section, index: idx };
     }
   }
   return null;
@@ -492,16 +527,9 @@ const caHistory = makeUndoRedo({
 });
 function pushHistory() { caHistory.push(); }
 
-/* ==================== Ключ позиции ====================
-   Если у позиции есть код склада — ключ общий по коду (для сквозного расчёта
-   и для связи учёта со складом). Если кода нет — ключ локальный (раздел+название). */
-function countKey(section, item) {
-  return item.code ? ("code::" + item.code) : (section + "::" + item.name);
-}
-
 /* ==================== Выделение строк кликом/тапом (мульти-выбор) ==================== */
-const selectedCA = { parts: new Set(), consumables: new Set() };
-const selectedWH = { parts: new Set(), consumables: new Set() };
+const selectedCA = { parts: new Set() };
+const selectedWH = { parts: new Set() };
 
 function toggleRowPick(store, section, key, tr) {
   if (store[section].has(key)) {
@@ -622,7 +650,6 @@ function renderAll() {
   // иначе у сменщика, который не открывает «Склад»/«1С», он оставался пустым и группы не показывались.
   rebuildCrossIndexes();
   renderSection("parts");
-  renderSection("consumables");
   document.getElementById("dateDisplayText").textContent = currentDate ? formatShort(currentDate) : "—";
 }
 
@@ -664,7 +691,6 @@ function handleCountClick(e) {
   }
 }
 document.getElementById("body-parts").addEventListener("click", handleCountClick);
-document.getElementById("body-consumables").addEventListener("click", handleCountClick);
 
 /* ==================== Учёт: «–»/«+» открывают окно ввода количества ==================== */
 function setupQtyButtons(tbody) {
@@ -676,7 +702,6 @@ function setupQtyButtons(tbody) {
   });
 }
 setupQtyButtons(document.getElementById("body-parts"));
-setupQtyButtons(document.getElementById("body-consumables"));
 
 function handleCountEdit(e) {
   const input = e.target.closest(".countInput");
@@ -707,11 +732,8 @@ function handleCountEdit(e) {
   renderSection(section);
 }
 document.getElementById("body-parts").addEventListener("change", handleCountEdit);
-document.getElementById("body-consumables").addEventListener("change", handleCountEdit);
-["body-parts","body-consumables"].forEach((id) => {
-  document.getElementById(id).addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && e.target.classList.contains("countInput")) e.target.blur();
-  });
+document.getElementById("body-parts").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && e.target.classList.contains("countInput")) e.target.blur();
 });
 
 /* ==================== Учёт: списать / добавить количество через модалку ====================
@@ -872,17 +894,15 @@ function searchStore(store, query) {
   const q = query.trim().toLowerCase();
   if (!q) return [];
   const results = [];
-  ["parts", "consumables"].forEach((section) => {
-    store[section].forEach((item) => {
-      const name = (item.name || "").toLowerCase();
-      const code = (item.code || "").toLowerCase();
-      if (nameMatchesQuery(name, q) || code.includes(q)) {
-        const r = { section, code: item.code || "", name: item.name, model: item.model || "", model2: item.model2 || "" };
-        if (item.ocqty !== undefined) r.ocqty = item.ocqty;   // у сменщика — остаток 1С из каталога
-        if (item.ocName) r.ocName = item.ocName;              // название в 1С — для кодов-заглушек
-        results.push(r);
-      }
-    });
+  store.parts.forEach((item) => {
+    const name = (item.name || "").toLowerCase();
+    const code = (item.code || "").toLowerCase();
+    if (nameMatchesQuery(name, q) || code.includes(q)) {
+      const r = { section: "parts", code: item.code || "", name: item.name, model: item.model || "", model2: item.model2 || "" };
+      if (item.ocqty !== undefined) r.ocqty = item.ocqty;   // у сменщика — остаток 1С из каталога
+      if (item.ocName) r.ocName = item.ocName;              // название в 1С — для кодов-заглушек
+      results.push(r);
+    }
   });
   // Порядок в подсказках: YGW 4.0 → YGW 5.0 → 9Bot → остальные (без серии); внутри группы — как в списке.
   const rank = (m) => { const i = SUGGEST_MODEL_ORDER.indexOf(String(m || "").trim()); return i === -1 ? SUGGEST_MODEL_ORDER.length : i; };
@@ -988,13 +1008,10 @@ newItemQtyInput.addEventListener("focus", () => {
 
 document.getElementById("addItemBtn").addEventListener("click", () => {
   if (!canEditCurrent()) return;
-  // Разделов больше нет: всё идёт в один список (parts). В старой заявке
-  // позиция могла остаться в consumables — тогда прибавляем туда, без дубля.
   const name = newItemInput.value.trim();
   if (!name) return;
   const code = (addPicked && addPicked.name === name) ? addPicked.code : "";
-  const inOld = (it) => code ? it.code === code : (!it.code && it.name === name);
-  const section = (sections.consumables || []).some(inOld) ? "consumables" : "parts";
+  const section = "parts";
   const qtyInput = document.getElementById("newItemQty");
   let qty = parseInt(qtyInput.value, 10);
   if (isNaN(qty) || qty < 1) qty = 1;   // не указали — считаем как 1
@@ -1167,11 +1184,9 @@ function ticketMatches(key, e, q) {
   const num = ticketNumberMap()[key];
   const head = ("№" + num + " " + num + " " + ticketDateLong(key) + " " + formatShort(key) + " " + (e.note || "")).toLowerCase();
   const found = [];
-  ["parts", "consumables"].forEach((s) => {
-    ((e.sections && e.sections[s]) || []).forEach((it) => {
-      const hay = ((it.name || "") + " " + (it.code || "")).toLowerCase();
-      if (hay.indexOf(q) !== -1) found.push({ it, s });
-    });
+  ((e.sections && e.sections.parts) || []).forEach((it) => {
+    const hay = ((it.name || "") + " " + (it.code || "")).toLowerCase();
+    if (hay.indexOf(q) !== -1) found.push({ it, s: "parts" });
   });
   if (found.length) return found;
   return head.indexOf(q) !== -1 ? [] : null;
@@ -1212,7 +1227,7 @@ function renderTicketList() {
 }
 function afterTicketChange() {
   caHistory.reset();
-  selectedCA.parts.clear(); selectedCA.consumables.clear();
+  selectedCA.parts.clear();
   renderAll();
   renderTicketList();
   updateAddPanelVisibility();
@@ -1458,8 +1473,6 @@ function whFilterTitle() {
 function whFilteredPairs(section) {
   return warehouse[section].map((item, i) => ({ item, i })).filter(({ item }) => whMatches(item));
 }
-// Разделы «Склада» и «1С» показываются одной таблицей, поэтому перерисовываются всегда вместе.
-function renderWarehouseSection() { renderWarehouseAll(); }
 function renderWhRows(section) {
   const tbody = document.getElementById("wh-body-" + section);
   const picked = selectedWH[section];
@@ -1487,24 +1500,9 @@ function renderWhRows(section) {
     </tr>`;
   }).join("");
 }
-/* При активной сортировке строки обоих разделов сливаются в общий порядок (в первый tbody),
-   иначе сортировка шла внутри каждого раздела отдельно и детали всегда стояли выше расходников. */
-function mergeSortedRows(table, prefix, store) {
-  const st = sortState[table].parts;
-  if (!st.col) return;
-  const parts = document.getElementById(prefix + "parts");
-  const rows = Array.from(document.querySelectorAll(`#${prefix}parts tr[data-index], #${prefix}consumables tr[data-index]`));
-  const val = (tr) => getSortValue(table, tr.dataset.section, store[tr.dataset.section][+tr.dataset.index], st.col);
-  const keyed = rows.map((tr, n) => ({ tr, n, v: val(tr) }));
-  keyed.sort((a, b) => {
-    const cmp = typeof a.v === "string" ? a.v.localeCompare(b.v, "ru") : (a.v - b.v);
-    return (st.dir === "asc" ? cmp : -cmp) || (a.n - b.n);
-  });
-  keyed.forEach(({ tr }) => parts.appendChild(tr));
-}
-// Детали и расходники идут одной таблицей: сквозная нумерация, общий итог 1С, пустое состояние.
+// Пустое состояние и заголовок фильтра.
 function whAfterRender() {
-  const n = document.querySelectorAll("#wh-body-parts tr[data-index], #wh-body-consumables tr[data-index]").length;
+  const n = document.querySelectorAll("#wh-body-parts tr[data-index]").length;
   const empty = document.getElementById("wh-body-empty");
   if (empty) empty.hidden = n > 0;
   updateWhFilterUI();
@@ -1513,13 +1511,11 @@ function renderWarehouseAll() {
   // Индекс код→позиция должен быть свежим ДО построения строк (переход «Склад» ↔ «1С»).
   rebuildCrossIndexes();
   renderWhRows("parts");
-  renderWhRows("consumables");
-  mergeSortedRows("wh", "wh-body-", warehouse);
   whAfterRender();
   if (typeof applyWhSearch === "function") applyWhSearch();
 }
 function updateWhFilterUI() {
-  const shown = document.querySelectorAll("#wh-body-parts tr[data-index], #wh-body-consumables tr[data-index]").length;
+  const shown = document.querySelectorAll("#wh-body-parts tr[data-index]").length;
   const label = document.getElementById("whFilterLabel");
   if (label) label.textContent = String(shown);
   const title = document.getElementById("whTitle");
@@ -1698,7 +1694,6 @@ function handleWarehouseClick(e) {
   }
 }
 document.getElementById("wh-body-parts").addEventListener("click", handleWarehouseClick);
-document.getElementById("wh-body-consumables").addEventListener("click", handleWarehouseClick);
 document.addEventListener("click", (e) => {
   // Меню лежит в <body>, поэтому клик внутри него не считается «мимо».
   if (!e.target.closest(".wh-menu-wrap") && !e.target.closest(".wh-menu-panel")) closeAllWhMenus();
@@ -1750,7 +1745,6 @@ let whEditingTarget = null;
 function openWhEdit(section, index) {
   whEditingTarget = { section, index };
   const item = warehouse[section][index];
-  document.getElementById("whEditSection").value = section;
   document.getElementById("whEditCode").value = item.code;
   document.getElementById("whEditName").value = item.name;
   document.getElementById("whEditQty").value = item.qty || 0;
@@ -1773,21 +1767,16 @@ document.getElementById("whEditOverlay").addEventListener("click", (e) => {
 document.getElementById("whEditSave").addEventListener("click", () => {
   if (!whEditingTarget) return;
   const { section, index } = whEditingTarget;
-  const newSection = document.getElementById("whEditSection").value;
   const code = document.getElementById("whEditCode").value.trim();
   const name = document.getElementById("whEditName").value.trim();
   let qty = parseInt(document.getElementById("whEditQty").value, 10);
   if (isNaN(qty) || qty < 0) qty = 0;
   const [model = "", model2 = ""] = getModelsSwitch(document.getElementById("whEditModel"));
   if (!name) { closeWhEdit(); return; }
-  const sectionChanged = newSection !== section;
 
   // проверка дублей по коду (у кодов-заглушек 1С одинаковый код у разных позиций — можно)
   if (code && !isAmbiguousCode(code)) {
-    const clash = warehouse[newSection].some((it, i) => {
-      if (!sectionChanged && i === index) return false;
-      return it.code === code;
-    });
+    const clash = warehouse[section].some((it, i) => i !== index && it.code === code);
     if (clash) {
       alert(`Позиция с кодом «${code}» уже есть на складе.`);
       return;
@@ -1807,31 +1796,16 @@ document.getElementById("whEditSave").addEventListener("click", () => {
   }
   const cat = getModelSwitch(document.getElementById("whEditCat"));
   if (WH_CATS[cat]) newItem.cat = cat;
-  const newKey = countKey(newSection, newItem);
   const wasPicked = selectedWH[section].has(oldKey);
-
-  if (sectionChanged) {
-    warehouse[section].splice(index, 1);
-    warehouse[newSection].push(newItem);
-  } else {
-    warehouse[section][index] = newItem;
-  }
-
+  warehouse[section][index] = newItem;
   selectedWH[section].delete(oldKey);
-  if (wasPicked) selectedWH[newSection].add(newKey);
+  if (wasPicked) selectedWH[section].add(countKey(section, newItem));
 
   syncModelByCode(code, model, model2, [name, newItem.ocName]);   // модели едины для склада и 1С
   saveWarehouse();
   saveOneCLocalOnly();
   renderOneCAll();
-  if (sectionChanged) {
-    renderWarehouseAll();
-    // подсветим, куда переехала позиция
-    const rows = document.querySelectorAll(`#viewWarehouse tr[data-section="${newSection}"]`);
-    flashRow(rows[rows.length - 1]);
-  } else {
-    renderWarehouseSection(section);
-  }
+  renderWarehouseAll();
   closeWhEdit();
 });
 
@@ -1896,9 +1870,9 @@ document.getElementById("modUchetBtn").addEventListener("click", (e) => {
    Учёт: Наименование (алфавит), Код (по первым 3 цифрам), Кол-во (числовое).
    Склад: то же + На складе / Выдано / Остаток (числовые). */
 const sortState = {
-  ca: { parts: { col: null, dir: null }, consumables: { col: null, dir: null } },
-  wh: { parts: { col: null, dir: null }, consumables: { col: null, dir: null } },
-  oc: { parts: { col: null, dir: null }, consumables: { col: null, dir: null } }
+  ca: { parts: { col: null, dir: null } },
+  wh: { parts: { col: null, dir: null } },
+  oc: { parts: { col: null, dir: null } }
 };
 
 function codeSortValue(code) {
@@ -1944,9 +1918,7 @@ function loadSortState() {
     if (!raw) return;
     const saved = JSON.parse(raw);
     ["ca", "wh", "oc"].forEach((t) => {
-      ["parts", "consumables"].forEach((s) => {
-        if (saved[t] && saved[t][s]) sortState[t][s] = saved[t][s];
-      });
+      if (saved[t] && saved[t].parts) sortState[t].parts = saved[t].parts;
     });
   } catch (e) {}
 }
@@ -1967,25 +1939,11 @@ function applySortToList(table, section) {
 // получения данных с сервера.
 function reapplySavedSort() {
   ["ca", "wh", "oc"].forEach((t) => {
-    ["parts", "consumables"].forEach((s) => applySortToList(t, s));
-  });
-  ["ca", "wh", "oc"].forEach((t) => {
-    ["parts", "consumables"].forEach((s) => updateSortArrows(t, s));
+    applySortToList(t, "parts");
+    updateSortArrows(t, "parts");
   });
 }
 function sortTable(table, section, col) {
-  if ((table === "wh" || table === "oc") && section !== "consumables") {
-    // «Склад» — одна таблица: одинаково сортируем оба раздела
-    const st = sortState[table].parts;
-    const dir = st.col === col ? (st.dir === "asc" ? "desc" : "asc") : defaultDirFor(col);
-    if (table === "wh") pushWhHistory(); else pushOcHistory();
-    ["parts", "consumables"].forEach((s) => { sortState[table][s].col = col; sortState[table][s].dir = dir; applySortToList(table, s); });
-    saveSortState();
-    if (table === "wh") { saveWarehouseLocalOnly(); renderWarehouseAll(); }
-    else { saveOneCLocalOnly(); renderOneCAll(); }
-    updateSortArrows(table, "parts");
-    return;
-  }
   const state = sortState[table][section];
   const dir = state.col === col ? (state.dir === "asc" ? "desc" : "asc") : defaultDirFor(col);
   if (table === "ca") pushHistory();
@@ -2000,10 +1958,10 @@ function sortTable(table, section, col) {
     renderSection(section);
   } else if (table === "oc") {
     saveOneCLocalOnly();
-    renderOneCSection(section);
+    renderOneCAll();
   } else {
     saveWarehouseLocalOnly();
-    renderWarehouseSection(section);
+    renderWarehouseAll();
   }
   updateSortArrows(table, section);
 }
@@ -2248,29 +2206,14 @@ async function parseXlsxFile(file) {
 function findOcItemByCode(code) {
   if (!code) return null;
   const want = codeVariants(code);
-  for (const section of ["parts", "consumables"]) {
-    const list = onec[section];
-    for (let i = 0; i < list.length; i++) {
-      const it = list[i];
-      if (it.code && codeVariants(it.code).some((v) => want.includes(v))) {
-        return { section, index: i };
-      }
-    }
-  }
-  return null;
+  const i = onec.parts.findIndex((it) => it.code && codeVariants(it.code).some((v) => want.includes(v)));
+  return i === -1 ? null : { section: "parts", index: i };
 }
 function findOcItemByName(name) {
   if (!name) return null;
-  const target = String(name).toLowerCase().replace(/\s+/g, " ").trim();
-  for (const section of ["parts", "consumables"]) {
-    const list = onec[section];
-    for (let i = 0; i < list.length; i++) {
-      if (String(list[i].name || "").toLowerCase().replace(/\s+/g, " ").trim() === target) {
-        return { section, index: i };
-      }
-    }
-  }
-  return null;
+  const target = normItemName(name);
+  const i = onec.parts.findIndex((it) => normItemName(it.name) === target);
+  return i === -1 ? null : { section: "parts", index: i };
 }
 function openOcImport() {
   document.getElementById("ocImportFile").value = "";
@@ -2469,15 +2412,10 @@ function buildBestIndex() {
 function runOcCompare() {
   const limit = Math.max(1, parseInt(document.getElementById("ocCompareLimit").value, 10) || 40);
   const mode = document.getElementById("ocCompareMode").value;
-  const sectionMode = document.getElementById("ocCompareSection").value;
   const modelMode = document.getElementById("ocCompareModel").value;
   const idx = buildBestIndex();
   const out = [];
-  // По умолчанию сравниваем только «Детали»: расходники (химия, спецодежда,
-  // инструмент) возить между складами обычно незачем.
-  const sectionsToScan = sectionMode === "all" ? ["parts", "consumables"] : [sectionMode];
-  sectionsToScan.forEach((section) => {
-    onec[section].forEach((it) => {
+  onec.parts.forEach((it) => {
       const mine = it.qty || 0;
       if (mine >= limit) return;
       // фильтр по модели: «Без версии» — позиции, у которых модель не задана
@@ -2497,7 +2435,6 @@ function runOcCompare() {
       // «Бестужевская > 0» — всё, что там есть в наличии.
       if (mode === "more" && !(other > 0)) return;
       out.push({ code: it.code || "", name: it.name, model: it.model || "", mine, other, missing: !found });
-    });
   });
   out.sort((a, b) => (b.other - b.mine) - (a.other - a.mine));
   ocCompareRows = out;
@@ -2526,8 +2463,7 @@ function renderOcCompareList() {
       String(r.name || "").toLowerCase().includes(q) ||
       String(r.code || "").toLowerCase().includes(q));
 
-  const secName = { parts: "Детали", consumables: "Расходники", all: "все позиции" }[
-    document.getElementById("ocCompareSection").value] || "";
+  const secName = "все позиции";
   const mdl = document.getElementById("ocCompareModel").value;
   const mdlName = mdl === "all" ? "" : " · " + (mdl === "none" ? "без версии" : mdl);
   summary.textContent = q
@@ -2593,7 +2529,6 @@ document.getElementById("ocCompareBtn").addEventListener("click", () => {
 });
 document.getElementById("ocCompareLimit").addEventListener("change", runOcCompare);
 document.getElementById("ocCompareMode").addEventListener("change", runOcCompare);
-document.getElementById("ocCompareSection").addEventListener("change", runOcCompare);
 document.getElementById("ocCompareModel").addEventListener("change", runOcCompare);
 // Поиск по уже посчитанному списку — пересчитывать сравнение заново не нужно,
 // только перерисовать с фильтром.
@@ -2660,8 +2595,7 @@ document.getElementById("ocImportRun").addEventListener("click", () => {
     if (m) m.qty += r.qty; else merged.set(k, { code: r.code, name: r.name, qty: r.qty });
     if (ck) { if (!namesByCode.has(ck)) namesByCode.set(ck, new Set()); namesByCode.get(ck).add(normName(r.name)); }
   });
-  const all = [];
-  ["parts", "consumables"].forEach((section) => onec[section].forEach((it, index) => all.push({ section, index, it })));
+  const all = onec.parts.map((it, index) => ({ section: "parts", index, it }));
   const claimed = new Set();
   const pending = [];
   let updated = 0, added = 0;
@@ -2692,21 +2626,17 @@ document.getElementById("ocImportRun").addEventListener("click", () => {
   // остаток нулевой. Раньше они оставались со старым числом — например
   // «Задний барабан (Wind 5.0)» так и висел с 20 штуками, хотя в 1С уже 0.
   const zeroed = [];
-  ["parts", "consumables"].forEach((section) => {
-    onec[section].forEach((it, index) => {
-      const key = section + "|" + index;
-      if (claimed.has(key)) return;          // позиция была в файле — уже обновлена
-      if ((it.qty || 0) === 0) return;       // и так ноль, трогать нечего
-      zeroed.push({ section, index, name: it.name, was: it.qty });
-    });
+  onec.parts.forEach((it, index) => {
+    if (claimed.has("parts|" + index)) return;   // позиция была в файле — уже обновлена
+    if ((it.qty || 0) === 0) return;             // и так ноль, трогать нечего
+    zeroed.push({ section: "parts", index, name: it.name, was: it.qty });
   });
 
   // Страховка от неполной выгрузки: если обнулять пришлось бы больше
   // половины позиций с остатком — почти наверняка отчёт выгружен с
   // отбором (по группе, складу или товару), а не по всей номенклатуре.
   // Такой импорт молча обнулил бы почти весь список.
-  const withStock = ["parts", "consumables"]
-    .reduce((n, s) => n + onec[s].filter((it) => (it.qty || 0) > 0).length, 0);
+  const withStock = onec.parts.filter((it) => (it.qty || 0) > 0).length;
   const suspicious = withStock > 0 && zeroed.length > withStock / 2;
   if (suspicious) {
     const ok = confirm(
@@ -2821,14 +2751,12 @@ function loadOneC() {
   // Нет данных на устройстве — пусто: 1С приходит с сервера при первом обмене.
   try {
     const parsed = JSON.parse(localStorage.getItem(ONEC_KEY));
-    if (parsed && Array.isArray(parsed.parts) && Array.isArray(parsed.consumables)) {
-      ["parts", "consumables"].forEach((sec) => {
-        parsed[sec].forEach((it) => { if (typeof it.qty !== "number") it.qty = 0; });
-      });
+    if (parsed && Array.isArray(parsed.parts)) {
+      foldStock(parsed).parts.forEach((it) => { if (typeof it.qty !== "number") it.qty = 0; });
       return parsed;
     }
   } catch (e) {}
-  return { parts: [], consumables: [] };
+  return emptySections();
 }
 function saveOneC() {
   try { localStorage.setItem(ONEC_KEY, JSON.stringify(onec)); } catch (e) {}
@@ -2877,18 +2805,16 @@ function runModelMigrationOnce() {
   // Трогаем только позиции, у которых поле model ещё НИ РАЗУ не задавалось
   // (undefined) — явно выбранное «без версии» (пустая строка) не перетираем.
   let touched = false;
-  ["parts", "consumables"].forEach((section) => {
-    warehouse[section].forEach((it) => {
-      const model = detectModelFromName(it.name);
-      if (model && it.model === undefined) { it.model = model; touched = true; }
-      // Метку из названия на СКЛАДЕ убираем всегда — она живёт в поле model
-      const cleaned = stripModelTag(it.name);
-      if (cleaned && cleaned !== it.name) { it.name = cleaned; touched = true; }
-    });
-    onec[section].forEach((it) => {
-      const model = detectModelFromName(it.name);
-      if (model && it.model === undefined) { it.model = model; touched = true; } // название в 1С не чистим
-    });
+  warehouse.parts.forEach((it) => {
+    const model = detectModelFromName(it.name);
+    if (model && it.model === undefined) { it.model = model; touched = true; }
+    // Метку из названия на СКЛАДЕ убираем всегда — она живёт в поле model
+    const cleaned = stripModelTag(it.name);
+    if (cleaned && cleaned !== it.name) { it.name = cleaned; touched = true; }
+  });
+  onec.parts.forEach((it) => {
+    const model = detectModelFromName(it.name);
+    if (model && it.model === undefined) { it.model = model; touched = true; } // название в 1С не чистим
   });
   if (touched) {
     try { localStorage.setItem(WAREHOUSE_KEY, JSON.stringify(warehouse)); } catch (e) {}
@@ -2898,7 +2824,7 @@ function runModelMigrationOnce() {
 }
 const migrationTouchedAtStartup = runModelMigrationOnce();
 
-const selectedOC = { parts: new Set(), consumables: new Set() };
+const selectedOC = { parts: new Set() };
 
 /* ==================== Связь Склад <-> 1C по коду ====================
    Один код на складе может быть составным («A / B») — сверяем по каждой части.
@@ -2927,11 +2853,9 @@ CODE_LINKS.forEach((l) => {
 /* code -> [{section, index, name}] по справочнику 1C */
 function buildOneCIndex() {
   const map = {};
-  ["parts", "consumables"].forEach((section) => {
-    onec[section].forEach((it, index) => {
-      codeVariants(it.code).forEach((c) => {
-        (map[c] = map[c] || []).push({ section, index, name: it.name });
-      });
+  onec.parts.forEach((it, index) => {
+    codeVariants(it.code).forEach((c) => {
+      (map[c] = map[c] || []).push({ section: "parts", index, name: it.name });
     });
   });
   return map;
@@ -2940,11 +2864,9 @@ function buildOneCIndex() {
 /* code -> название позиции на складе */
 function buildWarehouseIndex() {
   const map = {};
-  ["parts", "consumables"].forEach((section) => {
-    warehouse[section].forEach((it, index) => {
-      codeVariants(it.code).forEach((c) => {
-        (map[c] = map[c] || []).push({ name: it.name, ocName: it.ocName || "", qty: it.qty || 0, code: it.code, model: it.model || "", model2: it.model2 || "", section, index });
-      });
+  warehouse.parts.forEach((it, index) => {
+    codeVariants(it.code).forEach((c) => {
+      (map[c] = map[c] || []).push({ name: it.name, ocName: it.ocName || "", qty: it.qty || 0, code: it.code, model: it.model || "", model2: it.model2 || "", section: "parts", index });
     });
   });
   return map;
@@ -3004,19 +2926,17 @@ function syncModelByCode(code, model, model2, names) {
   const only = isAmbiguousCode(code) && names ? new Set(names.filter(Boolean).map(normItemName)) : null;
   let changed = 0;
   [["warehouse", warehouse], ["onec", onec]].forEach(([kind, store]) => {
-    ["parts", "consumables"].forEach((section) => {
-      store[section].forEach((it) => {
-        if (!it.code) return;
-        if (!codeVariants(it.code).some((v) => want.includes(v))) return;
-        if (only && !only.has(normItemName(it.name)) && !(kind === "warehouse" && it.ocName && only.has(normItemName(it.ocName)))) return;
-        let ch = false;
-        if ((it.model || "") !== (model || "")) { it.model = model; ch = true; }
-        if (model2 !== undefined && (it.model2 || "") !== (model2 || "")) {
-          if (model2) it.model2 = model2; else delete it.model2;
-          ch = true;
-        }
-        if (ch) changed++;
-      });
+    store.parts.forEach((it) => {
+      if (!it.code) return;
+      if (!codeVariants(it.code).some((v) => want.includes(v))) return;
+      if (only && !only.has(normItemName(it.name)) && !(kind === "warehouse" && it.ocName && only.has(normItemName(it.ocName)))) return;
+      let ch = false;
+      if ((it.model || "") !== (model || "")) { it.model = model; ch = true; }
+      if (model2 !== undefined && (it.model2 || "") !== (model2 || "")) {
+        if (model2) it.model2 = model2; else delete it.model2;
+        ch = true;
+      }
+      if (ch) changed++;
     });
   });
   return changed;
@@ -3210,7 +3130,6 @@ function ocFilterShowItem(item) {
 function ocFilteredPairs(section) {
   return onec[section].map((item, i) => ({ item, i })).filter(({ item }) => ocMatches(item));
 }
-function renderOneCSection() { renderOneCAll(); }
 function renderOcRows(section) {
   const tbody = document.getElementById("oc-body-" + section);
   const picked = selectedOC[section];
@@ -3240,9 +3159,9 @@ function renderOcRows(section) {
     </tr>`;
   }).join("");
 }
-// Одна таблица: сквозная нумерация, общий итог, пустое состояние, заголовок.
+// Пустое состояние и заголовок фильтра.
 function ocAfterRender() {
-  const n = document.querySelectorAll("#oc-body-parts tr[data-index], #oc-body-consumables tr[data-index]").length;
+  const n = document.querySelectorAll("#oc-body-parts tr[data-index]").length;
   const empty = document.getElementById("oc-body-empty");
   if (empty) empty.hidden = n > 0;
   updateOcFilterUI();
@@ -3251,8 +3170,6 @@ function renderOneCAll() {
   // Индекс код→позиция должен быть свежим ДО построения строк (переход «1С» ↔ «Склад»).
   rebuildCrossIndexes();
   renderOcRows("parts");
-  renderOcRows("consumables");
-  mergeSortedRows("oc", "oc-body-", onec);
   ocAfterRender();
   if (typeof applyOcSearch === "function") applyOcSearch();
 }
@@ -3263,7 +3180,7 @@ function ocFilterTitle() {
   return t;
 }
 function updateOcFilterUI() {
-  const shown = document.querySelectorAll("#oc-body-parts tr[data-index], #oc-body-consumables tr[data-index]").length;
+  const shown = document.querySelectorAll("#oc-body-parts tr[data-index]").length;
   const label = document.getElementById("ocFilterLabel");
   if (label) label.textContent = String(shown);
   const title = document.getElementById("ocTitle");
@@ -3375,7 +3292,6 @@ function handleOneCClick(e) {
   }
 }
 document.getElementById("oc-body-parts").addEventListener("click", handleOneCClick);
-document.getElementById("oc-body-consumables").addEventListener("click", handleOneCClick);
 
 /* --- удаление позиции 1C --- */
 function openConfirmOneC(section, index) {
@@ -3390,7 +3306,6 @@ let ocEditingTarget = null;
 function openOcEdit(section, index) {
   ocEditingTarget = { section, index };
   const item = onec[section][index];
-  document.getElementById("ocEditSection").value = section;
   document.getElementById("ocEditCode").value = item.code || "";
   document.getElementById("ocEditName").value = item.name;
   setModelsSwitch(document.getElementById("ocEditModel"), ocModelsOf(item));
@@ -3408,16 +3323,12 @@ document.getElementById("ocEditOverlay").addEventListener("click", (e) => {
 document.getElementById("ocEditSave").addEventListener("click", () => {
   if (!ocEditingTarget) return;
   const { section, index } = ocEditingTarget;
-  const newSection = document.getElementById("ocEditSection").value;
   const code = document.getElementById("ocEditCode").value.trim();
   const name = document.getElementById("ocEditName").value.trim();
   if (!name) { closeOcEdit(); return; }
-  const sectionChanged = newSection !== section;
-  // проверка дубля кода в целевом разделе
-  if (code) {
-    const dup = onec[newSection].some((it, i) =>
-      it.code === code && !(!sectionChanged && i === index));
-    if (dup) { alert("Позиция с таким кодом уже есть в этом разделе 1C."); return; }
+  // проверка дубля кода
+  if (code && onec[section].some((it, i) => i !== index && it.code === code)) {
+    alert("Позиция с таким кодом уже есть в 1C."); return;
   }
   const [model = "", model2 = ""] = getModelsSwitch(document.getElementById("ocEditModel"));
   pushOcHistory();
@@ -3432,23 +3343,12 @@ document.getElementById("ocEditSave").addEventListener("click", () => {
     const wi = w && warehouse[w.section][w.index];
     if (wi && wi.cat !== cat) { wi.cat = cat; saveWarehouseLocalOnly(); }
   }
-  if (sectionChanged) {
-    onec[section].splice(index, 1);
-    onec[newSection].push(updated);
-  } else {
-    onec[section][index] = updated;
-  }
+  onec[section][index] = updated;
   syncModelByCode(code, model, model2, [updated.name]);   // модель едина для склада и 1С
   saveOneC();
   saveWarehouseLocalOnly();
   renderWarehouseAll();
-  if (sectionChanged) {
-    renderOneCAll();
-    const rows = document.querySelectorAll(`#viewOneC tr[data-section="${newSection}"]`);
-    flashRow(rows[rows.length - 1]);
-  } else {
-    renderOneCSection(section);
-  }
+  renderOneCAll();
   closeOcEdit();
 });
 
@@ -3511,9 +3411,9 @@ function runSearch(k, bodyPrefix, store, matchFn) {
   const st = searchState[k];
   st.rows = [];
   st.pos = -1;
-  ["parts", "consumables"].forEach((section) => {
+  {
+    const section = "parts";
     const tbody = document.getElementById(bodyPrefix + section);
-    if (!tbody) return;
     // У каждой строки есть свой индекс в массиве — берём позицию по нему.
     // Раньше здесь номер строки на экране использовался как индекс в данных,
     // и приходилось отдельно пересчитывать отфильтрованные списки склада и
@@ -3528,7 +3428,7 @@ function runSearch(k, bodyPrefix, store, matchFn) {
       tr.classList.remove("row-current");
       if (hit) st.rows.push(tr);
     });
-  });
+  }
   updateSearchCounter(k);
 }
 
@@ -3654,7 +3554,6 @@ function restoreWhSnapshot(json) {
   const before = warehouse;
   warehouse = JSON.parse(json);
   selectedWH.parts.clear();
-  selectedWH.consumables.clear();
   saveWarehouse();
   renderWarehouseAll();
   const hit = findChange(before, warehouse);
@@ -3712,7 +3611,6 @@ function restoreOcSnapshot(json) {
   const before = onec;
   onec = JSON.parse(json);
   selectedOC.parts.clear();
-  selectedOC.consumables.clear();
   saveOneC();
   renderOneCAll();
   renderWarehouseAll();   // на складе показывается «1C остаток»
@@ -4092,14 +3990,10 @@ function diffItemList(oldList, newList, qtyOf) {
 // Диф для «Склада» и «1С» — там количество лежит прямо в самой позиции (qty).
 function diffStore(oldStore, newStore) {
   const lines = [];
-  ["parts", "consumables"].forEach((sec) => {
-    const oldList = oldStore ? oldStore[sec] : [];
-    const newList = newStore ? newStore[sec] : [];
-    const { added, removed, changed } = diffItemList(oldList, newList, (it) => it.qty);
-    added.forEach((it) => lines.push("+ " + labelItem(it) + " (" + it.qty + ")"));
-    removed.forEach((it) => lines.push("− " + labelItem(it)));
-    changed.forEach((c) => lines.push("~ " + labelItem(c.item) + "  " + c.from + " → " + c.to));
-  });
+  const { added, removed, changed } = diffItemList(oldStore && oldStore.parts, newStore && newStore.parts, (it) => it.qty);
+  added.forEach((it) => lines.push("+ " + labelItem(it) + " (" + it.qty + ")"));
+  removed.forEach((it) => lines.push("− " + labelItem(it)));
+  changed.forEach((c) => lines.push("~ " + labelItem(c.item) + "  " + c.from + " → " + c.to));
   return lines;
 }
 // Диф для одного дня «Учёта» — там количество лежит отдельно, в counts,
@@ -4108,21 +4002,19 @@ function diffDateEntry(oldEntry, newEntry) {
   const lines = [];
   const oldCounts = (oldEntry && oldEntry.counts) || {};
   const newCounts = (newEntry && newEntry.counts) || {};
-  ["parts", "consumables"].forEach((sec) => {
-    const oldList = (oldEntry && oldEntry.sections && oldEntry.sections[sec]) || [];
-    const newList = (newEntry && newEntry.sections && newEntry.sections[sec]) || [];
-    const { added, removed } = diffItemList(oldList, newList, null);
-    added.forEach((it) => lines.push("+ " + labelItem(it) + " (" + (newCounts[countKey(sec, it)] || 0) + ")"));
-    removed.forEach((it) => lines.push("− " + labelItem(it)));
-    const oldMap = new Map(oldList.map((it) => [itemDiffKey(it), it]));
-    newList.forEach((it) => {
-      const key = itemDiffKey(it);
-      const oldItem = oldMap.get(key);
-      if (!oldItem) return;
-      const a = oldCounts[countKey(sec, oldItem)] || 0;
-      const b = newCounts[countKey(sec, it)] || 0;
-      if (a !== b) lines.push("~ " + labelItem(it) + "  " + a + " → " + b);
-    });
+  const sec = "parts";
+  const oldList = (oldEntry && oldEntry.sections && oldEntry.sections[sec]) || [];
+  const newList = (newEntry && newEntry.sections && newEntry.sections[sec]) || [];
+  const { added, removed } = diffItemList(oldList, newList, null);
+  added.forEach((it) => lines.push("+ " + labelItem(it) + " (" + (newCounts[countKey(sec, it)] || 0) + ")"));
+  removed.forEach((it) => lines.push("− " + labelItem(it)));
+  const oldMap = new Map(oldList.map((it) => [itemDiffKey(it), it]));
+  newList.forEach((it) => {
+    const oldItem = oldMap.get(itemDiffKey(it));
+    if (!oldItem) return;
+    const a = oldCounts[countKey(sec, oldItem)] || 0;
+    const b = newCounts[countKey(sec, it)] || 0;
+    if (a !== b) lines.push("~ " + labelItem(it) + "  " + a + " → " + b);
   });
   return lines;
 }
@@ -4297,11 +4189,11 @@ function applySyncPayload(payload) {
       dataByDate = payload.dataByDate;
       try { localStorage.setItem(DATA_BY_DATE_KEY, JSON.stringify(dataByDate)); } catch (e) {}
     }
-    if (payload.warehouse && Array.isArray(payload.warehouse.parts) && Array.isArray(payload.warehouse.consumables)) {
+    if (payload.warehouse && Array.isArray(payload.warehouse.parts)) {
       warehouse = payload.warehouse;
       try { localStorage.setItem(WAREHOUSE_KEY, JSON.stringify(warehouse)); } catch (e) {}
     }
-    if (payload.onec && Array.isArray(payload.onec.parts) && Array.isArray(payload.onec.consumables)) {
+    if (payload.onec && Array.isArray(payload.onec.parts)) {
       onec = payload.onec;
       try { localStorage.setItem(ONEC_KEY, JSON.stringify(onec)); } catch (e) {}
     }
@@ -4323,11 +4215,8 @@ function applySyncPayload(payload) {
     // синхронизации и выглядело это как «сортировка не срабатывает».
     reapplySavedSort();
     selectedCA.parts.clear();
-    selectedCA.consumables.clear();
     selectedWH.parts.clear();
-    selectedWH.consumables.clear();
     selectedOC.parts.clear();
-    selectedOC.consumables.clear();
     caHistory.reset();
     whHistory.reset();
     ocHistory.reset();
@@ -4373,13 +4262,13 @@ async function hashValue(v) {
 function readLocalValue(rk) {
   const raw = localStorage.getItem(bkToLocal(rk));
   if (raw === null) return undefined;
-  try { return JSON.parse(raw); } catch (e) { return undefined; }
+  try { return foldSyncValue(rk, JSON.parse(raw)); } catch (e) { return undefined; }
 }
 // Присланное с сервера значение должно быть нужной формы — иначе не применяем.
 function isValidRemote(rk, v) {
   if (rk === "potreblenie_data_by_date_v3") return !!v && typeof v === "object" && !Array.isArray(v);
   if (rk === "potreblenie_warehouse_v1" || rk === "potreblenie_onec_v1") {
-    return !!v && Array.isArray(v.parts) && Array.isArray(v.consumables);
+    return !!v && Array.isArray(v.parts);
   }
   if (rk === "potreblenie_transfer_list_v1") return Array.isArray(v);
   if (rk === "potreblenie_best_stock_v1") return !!v && Array.isArray(v.rows);
@@ -4458,15 +4347,12 @@ function mergeItemList(section, bl, ll, rl, mergeItem) {
 }
 function mergeStockItem(b, l, r) { return mergeObj(b, l, r, ["qty"]); }
 function mergeDayEntry(b, l, r) {
-  b = b || { sections: { parts: [], consumables: [] }, counts: {}, checked: {} };
+  b = b || emptyEntry();
   const out = mergeObj(b, l, r, null);
   const sb = b.sections || {}, sl = l.sections || {}, sr = r.sections || {};
-  out.sections = {};
-  ["parts", "consumables"].forEach((s) => {
-    out.sections[s] = mergeItemList(s, sb[s], sl[s], sr[s], (bi, li, ri) => mergeObj(bi, li, ri, null));
-  });
-  const alive = new Set();
-  ["parts", "consumables"].forEach((s) => out.sections[s].forEach((it) => alive.add(countKey(s, it))));
+  out.sections = emptySections();
+  out.sections.parts = mergeItemList("parts", sb.parts, sl.parts, sr.parts, (bi, li, ri) => mergeObj(bi, li, ri, null));
+  const alive = new Set(out.sections.parts.map((it) => countKey("parts", it)));
   const counts = {}, chk = {};
   const ck = new Set([].concat(Object.keys(b.counts || {}), Object.keys(l.counts || {}), Object.keys(r.counts || {})));
   ck.forEach((k) => {
@@ -4501,9 +4387,8 @@ function mergeSyncValue(rk, B, L, R) {
     }
     if (rk === "potreblenie_warehouse_v1" || rk === "potreblenie_onec_v1") {
       const out = mergeObj(B, L, R, null);
-      ["parts", "consumables"].forEach((s) => {
-        out[s] = mergeItemList(s, B[s], L[s], R[s], mergeStockItem);
-      });
+      out.parts = mergeItemList("parts", B.parts, L.parts, R.parts, mergeStockItem);
+      out.consumables = [];
       return out;
     }
     if (rk === "potreblenie_transfer_list_v1") {
@@ -4546,7 +4431,10 @@ async function runSync(policy) {
   if (need.length) {
     const full = await sbc.from("sklad_kv").select("key, value, updated_at").in("key", need);
     if (full.error) throw full.error;
-    for (const r of (full.data || [])) remote[r.key] = { value: r.value, at: r.updated_at, h: await hashValue(r.value) };
+    for (const r of (full.data || [])) {
+      const value = foldSyncValue(r.key, r.value);
+      remote[r.key] = { value, at: r.updated_at, h: await hashValue(value) };
+    }
   }
 
   // 4) решаем по каждому ключу
@@ -4566,7 +4454,7 @@ async function runSync(policy) {
     if (policy === "mine") toPush.push({ rk, at: cur, force: true });
     else if (policy === "server") { if (R) toPull.push(rk); }
     else if (remoteChanged && localChanged) {
-      const mv = (R && m) ? mergeSyncValue(rk, base[rk], L.v, R.value) : null;
+      const mv = (R && m) ? mergeSyncValue(rk, foldSyncValue(rk, base[rk]), L.v, R.value) : null;
       if (mv === null || mv === undefined) res.conflicts.push(rk);
       else toMerge.push({ rk, value: mv, at: cur });
     }
@@ -4755,7 +4643,7 @@ async function loadCatalogFromServer() {
   try {
     const r = await Auth.sb.from("sklad_kv").select("value").eq("key", CATALOG_REMOTE_KEY).maybeSingle();
     const v = r && r.data && r.data.value;
-    if (v && Array.isArray(v.parts) && Array.isArray(v.consumables)) {
+    if (v && Array.isArray(v.parts)) {
       localStorage.setItem(CATALOG_KEY, JSON.stringify(v));
       warehouse = warehouseFromCatalog();
       renderAll();

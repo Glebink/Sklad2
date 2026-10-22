@@ -12,8 +12,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Склад">
 <link rel="stylesheet" href="../lib/fonts/fonts.css">
-<link rel="stylesheet" href="style.css?v=2610221247">
-<link rel="stylesheet" href="../auth.css?v=2610221247">
+<link rel="stylesheet" href="style.css?v=2610221306">
+<link rel="stylesheet" href="../auth.css?v=2610221306">
 </head>
 <body>
 
@@ -122,8 +122,6 @@
       </tr>
     </thead>
     <tbody id="body-parts"></tbody>
-    <!-- старые заявки: позиции бывшего раздела «Расходники» — тем же списком ниже -->
-    <tbody id="body-consumables"></tbody>
   </table>
   </div>
 
@@ -161,9 +159,7 @@
         <th class="sortable" data-table="wh" data-section="parts" data-col="name">Наименование <span class="sort-arrow">↕</span><span class="sortable wh-oc-sort" data-table="wh" data-section="parts" data-col="ocqty" title="Сортировать по остатку 1С">1С <span class="sort-arrow">↕</span></span></th>
       </tr>
     </thead>
-    <!-- Детали и расходники — одна таблица: два tbody подряд (данные по-прежнему в двух разделах) -->
     <tbody id="wh-body-parts"></tbody>
-    <tbody id="wh-body-consumables"></tbody>
     <tbody id="wh-body-empty" hidden><tr><td colspan="2" class="wh-empty">В этой категории ничего нет</td></tr></tbody>
   </table>
   </div>
@@ -210,9 +206,7 @@
         <th class="sortable" data-table="oc" data-section="parts" data-col="name">Наименование <span class="sort-arrow">↕</span><span class="sortable wh-oc-sort" data-table="oc" data-section="parts" data-col="qty" title="Сортировать по остатку 1С">1С <span class="sort-arrow">↕</span></span></th>
       </tr>
     </thead>
-    <!-- Детали и расходники — одна таблица: два tbody подряд (данные по-прежнему в двух разделах) -->
     <tbody id="oc-body-parts"></tbody>
-    <tbody id="oc-body-consumables"></tbody>
     <tbody id="oc-body-empty" hidden><tr><td colspan="2" class="wh-empty">В этой категории ничего нет</td></tr></tbody>
   </table>
   </div>
@@ -304,11 +298,6 @@
 <div class="modal-overlay" id="whEditOverlay">
   <div class="modal-box">
     <p>Изменить позицию на складе:</p>
-    <div class="field-label" hidden>Раздел</div>
-    <select id="whEditSection" hidden>
-      <option value="parts">Детали</option>
-      <option value="consumables">Расходники</option>
-    </select>
     <div class="field-label">Код</div>
     <input type="text" id="whEditCode">
     <div class="field-label">Наименование</div>
@@ -378,11 +367,6 @@
 <div class="modal-overlay" id="ocEditOverlay">
   <div class="modal-box">
     <p>Изменить позицию 1C:</p>
-    <div class="field-label" hidden>Раздел</div>
-    <select id="ocEditSection" hidden>
-      <option value="parts">Детали</option>
-      <option value="consumables">Расходники</option>
-    </select>
     <div class="field-label">Код</div>
     <input type="text" id="ocEditCode">
     <div class="field-label">Наименование</div>
@@ -453,12 +437,6 @@
           <option value="YGW 4.0">YGW 4.0</option>
           <option value="9Bot">9Bot</option>
           <option value="none">Без версии</option>
-        </select>
-      </div>
-      <div class="field-w106" hidden>
-        <div class="field-label">Раздел</div>
-        <select id="ocCompareSection">
-          <option value="all">Все</option>
         </select>
       </div>
       <div class="flex-1-0">
@@ -563,9 +541,9 @@
 </div>
 
 <script src="../lib/supabase-2.45.4.js"></script>
-<script src="../auth.js?v=2610221247"></script>
-<script src="qrcode.js?v=2610221247"></script>
-<script src="app.js?v=2610221247"></script>
+<script src="../auth.js?v=2610221306"></script>
+<script src="qrcode.js?v=2610221306"></script>
+<script src="app.js?v=2610221306"></script>
 
 </body>
 </html>

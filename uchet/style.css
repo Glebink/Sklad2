@@ -1174,7 +1174,7 @@ body.shift-ro .btn.plus, body.shift-ro .btn.minus { display: none !important; }
 
 /* ПК: код детали в таблице учёта крупнее и жирнее */
 @media (min-width: 900px) {
-  #body-parts td.code, #body-consumables td.code { width: auto; min-width: 170px; font-size: 17px; font-weight: 700; color: var(--fg); }
+  #body-parts td.code { width: auto; min-width: 170px; font-size: 17px; font-weight: 700; color: var(--fg); }
 }
 
 /* Поиск по заявке: свёрнут до лупы, по нажатию раскрывается строка */
@@ -1215,7 +1215,7 @@ body:not(.ca-search-collapsed) .ca-search-toggle, body:not([data-tab="consumptio
   #viewConsumption thead th:nth-child(2) { width: 17%; }
   #viewConsumption thead th:nth-child(4) { width: 56px; }
   #viewConsumption thead th:nth-child(5) { width: 96px; }
-  #body-parts td.code, #body-consumables td.code { width: auto; min-width: 0; font-size: 18px; letter-spacing: .02em; overflow-wrap: anywhere; white-space: normal; }
+  #body-parts td.code { width: auto; min-width: 0; font-size: 18px; letter-spacing: .02em; overflow-wrap: anywhere; white-space: normal; }
   /* Строка ввода: вдвое уже и по центру правой части (над таблицей) */
   .sticky-top .add-panel.one-row, .sticky-top .add-panel.search-bar { width: min(100%, calc(0.5 * (100vw - var(--list-w-old) - 48px))); margin-left: auto; margin-right: auto; }
 }
@@ -1413,7 +1413,7 @@ body.shift-ro .count-tier-pm { display: none !important; }
   #viewConsumption table, #viewWarehouse table, #viewOneC table { --code-fs: clamp(11px, 2cqi, 18px); }
   #viewConsumption thead th:nth-child(2) { width: calc(10 * var(--code-fs) + 22px); }
   #viewWarehouse thead th:nth-child(1), #viewOneC thead th:nth-child(1) { width: calc(10 * var(--code-fs) + 22px); }
-  #body-parts td.code, #body-consumables td.code, #viewWarehouse td.code, #viewOneC td.code { font-size: var(--code-fs); overflow-wrap: normal; word-break: normal; }
+  #body-parts td.code, #viewWarehouse td.code, #viewOneC td.code { font-size: var(--code-fs); overflow-wrap: normal; word-break: normal; }
 }
 /* Телефон: без зума страницы от двойного тапа по «+»/«–» */
 html { touch-action: manipulation; }
