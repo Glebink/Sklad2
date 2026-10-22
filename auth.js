@@ -1,7 +1,7 @@
 'use strict';
 /* Общий вход для всех сервисов «Склада» (Учёт потребления, Заявки на закупку).
    Один клиент Supabase и одна сессия на оба сервиса: вошли в одном — открыт и другой.
-   Подключается после библиотеки supabase-js и до app.js модуля. */
+   Подключается после библиотеки supabase-js и до кода модуля (uchet/js/*, zayavki/app.js). */
 (function () {
   if (!window.supabase) return;   // библиотека не загрузилась: приложение работает локально
   var SUPABASE_URL = 'https://okgzagezzeeglkyrwbzv.supabase.co';

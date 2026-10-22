@@ -1,9 +1,10 @@
 // Общий service worker сервиса «Склад» (Учёт потребления + Заявки на закупку).
-// Версия держится одинаковой с APP_VERSION в uchet/app.js и zayavki/app.js.
+// Версия держится одинаковой с APP_VERSION в uchet/js/core.js и zayavki/app.js.
 const CACHE_NAME = "sklad2-cache-v2.0";
 const SHELL = [
   "./", "index.html", "manifest.json", "auth.js", "auth.css", "icon-192.png", "icon-512.png",
-  "uchet/", "uchet/index.html", "uchet/style.css", "uchet/app.js", "uchet/qrcode.js",
+  "uchet/", "uchet/index.html", "uchet/style.css", "uchet/qrcode.js",
+  "uchet/js/core.js", "uchet/js/consumption.js", "uchet/js/tickets.js", "uchet/js/warehouse.js", "uchet/js/tabs.js", "uchet/js/stock-import.js", "uchet/js/onec.js", "uchet/js/ui.js", "uchet/js/sync.js", "uchet/js/start.js",
   "zayavki/", "zayavki/index.html", "zayavki/style.css", "zayavki/app.js",
   "lib/supabase-2.45.4.js",  // библиотека и шрифты лежат в репозитории: CDN из РФ бывает недоступен
   "lib/fonts/fonts.css",
