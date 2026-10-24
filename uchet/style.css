@@ -1484,16 +1484,18 @@ body.inv-mode:not(.inv-none) #viewInv { display: block; }
 .inv-filters select { min-height: 40px; border: 1px solid var(--border); border-radius: 8px; padding: 0 8px; font: inherit; background: var(--surface); }
 .inv-filters select[hidden] { display: none; }
 .inv-table th.inv-num { width: 64px; text-align: center; }
-.inv-table thead th:nth-child(4) { width: 96px; }
-/* модели — над остатком 1С, как во вкладке «1С», чтобы название занимало всю ширину */
-.inv-table td.inv-oc .model-badges { position: static; display: flex; flex-direction: column; align-items: center; font-size: 11px; font-weight: 600; line-height: 1.15; margin-bottom: 2px; }
+.inv-table thead th:nth-child(4) { width: 72px; }
+/* модели — в правом верхнем углу названия, как в «1С»; справа оставлено место, чтобы текст под них не заезжал.
+   Высота строки — как в «1С»: в поле «Склад» удобно попадать пальцем. */
+.inv-table td.name { padding-right: 44px; height: 54px; }
 .inv-table td.inv-num { text-align: center; font-weight: 600; }
 .inv-table td.inv-oc { color: var(--muted); font-size: 17px; }
-.inv-table td.inv-fact { position: relative; padding: 4px; }
-.inv-input { width: 100%; height: 38px; box-sizing: border-box; border: 1px solid var(--line-strong); border-radius: 8px; text-align: center; font: inherit; font-size: 18px; font-weight: 700; background: var(--surface); }
+/* «Склад»: поле ввода — вся ячейка (как количество в «Учёте»), без отдельной рамки */
+.inv-table td.inv-fact { position: relative; padding: 0; border-left: 1px solid var(--border); }
+.inv-input { position: absolute; inset: 0; width: 100%; height: 100%; box-sizing: border-box; margin: 0; padding: 0 2px; border: 0; border-radius: 0; box-shadow: none; text-align: center; font: inherit; font-size: 20px; font-weight: 700; background: transparent; color: var(--fg); }
 .inv-input::placeholder { color: var(--muted); opacity: .45; font-weight: 500; }
 .inv-input:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
-.inv-diff { position: absolute; top: 1px; right: 6px; font-size: 10px; font-weight: 700; pointer-events: none; }
+.inv-diff { position: absolute; z-index: 1; top: 1px; right: 4px; font-size: 10px; font-weight: 700; pointer-events: none; }
 .inv-table tr.inv-more td { background: var(--s-ordered-bg); }
 .inv-table tr.inv-more .inv-diff { color: var(--ok-ink); }
 .inv-table tr.inv-less td { background: var(--s-rejected-bg); }
@@ -1501,12 +1503,11 @@ body.inv-mode:not(.inv-none) #viewInv { display: block; }
 .inv-table tr.inv-equal .inv-diff { color: var(--ok); }
 @media (max-width: 899px) {
   .inv-table th.inv-num { width: 40px; padding-left: 2px; padding-right: 2px; }
-  .inv-table thead th:nth-child(4) { width: 58px; }
+  .inv-table thead th:nth-child(4) { width: 50px; }
   .inv-table td.inv-num { padding-left: 2px; padding-right: 2px; }
   .inv-table td.inv-oc { font-size: 13px; }
-  .inv-table td.inv-fact { padding: 4px 3px; }
-  .inv-table td.inv-oc .model-badges { font-size: 10px; }
-  .inv-input { font-size: 16px; height: 34px; padding: 0 2px; }
+  .inv-table td.name { padding-right: 32px; height: 48px; }
+  .inv-input { font-size: 16px; padding: 6px 1px 0; }
   .inv-head .inv-label { display: none; }
 }
 /* Итого */

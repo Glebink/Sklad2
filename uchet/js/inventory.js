@@ -122,8 +122,8 @@ function renderInvTable() {
     const f = inv.fact[i];
     rows.push(`<tr data-i="${i}" class="${st.cls}">
       <td class="code">${it.code ? `<span class="code-text" data-code="${escapeHtml(it.code)}">${formatCodeDisplay(it.code)}</span>` : "—"}</td>
-      <td class="name"><div class="main-name">${escapeHtml(it.name)}</div></td>
-      <td class="inv-num inv-oc">${modelBadgesHtml(ocModelsOf(it), true)}${it.qty || 0}</td>
+      <td class="name"><div class="main-name">${escapeHtml(it.name)}</div>${modelBadgesHtml(ocModelsOf(it), true)}</td>
+      <td class="inv-num inv-oc">${it.qty || 0}</td>
       <td class="inv-num inv-fact"><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" class="inv-input" value="${f === undefined ? "" : f}" placeholder="${it.qty || 0}" aria-label="Фактическое количество"><span class="inv-diff">${st.diff}</span></td>
     </tr>`);
   });
