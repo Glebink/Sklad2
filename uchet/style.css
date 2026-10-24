@@ -1296,7 +1296,7 @@ td.wh-empty { text-align: center; color: var(--muted); padding: 18px 8px; }
 
 /* ==================== «1С» — как «Склад»: одна таблица, код, модель в углу названия, фильтр в заголовке ==================== */
 #viewOneC { min-height: 75vh; }
-#viewOneC td.code, #viewOneC td.code .code-text { color: var(--fg); font-weight: 700; letter-spacing: .02em; }
+#viewOneC td.code, #viewOneC td.code .code-text, #viewInv td.code, #viewInv td.code .code-text { color: var(--fg); font-weight: 700; letter-spacing: .02em; }
 #viewOneC td.name { padding-right: 92px; }
 #ocTitle.wh-title-btn { cursor: pointer; user-select: none; -webkit-user-select: none; }
 .oc-filter-wrap #ocFilterPanel { left: 0; right: auto; min-width: 190px; }
@@ -1318,7 +1318,7 @@ td.wh-empty { text-align: center; color: var(--muted); padding: 18px 8px; }
   #viewOneC td.code { width: auto; min-width: 0; font-size: 18px; overflow-wrap: anywhere; white-space: normal; }
 }
 @media (max-width: 899px) {
-  #viewOneC td.code { font-size: 11.5px; width: 124px; white-space: nowrap; }
+  #viewOneC td.code, #viewInv td.code { font-size: 11.5px; width: 124px; white-space: nowrap; }
   #viewOneC td.name { padding-right: 74px; }
   .oc-side { gap: 4px; }
   .oc-side .iconbtn { width: 28px; height: 28px; font-size: 15px; }
@@ -1388,10 +1388,10 @@ body.shift-ro .count-tier-pm { display: none !important; }
 /* Телефон: таблицы «Склада» и «1С» строго по ширине экрана, без прокрутки влево-вправо.
    Ширины колонок фиксированы, длинные слова в названии переносятся. */
 @media (max-width: 899px) {
-  #viewWarehouse table, #viewOneC table { table-layout: fixed; width: 100%; }
-  #viewWarehouse thead th:nth-child(1), #viewOneC thead th:nth-child(1) { width: 124px; }
-  #viewWarehouse td.name, #viewOneC td.name { min-width: 0; overflow-wrap: break-word; hyphens: auto; -webkit-hyphens: auto; }
-  #viewWarehouse .table-scroll, #viewOneC .table-scroll { overflow-x: hidden; }
+  #viewWarehouse table, #viewOneC table, #viewInv table { table-layout: fixed; width: 100%; }
+  #viewWarehouse thead th:nth-child(1), #viewOneC thead th:nth-child(1), #viewInv thead th:nth-child(1) { width: 124px; }
+  #viewWarehouse td.name, #viewOneC td.name, #viewInv td.name { min-width: 0; overflow-wrap: break-word; hyphens: auto; -webkit-hyphens: auto; }
+  #viewWarehouse .table-scroll, #viewOneC .table-scroll, #viewInv .table-scroll { overflow-x: hidden; }
 }
 /* «1С» в заголовке — над остатком, а не над «⋮» */
 #viewWarehouse .wh-oc-sort, #viewOneC .wh-oc-sort { margin-right: 38px; }
@@ -1415,13 +1415,13 @@ body.shift-ro .count-tier-pm { display: none !important; }
 /* ПК: размер кода подстраивается под ширину таблицы (окна), чтобы коды не переносились.
    --code-fs — кегль кода от ширины вкладки; колонка кода = ~10 знаков кода + отступы. */
 @media (min-width: 900px) {
-  #viewConsumption, #viewWarehouse, #viewOneC { container-type: inline-size; }
+  #viewConsumption, #viewWarehouse, #viewOneC, #viewInv { container-type: inline-size; }
   /* в узком окне таблица шире 72% зоны (не меньше 680px), чтобы кегль не мельчал */
   #viewConsumption, #viewWarehouse, #viewOneC { width: min(100%, max(calc(0.72 * (100vw - var(--list-w-old) - 48px)), 680px)); }
-  #viewConsumption table, #viewWarehouse table, #viewOneC table { --code-fs: clamp(11px, 2cqi, 18px); }
+  #viewConsumption table, #viewWarehouse table, #viewOneC table, #viewInv table { --code-fs: clamp(11px, 2cqi, 18px); }
   #viewConsumption thead th:nth-child(2) { width: calc(10 * var(--code-fs) + 22px); }
-  #viewWarehouse thead th:nth-child(1), #viewOneC thead th:nth-child(1) { width: calc(10 * var(--code-fs) + 22px); }
-  #body-parts td.code, #viewWarehouse td.code, #viewOneC td.code { font-size: var(--code-fs); overflow-wrap: normal; word-break: normal; }
+  #viewWarehouse thead th:nth-child(1), #viewOneC thead th:nth-child(1), #viewInv thead th:nth-child(1) { width: calc(10 * var(--code-fs) + 22px); }
+  #body-parts td.code, #viewWarehouse td.code, #viewOneC td.code, #viewInv td.code { font-size: var(--code-fs); overflow-wrap: normal; word-break: normal; }
 }
 /* Телефон: без зума страницы от двойного тапа по «+»/«–» */
 html { touch-action: manipulation; }
@@ -1483,12 +1483,10 @@ body.inv-mode:not(.inv-none) #viewInv { display: block; }
 .inv-filters input[type="search"] { flex: 1 1 200px; min-height: 40px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 8px; padding: 0 10px; font: inherit; }
 .inv-filters select { min-height: 40px; border: 1px solid var(--border); border-radius: 8px; padding: 0 8px; font: inherit; background: var(--surface); }
 .inv-filters select[hidden] { display: none; }
-.inv-table { table-layout: fixed; width: 100%; }
-.inv-table thead th:nth-child(1) { width: calc(10 * var(--code-fs, 14px) + 22px); }
 .inv-table th.inv-num { width: 64px; text-align: center; }
 .inv-table thead th:nth-child(4) { width: 96px; }
-.inv-table td.code { font-size: var(--code-fs, 14px); font-weight: 700; color: var(--fg); }
-.inv-table td.name { position: relative; padding-right: 44px; overflow-wrap: break-word; }
+/* модели — над остатком 1С, как во вкладке «1С», чтобы название занимало всю ширину */
+.inv-table td.inv-oc .model-badges { position: static; display: flex; flex-direction: column; align-items: center; font-size: 11px; font-weight: 600; line-height: 1.15; margin-bottom: 2px; }
 .inv-table td.inv-num { text-align: center; font-weight: 600; }
 .inv-table td.inv-oc { color: var(--muted); font-size: 17px; }
 .inv-table td.inv-fact { position: relative; padding: 4px; }
@@ -1502,12 +1500,13 @@ body.inv-mode:not(.inv-none) #viewInv { display: block; }
 .inv-table tr.inv-less .inv-diff { color: var(--bad-ink); }
 .inv-table tr.inv-equal .inv-diff { color: var(--ok); }
 @media (max-width: 899px) {
-  .inv-table thead th:nth-child(1) { width: 92px; }
-  .inv-table th.inv-num { width: 44px; }
-  .inv-table thead th:nth-child(4) { width: 70px; }
-  .inv-table td.code { font-size: 11.5px; overflow-wrap: anywhere; }
-  .inv-table td.name { padding-right: 30px; font-size: 14px; }
-  .inv-input { font-size: 16px; }
+  .inv-table th.inv-num { width: 40px; padding-left: 2px; padding-right: 2px; }
+  .inv-table thead th:nth-child(4) { width: 58px; }
+  .inv-table td.inv-num { padding-left: 2px; padding-right: 2px; }
+  .inv-table td.inv-oc { font-size: 13px; }
+  .inv-table td.inv-fact { padding: 4px 3px; }
+  .inv-table td.inv-oc .model-badges { font-size: 10px; }
+  .inv-input { font-size: 16px; height: 34px; padding: 0 2px; }
   .inv-head .inv-label { display: none; }
 }
 /* Итого */
