@@ -18,6 +18,7 @@ const searchState = {
   ca: { rows: [], pos: -1 },
   wh: { rows: [], pos: -1 },
   oc: { rows: [], pos: -1 },
+  inv: { rows: [], pos: -1 },
 };
 
 function updateSearchCounter(k) {
@@ -68,11 +69,11 @@ function goToMatch(k, delta) {
   updateSearchCounter(k);
 }
 
-["ca", "wh", "oc"].forEach((k) => {
+["ca", "wh", "oc", "inv"].forEach((k) => {
   document.getElementById(k + "SearchClear").addEventListener("click", () => {
     const input = document.getElementById(k + "SearchInput");
     input.value = "";
-    ({ ca: applyCaSearch, wh: applyWhSearch, oc: applyOcSearch })[k]();
+    applySearchFns[k]();
     // Фокус в поле НЕ возвращаем: на телефоне это поднимало клавиатуру
     // сразу после того, как нужную строку уже нашли. Крестик только чистит
     // текст. Если фокус на поле всё-таки был — снимаем его.

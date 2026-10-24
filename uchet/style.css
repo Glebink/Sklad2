@@ -1054,7 +1054,7 @@
   /* display не задаём здесь: JS переключает его через element.style.display
      между "" и "none" (updateOcFilterUI) — CSS-правило с display:none тут
      перебило бы очистку инлайн-стиля в JS и поле никогда бы не появлялось. */
-  #ocFilterQty { width: 56px; margin: 0 0 0 6px; padding: 6px; font-size: 13px; }
+  #ocFilterQty, #invFilterQty { width: 56px; margin: 0 0 0 6px; padding: 6px; font-size: 13px; }
 
   /* ==================== Меню разделов ==================== */
   .mod-menu-wrap { flex: 0 0 auto; }
@@ -1295,17 +1295,17 @@ td.wh-empty { text-align: center; color: var(--muted); padding: 18px 8px; }
 .wh-filter-wrap #whFilterPanel { left: 0; right: auto; }
 
 /* ==================== «1С» — как «Склад»: одна таблица, код, модель в углу названия, фильтр в заголовке ==================== */
-#viewOneC { min-height: 75vh; }
+#viewOneC, #viewInv { min-height: 75vh; }   /* место под выпадающее меню фильтра */
 #viewOneC td.code, #viewOneC td.code .code-text, #viewInv td.code, #viewInv td.code .code-text { color: var(--fg); font-weight: 700; letter-spacing: .02em; }
 #viewOneC td.name { padding-right: 92px; }
-#ocTitle.wh-title-btn { cursor: pointer; user-select: none; -webkit-user-select: none; }
-.oc-filter-wrap #ocFilterPanel { left: 0; right: auto; min-width: 190px; }
-#ocFilterPanel .wh-sub { display: grid; gap: 4px; padding-left: 14px; }
-#ocFilterPanel .wh-sub[hidden] { display: none; }
-#ocFilterPanel .wh-caret { opacity: .6; margin-left: 4px; }
-#ocFilterPanel .oc-stock-row { display: flex; gap: 6px; align-items: center; border-top: 1px solid var(--border); padding-top: 8px; }
-#ocFilterPanel .oc-stock-row .util { flex: 1 1 auto; }
-#ocFilterPanel #ocFilterQty { width: 64px; flex: none; text-align: center; }
+#ocTitle.wh-title-btn, #invFilterTitle.wh-title-btn { cursor: pointer; user-select: none; -webkit-user-select: none; }
+.oc-filter-wrap #ocFilterPanel, .oc-filter-wrap #invFilterPanel { left: 0; right: auto; min-width: 190px; }
+#ocFilterPanel .wh-sub, #invFilterPanel .wh-sub { display: grid; gap: 4px; padding-left: 14px; }
+#ocFilterPanel .wh-sub[hidden], #invFilterPanel .wh-sub[hidden] { display: none; }
+#ocFilterPanel .wh-caret, #invFilterPanel .wh-caret { opacity: .6; margin-left: 4px; }
+#ocFilterPanel .oc-stock-row, #invFilterPanel .oc-stock-row { display: flex; gap: 6px; align-items: center; border-top: 1px solid var(--border); padding-top: 8px; }
+#ocFilterPanel .oc-stock-row .util, #invFilterPanel .oc-stock-row .util { flex: 1 1 auto; }
+#ocFilterPanel #ocFilterQty, #invFilterPanel #invFilterQty { width: 64px; flex: none; text-align: center; }
 /* «1С»: без колонок № и кнопок — справа в ячейке названия: модели и остаток, правее «+» и «⋮» */
 .oc-side { position: absolute; top: 4px; right: 4px; bottom: 4px; display: flex; align-items: stretch; gap: 6px; }
 .oc-side .wh-corner { position: static; }
@@ -1433,7 +1433,7 @@ html { touch-action: manipulation; }
    на телефоне все поля ввода в окнах не мельче 16px, тогда зума нет. */
 @media (max-width: 899px) {
   .modal-box input:not([type="file"]):not([type="checkbox"]), .modal-box select, .modal-box textarea,
-  #ocFilterQty, .history-range input { font-size: 16px !important; }
+  #ocFilterQty, #invFilterQty, .history-range input { font-size: 16px !important; }
 }
 /* Вкладки «Учёт / Склад / 1С» — ссылки (открываются колесом мыши в новой вкладке), вид как у кнопок */
 a.tab-btn { display: block; box-sizing: border-box; text-decoration: none; color: inherit; }
@@ -1466,6 +1466,8 @@ body.qr-kiosk.has-ticket #datePickerBox { display: flex !important; }
 body:not(.inv-mode) #invList { display: none !important; }
 body.inv-mode #ticketList, body.inv-mode #ticketEmpty, body.inv-mode #viewOneC, body.inv-mode #ocSearchBar { display: none !important; }
 body.inv-mode:not(.inv-none) #viewInv { display: block; }
+body.inv-mode:not(.inv-none) #invSearchBar { display: flex !important; }   /* строка поиска — как у «1С» */
+.inv-meta { color: var(--muted); font-size: 13px; }
 @media (min-width: 900px) {
   body.inv-mode #invList { display: block; }
   body.inv-mode.inv-none #invEmpty { display: block; }
@@ -1479,10 +1481,6 @@ body.inv-mode:not(.inv-none) #viewInv { display: block; }
 .u-list .tool-btn.inv-exit { width: auto; padding: 0 12px 0 8px; gap: 2px; font-weight: 600; }
 .inv-head { flex-wrap: wrap; gap: 8px; }
 .inv-head .inv-back { width: 40px; height: 40px; font-size: 24px; line-height: 1; }
-.inv-filters { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }
-.inv-filters input[type="search"] { flex: 1 1 200px; min-height: 40px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 8px; padding: 0 10px; font: inherit; }
-.inv-filters select { min-height: 40px; border: 1px solid var(--border); border-radius: 8px; padding: 0 8px; font: inherit; background: var(--surface); }
-.inv-filters select[hidden] { display: none; }
 .inv-table th.inv-num { width: 64px; text-align: center; }
 .inv-table thead th:nth-child(4) { width: 72px; }
 /* модели — в правом верхнем углу названия, как в «1С»; справа оставлено место, чтобы текст под них не заезжал.

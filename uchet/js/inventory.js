@@ -90,12 +90,25 @@ function renderInvList() {
       + `</button>`;
   }).join("") : `<div class="t-empty">Инвентаризаций нет. Создайте кнопкой «+».</div>`;
 }
-const invFilter = { q: "", cat: "all", model: "all" };
+/* Фильтр — как в «1С» (меню по заголовку): Все / Самокаты (модели) / Инструменты / Расходники /
+   Остальное / Не на складе + «Остаток < N» (по остатку 1С инвентаризации). Хранится на устройстве. */
+const INV_FILTER_KEY = "sklad2_inv_filter_v1";
+let invFilter = (function () {
+  try {
+    const f = JSON.parse(localStorage.getItem(INV_FILTER_KEY) || "null");
+    if (f && (f.cat === "all" || OC_CATS[f.cat])) return { cat: f.cat, model: f.model || "all", stock: !!f.stock, qty: Number.isFinite(f.qty) ? f.qty : 20 };
+  } catch (e) {}
+  return { cat: "all", model: "all", stock: false, qty: 20 };
+})();
+function saveInvFilter() { try { localStorage.setItem(INV_FILTER_KEY, JSON.stringify(invFilter)); } catch (e) {} }
+function invFilterTitle() {
+  let t = invFilter.cat === "all" ? "Все" : OC_CATS[invFilter.cat];
+  if (invFilter.cat === "scooter" && invFilter.model !== "all") t += " · " + (invFilter.model === "none" ? "без модели" : invFilter.model);
+  if (invFilter.stock) t += " · < " + invFilter.qty;
+  return t;
+}
 function invMatches(it) {
-  if (invFilter.q) {
-    const q = invFilter.q.toLowerCase();
-    if (!nameMatchesQuery(it.name, q) && !String(it.code || "").toLowerCase().includes(q)) return false;
-  }
+  if (invFilter.stock && !((it.qty || 0) < (invFilter.qty || 0))) return false;
   if (invFilter.cat === "nowh") { if (it.code && warehouseInfoFor(it.code, it.name)) return false; }
   else if (invFilter.cat !== "all" && ocCatOf(it) !== invFilter.cat) return false;
   if (invFilter.cat !== "scooter" || invFilter.model === "all") return true;
@@ -110,37 +123,50 @@ function invRowState(inv, i) {
 }
 function renderInvTable() {
   const inv = invSelected();
-  const body = document.getElementById("invBody");
+  const body = document.getElementById("inv-body-parts");
   if (!inv) { body.innerHTML = ""; return; }
   rebuildCrossIndexes();
-  document.getElementById("invTitle").textContent = "Инвентаризация № " + invNumberOf(invCurrent) + " · " + invDateText(inv.date);
-  document.getElementById("invModel").hidden = invFilter.cat !== "scooter";
   const rows = [];
   inv.items.forEach((it, i) => {
     if (!invMatches(it)) return;
     const st = invRowState(inv, i);
     const f = inv.fact[i];
-    rows.push(`<tr data-i="${i}" class="${st.cls}">
+    rows.push(`<tr data-index="${i}" data-section="parts" class="${st.cls}">
       <td class="code">${it.code ? `<span class="code-text" data-code="${escapeHtml(it.code)}">${formatCodeDisplay(it.code)}</span>` : "—"}</td>
       <td class="name"><div class="main-name">${escapeHtml(it.name)}</div>${modelBadgesHtml(ocModelsOf(it), true)}</td>
       <td class="inv-num inv-oc">${it.qty || 0}</td>
       <td class="inv-num inv-fact"><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" class="inv-input" value="${f === undefined ? "" : f}" placeholder="${it.qty || 0}" aria-label="Фактическое количество"><span class="inv-diff">${st.diff}</span></td>
     </tr>`);
   });
-  body.innerHTML = rows.length ? rows.join("") : `<tr><td colspan="4" class="wh-empty">Ничего не найдено</td></tr>`;
+  body.innerHTML = rows.length ? rows.join("") : `<tr><td colspan="4" class="wh-empty">В этой категории ничего нет</td></tr>`;
+  updateInvFilterUI(rows.length);
   updateInvProgress();
+  applySearchFns.inv();
 }
 function updateInvProgress() {
   const inv = invSelected();
   if (!inv) return;
-  document.getElementById("invProgress").textContent = Object.keys(inv.fact).length + " / " + inv.items.length;
+  const el = document.getElementById("invTitle");
+  el.textContent = "№ " + invNumberOf(invCurrent) + " · " + invDateText(inv.date) + " · " + Object.keys(inv.fact).length + "/" + inv.items.length;
+  el.title = "Инвентаризация № " + invNumberOf(invCurrent) + " от " + invDateText(inv.date) + ": посчитано " + Object.keys(inv.fact).length + " из " + inv.items.length;
+}
+function updateInvFilterUI(shown) {
+  document.getElementById("invFilterTitle").textContent = invFilterTitle();
+  document.getElementById("invFilterLabel").textContent = String(shown);
+  document.querySelectorAll("#invFilterPanel [data-cat]").forEach((b) => {
+    const on = b.dataset.cat === invFilter.cat && (b.dataset.cat !== "scooter" || b.dataset.model === invFilter.model);
+    b.classList.toggle("primary", b.dataset.model ? on : b.dataset.cat === invFilter.cat);
+  });
+  document.getElementById("invStockToggle").classList.toggle("primary", invFilter.stock);
+  const q = document.getElementById("invFilterQty");
+  if (document.activeElement !== q) q.value = invFilter.qty;
 }
 
 /* ---------- ввод факта ---------- */
-const invBody = document.getElementById("invBody");
-function invInputRow(input) { return input.closest("tr[data-i]"); }
+const invBody = document.getElementById("inv-body-parts");
+function invInputRow(input) { return input.closest("tr[data-index]"); }
 function invApplyRowState(tr) {
-  const inv = invSelected(), i = +tr.dataset.i;
+  const inv = invSelected(), i = +tr.dataset.index;
   const st = invRowState(inv, i);
   tr.classList.remove("inv-more", "inv-less", "inv-equal");
   if (st.cls) tr.classList.add(st.cls);
@@ -156,7 +182,7 @@ invBody.addEventListener("change", (e) => {
   const input = e.target.closest(".inv-input");
   const inv = invSelected();
   if (!input || !inv) return;
-  const i = +invInputRow(input).dataset.i;
+  const i = +invInputRow(input).dataset.index;
   const v = input.value.trim();
   if (v === "") delete inv.fact[i]; else inv.fact[i] = parseInt(v, 10);
   saveInventory();
@@ -178,7 +204,10 @@ invBody.addEventListener("focusin", (e) => {
 
 /* ---------- список, создание, удаление ---------- */
 document.getElementById("ocInventoryBtn").addEventListener("click", () => setInvOpen(true));
-document.getElementById("invExitBtn").addEventListener("click", () => setInvOpen(false));
+document.getElementById("invExitBtn").addEventListener("click", () => {
+  searchInputs.inv.value = "";   // строка поиска инвентаризации — пустой при следующем открытии
+  setInvOpen(false);
+});
 document.getElementById("invBackBtn").addEventListener("click", () => selectInv(null));
 document.getElementById("invNewBtn").addEventListener("click", () => {
   document.getElementById("invNewDate").value = todayStr();
@@ -232,9 +261,42 @@ document.getElementById("invRefreshBtn").addEventListener("click", () => {
   saveInventory();
   invRender();
 });
-document.getElementById("invSearch").addEventListener("input", (e) => { invFilter.q = e.target.value.trim(); renderInvTable(); });
-document.getElementById("invCat").addEventListener("change", (e) => { invFilter.cat = e.target.value; renderInvTable(); });
-document.getElementById("invModel").addEventListener("change", (e) => { invFilter.model = e.target.value; renderInvTable(); });
+// меню фильтра — как в «1С»
+document.getElementById("invFilterTitle").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const open = document.getElementById("invFilterPanel").classList.toggle("open");
+  if (open) document.getElementById("invScooterSub").hidden = invFilter.cat !== "scooter";
+});
+document.querySelectorAll("#invFilterPanel [data-cat]").forEach((btn) => {
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!btn.dataset.model) {   // «Самокаты ▸» — раскрыть выбор модели
+      const sub = document.getElementById("invScooterSub");
+      sub.hidden = !sub.hidden;
+      return;
+    }
+    invFilter.cat = btn.dataset.cat;
+    invFilter.model = btn.dataset.model;
+    saveInvFilter();
+    document.getElementById("invFilterPanel").classList.remove("open");
+    renderInvTable();
+  });
+});
+document.getElementById("invStockToggle").addEventListener("click", (e) => {
+  e.stopPropagation();
+  invFilter.stock = !invFilter.stock;
+  saveInvFilter();
+  renderInvTable();
+});
+document.getElementById("invFilterQty").addEventListener("click", (e) => e.stopPropagation());
+document.getElementById("invFilterQty").addEventListener("input", (e) => {
+  invFilter.qty = Math.max(0, parseInt(e.target.value, 10) || 0);
+  saveInvFilter();
+  if (invFilter.stock) renderInvTable();
+});
+document.addEventListener("click", (e) => {
+  if (!e.target.closest("#invFilterPanel") && !e.target.closest("#invFilterTitle")) document.getElementById("invFilterPanel").classList.remove("open");
+});
 
 /* ---------- Итого ---------- */
 function invTotalRows() {

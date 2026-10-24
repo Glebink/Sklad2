@@ -15,7 +15,7 @@ function searchBarHTML(prefix) {
     <button class="iconbtn nav" id="${prefix}SearchNext" title="Следующее совпадение">›</button>
   `;
 }
-["wh", "ca", "oc"].forEach((prefix) => {
+["wh", "ca", "oc", "inv"].forEach((prefix) => {
   const bar = document.getElementById(prefix + "SearchBar");
   if (bar) bar.innerHTML = searchBarHTML(prefix);
 });

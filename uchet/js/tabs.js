@@ -173,6 +173,8 @@ const SEARCH_TABS = [
   { key: "ca", bodyPrefix: "body-",    getStore: () => sections },
   { key: "wh", bodyPrefix: "wh-body-", getStore: () => warehouse },
   { key: "oc", bodyPrefix: "oc-body-", getStore: () => onec },
+  // инвентаризация (в «1С»): строки — позиции выбранной инвентаризации
+  { key: "inv", bodyPrefix: "inv-body-", getStore: () => ({ parts: (invSelected() || { items: [] }).items }) },
 ];
 const searchBars = {};
 const searchInputs = {};
