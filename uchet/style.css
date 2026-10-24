@@ -1489,10 +1489,10 @@ body.inv-mode:not(.inv-none) #viewInv { display: block; }
    Высота строки — как в «1С»: в поле «Склад» удобно попадать пальцем. */
 .inv-table td.name { padding-right: 44px; height: 54px; }
 .inv-table td.inv-num { text-align: center; font-weight: 600; }
-.inv-table td.inv-oc { color: var(--muted); font-size: 17px; }
+.inv-table td.inv-oc { color: var(--muted); font-size: 15px; }
 /* «Склад»: поле ввода — вся ячейка (как количество в «Учёте»), без отдельной рамки */
 .inv-table td.inv-fact { position: relative; padding: 0; border-left: 1px solid var(--border); }
-.inv-input { position: absolute; inset: 0; width: 100%; height: 100%; box-sizing: border-box; margin: 0; padding: 0 2px; border: 0; border-radius: 0; box-shadow: none; text-align: center; font: inherit; font-size: 20px; font-weight: 700; background: transparent; color: var(--fg); }
+.inv-input { position: absolute; inset: 0; width: 100%; height: 100%; box-sizing: border-box; margin: 0; padding: 0 2px; border: 0; border-radius: 0; box-shadow: none; text-align: center; font: inherit; font-size: 16px; font-weight: 700; background: transparent; color: var(--fg); }
 .inv-input::placeholder { color: var(--muted); opacity: .45; font-weight: 500; }
 .inv-input:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
 .inv-diff { position: absolute; z-index: 1; top: 1px; right: 4px; font-size: 10px; font-weight: 700; pointer-events: none; }
@@ -1505,9 +1505,10 @@ body.inv-mode:not(.inv-none) #viewInv { display: block; }
   .inv-table th.inv-num { width: 40px; padding-left: 2px; padding-right: 2px; }
   .inv-table thead th:nth-child(4) { width: 50px; }
   .inv-table td.inv-num { padding-left: 2px; padding-right: 2px; }
-  .inv-table td.inv-oc { font-size: 13px; }
+  .inv-table td.inv-oc { font-size: 12px; }
   .inv-table td.name { padding-right: 32px; height: 48px; }
-  .inv-input { font-size: 16px; padding: 6px 1px 0; }
+  /* видно 14px, но сам шрифт поля 16px: на iPhone поле мельче 16px при фокусе увеличивает страницу */
+  .inv-input { inset: auto; left: 50%; top: 50%; width: calc(100% / .875); height: calc(100% / .875); padding: 7px 1px 0; transform: translate(-50%, -50%) scale(.875); }
   .inv-head .inv-label { display: none; }
 }
 /* Итого */
