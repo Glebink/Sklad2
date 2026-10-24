@@ -65,6 +65,8 @@ if (window.Auth) {
         if (r) MY_LOGIN = r.login;
         setQrKiosk(isShift() && /^(otp|magiclink)$/.test((await Auth.loginMethod()) || ""));
         { const qb = document.getElementById("qrShiftBtn"); if (qb) qb.hidden = MY_LOGIN !== "hleb"; }
+        document.getElementById("ocInventoryBtn").hidden = !canInventory();   // инвентаризация — только hleb
+        invRender();
       } catch (e) {}
       if (isShift()) { if (!(await shiftSessionAlive())) return; await loadCatalogFromServer(); }
       syncUserOk = true;

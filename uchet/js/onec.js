@@ -463,10 +463,6 @@ document.querySelectorAll("#ocFilterPanel [data-cat]").forEach((btn) => {
     renderOneCAll();          // только перерисовка, без синхронизации
   });
 });
-// Инвентаризация — заготовка кнопки, функционал добавим позже.
-document.getElementById("ocInventoryBtn").addEventListener("click", () => {
-  alert("Инвентаризация — в разработке.");
-});
 document.getElementById("ocStockToggle").addEventListener("click", (e) => {
   e.stopPropagation();
   ocFilter.stock = !ocFilter.stock;

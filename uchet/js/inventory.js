@@ -1,0 +1,376 @@
+/* Учёт потребления — Инвентаризация во вкладке «1С» (только hleb).
+   Слева список инвентаризаций (как заявки в «Учёте»), «+» создаёт новую с выбранной датой.
+   Инвентаризация запоминает список и остатки 1С на момент создания («Обновить из 1С» берёт
+   текущие, введённое не пропадает). В столбик «Склад» вводится фактическое количество;
+   пустое поле — посчитано «как в 1С», без расхождения. «Итого» — сводка по всему списку:
+   «Списать» (в 1С больше, чем по факту) и «Выдать» (по факту больше) с порогом расхождения
+   в штуках; выгрузка в Excel и список «Списать» — новой заявкой в «Учёт».
+   Хранится в sklad_kv (ключ potreblenie_inventory_v1), синхронизируется как склад и 1С.
+   Остатки 1С в приложении инвентаризация не меняет.
+   Файлы — обычные скрипты с общей областью видимости, подключаются по порядку (см. index.html). */
+const INV_KEY = "sklad2_inventory_v1";   // { id: { date, created, by, items: [{code,name,qty,model?,model2?,cat?}], fact: { индекс: шт } } }
+function loadInventory() {
+  try {
+    const v = JSON.parse(localStorage.getItem(INV_KEY));
+    return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+  } catch (e) { return {}; }
+}
+let inventory = loadInventory();
+function saveInventory() {
+  try { localStorage.setItem(INV_KEY, JSON.stringify(inventory)); } catch (e) {}
+  scheduleSync();
+}
+
+let invOpen = false, invCurrent = null;
+try {
+  invOpen = sessionStorage.getItem("sklad2_inv_open") === "1";
+  invCurrent = sessionStorage.getItem("sklad2_sel_inv");
+} catch (e) {}
+function canInventory() { return MY_LOGIN === "hleb"; }
+function invModeOn() { return invOpen && currentTab === "onec" && canInventory(); }
+function invSelected() { return invCurrent && inventory[invCurrent] ? inventory[invCurrent] : null; }
+function invIds() { return Object.keys(inventory).sort((a, b) => (inventory[a].created || 0) - (inventory[b].created || 0)); }
+function invNumberOf(id) { return invIds().indexOf(id) + 1; }
+function invDateText(d) { const [y, m, dd] = String(d || "").split("-"); return dd ? dd + "." + m + "." + String(y).slice(2) : "—"; }
+function invRowKey(it) { return normItemName(it.code) + "|" + normItemName(it.name); }
+function invSnapshot() {
+  return onec.parts.map((it) => {
+    const o = { code: it.code || "", name: it.name || "", qty: it.qty || 0 };
+    if (it.model) o.model = it.model;
+    if (it.model2) o.model2 = it.model2;
+    if (it.cat) o.cat = it.cat;
+    return o;
+  });
+}
+// Строки с введённым фактом и расхождением: diff > 0 — по факту больше (выдать), < 0 — меньше (списать).
+function invDiffRows(inv) {
+  const out = [];
+  inv.items.forEach((it, i) => {
+    const f = inv.fact[i];
+    if (f === undefined) return;
+    const diff = f - (it.qty || 0);
+    if (diff) out.push({ it, i, fact: f, diff });
+  });
+  return out;
+}
+
+function setInvOpen(on) {
+  invOpen = !!on && canInventory();
+  try { sessionStorage.setItem("sklad2_inv_open", invOpen ? "1" : "0"); } catch (e) {}
+  invRender();
+  window.scrollTo(0, 0);
+}
+function selectInv(id) {
+  invCurrent = id && inventory[id] ? id : null;
+  try { if (invCurrent) sessionStorage.setItem("sklad2_sel_inv", invCurrent); else sessionStorage.removeItem("sklad2_sel_inv"); } catch (e) {}
+  invRender();
+  window.scrollTo(0, 0);
+}
+
+/* ---------- отрисовка ---------- */
+function invRender() {
+  updateLayoutClasses();
+  syncStickyTopHeight(true);
+  if (!invModeOn()) return;
+  renderInvList();
+  renderInvTable();
+}
+function renderInvList() {
+  const box = document.getElementById("invCards");
+  const ids = invIds().reverse();   // новые сверху
+  box.innerHTML = ids.length ? ids.map((id) => {
+    const inv = inventory[id], n = invNumberOf(id);
+    const counted = Object.keys(inv.fact || {}).length, diffs = invDiffRows(inv).length;
+    return `<button class="t-card${id === invCurrent ? " sel" : ""}" data-id="${escapeHtml(id)}">`
+      + `<div class="t-row"><span class="mono">№ ${n}</span><span class="t-date">${invDateText(inv.date)}</span></div>`
+      + `<div class="t-sub">посчитано ${counted} из ${inv.items.length}${diffs ? " · расхождений " + diffs : ""}</div>`
+      + `<div class="t-foot"><span class="t-menu-wrap"><span class="t-menu-btn" role="button" tabindex="0" title="Действия">⋮</span>`
+      + `<span class="t-menu"><span class="t-act danger" role="button" data-act="del" data-id="${escapeHtml(id)}">🗑 Удалить</span></span></span>`
+      + (inv.by ? `<span class="t-author">${escapeHtml(authorLabel(inv.by))}</span>` : "") + `</div>`
+      + `</button>`;
+  }).join("") : `<div class="t-empty">Инвентаризаций нет. Создайте кнопкой «+».</div>`;
+}
+const invFilter = { q: "", cat: "all", model: "all" };
+function invMatches(it) {
+  if (invFilter.q) {
+    const q = invFilter.q.toLowerCase();
+    if (!nameMatchesQuery(it.name, q) && !String(it.code || "").toLowerCase().includes(q)) return false;
+  }
+  if (invFilter.cat === "nowh") { if (it.code && warehouseInfoFor(it.code, it.name)) return false; }
+  else if (invFilter.cat !== "all" && ocCatOf(it) !== invFilter.cat) return false;
+  if (invFilter.cat !== "scooter" || invFilter.model === "all") return true;
+  if (invFilter.model === "none") return ocModelsOf(it).length === 0;
+  return ocModelsOf(it).indexOf(invFilter.model) !== -1;
+}
+function invRowState(inv, i) {
+  const f = inv.fact[i];
+  if (f === undefined) return { cls: "", diff: "" };
+  const d = f - (inv.items[i].qty || 0);
+  return { cls: d > 0 ? "inv-more" : d < 0 ? "inv-less" : "inv-equal", diff: d ? (d > 0 ? "+" + d : "−" + -d) : "✓" };
+}
+function renderInvTable() {
+  const inv = invSelected();
+  const body = document.getElementById("invBody");
+  if (!inv) { body.innerHTML = ""; return; }
+  rebuildCrossIndexes();
+  document.getElementById("invTitle").textContent = "Инвентаризация № " + invNumberOf(invCurrent) + " · " + invDateText(inv.date);
+  document.getElementById("invModel").hidden = invFilter.cat !== "scooter";
+  const rows = [];
+  inv.items.forEach((it, i) => {
+    if (!invMatches(it)) return;
+    const st = invRowState(inv, i);
+    const f = inv.fact[i];
+    rows.push(`<tr data-i="${i}" class="${st.cls}">
+      <td class="code">${it.code ? `<span class="code-text" data-code="${escapeHtml(it.code)}">${formatCodeDisplay(it.code)}</span>` : "—"}</td>
+      <td class="name"><div class="main-name">${escapeHtml(it.name)}</div><span class="wh-corner">${modelBadgesHtml(ocModelsOf(it), true)}</span></td>
+      <td class="inv-num inv-oc">${it.qty || 0}</td>
+      <td class="inv-num inv-fact"><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" class="inv-input" value="${f === undefined ? "" : f}" placeholder="${it.qty || 0}" aria-label="Фактическое количество"><span class="inv-diff">${st.diff}</span></td>
+    </tr>`);
+  });
+  body.innerHTML = rows.length ? rows.join("") : `<tr><td colspan="4" class="wh-empty">Ничего не найдено</td></tr>`;
+  updateInvProgress();
+}
+function updateInvProgress() {
+  const inv = invSelected();
+  if (!inv) return;
+  document.getElementById("invProgress").textContent = Object.keys(inv.fact).length + " / " + inv.items.length;
+}
+
+/* ---------- ввод факта ---------- */
+const invBody = document.getElementById("invBody");
+function invInputRow(input) { return input.closest("tr[data-i]"); }
+function invApplyRowState(tr) {
+  const inv = invSelected(), i = +tr.dataset.i;
+  const st = invRowState(inv, i);
+  tr.classList.remove("inv-more", "inv-less", "inv-equal");
+  if (st.cls) tr.classList.add(st.cls);
+  tr.querySelector(".inv-diff").textContent = st.diff;
+}
+invBody.addEventListener("input", (e) => {
+  const input = e.target.closest(".inv-input");
+  if (!input) return;
+  const d = input.value.replace(/\D+/g, "");
+  if (d !== input.value) input.value = d;
+});
+invBody.addEventListener("change", (e) => {
+  const input = e.target.closest(".inv-input");
+  const inv = invSelected();
+  if (!input || !inv) return;
+  const i = +invInputRow(input).dataset.i;
+  const v = input.value.trim();
+  if (v === "") delete inv.fact[i]; else inv.fact[i] = parseInt(v, 10);
+  saveInventory();
+  invApplyRowState(invInputRow(input));
+  updateInvProgress();
+  renderInvList();
+});
+// Enter — к следующей позиции, чтобы считать подряд
+invBody.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" || !e.target.classList.contains("inv-input")) return;
+  e.preventDefault();
+  const inputs = Array.from(invBody.querySelectorAll(".inv-input"));
+  const next = inputs[inputs.indexOf(e.target) + 1];
+  if (next) { next.focus(); scrollRowIntoView(next.closest("tr")); } else e.target.blur();
+});
+invBody.addEventListener("focusin", (e) => {
+  if (e.target.classList.contains("inv-input")) setTimeout(() => { try { e.target.select(); } catch (err) {} }, 0);
+});
+
+/* ---------- список, создание, удаление ---------- */
+document.getElementById("ocInventoryBtn").addEventListener("click", () => setInvOpen(true));
+document.getElementById("invExitBtn").addEventListener("click", () => setInvOpen(false));
+document.getElementById("invBackBtn").addEventListener("click", () => selectInv(null));
+document.getElementById("invNewBtn").addEventListener("click", () => {
+  document.getElementById("invNewDate").value = todayStr();
+  openModal("invNewOverlay");
+});
+document.getElementById("invNewNo").addEventListener("click", () => closeModal("invNewOverlay"));
+document.getElementById("invNewOverlay").addEventListener("click", (e) => { if (e.target.id === "invNewOverlay") closeModal("invNewOverlay"); });
+document.getElementById("invNewYes").addEventListener("click", () => {
+  closeModal("invNewOverlay");
+  if (!canInventory()) return;
+  if (!onec.parts.length) { alert("Список 1С пуст — сначала импортируйте остатки."); return; }
+  const date = document.getElementById("invNewDate").value || todayStr();
+  const id = "inv" + Date.now().toString(36);
+  inventory[id] = { date, created: Date.now(), by: MY_LOGIN, items: invSnapshot(), fact: {} };
+  saveInventory();
+  selectInv(id);
+});
+document.getElementById("invCards").addEventListener("click", (e) => {
+  const mb = e.target.closest(".t-menu-btn");
+  if (mb) {
+    e.stopPropagation();
+    const w = mb.parentElement, was = w.classList.contains("open");
+    closeTicketMenus();
+    w.classList.toggle("open", !was);
+    return;
+  }
+  const act = e.target.closest(".t-act");
+  if (act) {
+    e.stopPropagation();
+    closeTicketMenus();
+    const id = act.dataset.id, inv = inventory[id];
+    if (!inv || !confirm("Удалить инвентаризацию № " + invNumberOf(id) + " от " + invDateText(inv.date) + "? Удаление уйдёт на сервер и на все устройства.")) return;
+    delete inventory[id];
+    if (invCurrent === id) invCurrent = null;
+    saveInventory();
+    invRender();
+    return;
+  }
+  if (e.target.closest(".t-menu")) return;
+  const c = e.target.closest(".t-card");
+  if (c) selectInv(c.dataset.id === invCurrent ? null : c.dataset.id);
+});
+document.getElementById("invRefreshBtn").addEventListener("click", () => {
+  const inv = invSelected();
+  if (!inv || !confirm("Обновить список и остатки из текущей вкладки «1С»? Введённые количества сохранятся.")) return;
+  const byKey = {};
+  inv.items.forEach((it, i) => { if (inv.fact[i] !== undefined && !(invRowKey(it) in byKey)) byKey[invRowKey(it)] = inv.fact[i]; });
+  inv.items = invSnapshot();
+  inv.fact = {};
+  inv.items.forEach((it, i) => { const f = byKey[invRowKey(it)]; if (f !== undefined) inv.fact[i] = f; });
+  saveInventory();
+  invRender();
+});
+document.getElementById("invSearch").addEventListener("input", (e) => { invFilter.q = e.target.value.trim(); renderInvTable(); });
+document.getElementById("invCat").addEventListener("change", (e) => { invFilter.cat = e.target.value; renderInvTable(); });
+document.getElementById("invModel").addEventListener("change", (e) => { invFilter.model = e.target.value; renderInvTable(); });
+
+/* ---------- Итого ---------- */
+function invTotalRows() {
+  const inv = invSelected();
+  if (!inv) return [];
+  const mode = document.getElementById("invTotalMode").dataset.value || "write";
+  const min = Math.max(1, parseInt(document.getElementById("invThreshold").value, 10) || 1);
+  return invDiffRows(inv)
+    .filter((r) => (mode === "write" ? r.diff < 0 : r.diff > 0) && Math.abs(r.diff) >= min)
+    .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+}
+function renderInvTotal() {
+  const inv = invSelected();
+  if (!inv) return;
+  const mode = document.getElementById("invTotalMode").dataset.value || "write";
+  const rows = invTotalRows();
+  const sum = rows.reduce((s, r) => s + Math.abs(r.diff), 0);
+  document.getElementById("invTotalTitle").textContent = "Итого · инвентаризация № " + invNumberOf(invCurrent) + " · " + invDateText(inv.date);
+  document.getElementById("invTotalSummary").textContent = (mode === "write" ? "Списать" : "Выдать")
+    + ": позиций " + rows.length + ", штук " + sum + " · посчитано " + Object.keys(inv.fact).length + " из " + inv.items.length;
+  document.getElementById("invTotalList").innerHTML = rows.length
+    ? `<table class="inv-total-table"><thead><tr><th>Код</th><th>Наименование</th><th>1С</th><th>Факт</th><th>${mode === "write" ? "Списать" : "Выдать"}</th></tr></thead><tbody>`
+      + rows.map((r) => `<tr><td class="mono">${escapeHtml(r.it.code || "—")}</td><td>${escapeHtml(r.it.name)}</td><td>${r.it.qty || 0}</td><td>${r.fact}</td><td><b>${Math.abs(r.diff)}</b></td></tr>`).join("")
+      + `</tbody></table>`
+    : `<div class="sync-history-empty">Расхождений нет.</div>`;
+  document.getElementById("invToTicketBtn").hidden = mode !== "write";
+  document.getElementById("invToTicketBtn").disabled = !rows.length;
+  document.getElementById("invExcelBtn").disabled = !rows.length;
+}
+document.getElementById("invTotalBtn").addEventListener("click", () => {
+  if (!invSelected()) return;
+  setModelSwitch(document.getElementById("invTotalMode"), document.getElementById("invTotalMode").dataset.value || "write");
+  renderInvTotal();
+  openModal("invTotalOverlay");
+});
+document.getElementById("invTotalMode").addEventListener("click", () => setTimeout(renderInvTotal, 0));
+document.getElementById("invThreshold").addEventListener("input", renderInvTotal);
+document.getElementById("invTotalClose").addEventListener("click", () => closeModal("invTotalOverlay"));
+document.getElementById("invTotalOverlay").addEventListener("click", (e) => { if (e.target.id === "invTotalOverlay") closeModal("invTotalOverlay"); });
+
+document.getElementById("invExcelBtn").addEventListener("click", () => {
+  const inv = invSelected(), rows = invTotalRows();
+  if (!inv || !rows.length) return;
+  const write = (document.getElementById("invTotalMode").dataset.value || "write") === "write";
+  const head = ["Код", "Наименование", "1С", "Факт", write ? "Списать" : "Выдать"];
+  const data = rows.map((r) => [r.it.code || "", r.it.name, r.it.qty || 0, r.fact, Math.abs(r.diff)]);
+  const blob = buildXlsx(write ? "Списать" : "Выдать", [head].concat(data), [18, 50, 8, 8, 10]);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "inventarizaciya-" + inv.date + "-" + (write ? "spisat" : "vydat") + ".xlsx";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+});
+
+// Весь список «Списать» — новой заявкой на сегодня в «Учёт» с комментарием «Списание инвента».
+document.getElementById("invToTicketBtn").addEventListener("click", () => {
+  const rows = invTotalRows().filter((r) => r.diff < 0);
+  if (!rows.length) return;
+  if (!confirm("Создать в «Учёте» заявку на сегодня «Списание инвента»: позиций " + rows.length + "?")) return;
+  rebuildCrossIndexes();
+  persistCurrentLocalOnly();
+  const d = todayStr();
+  let key = d, n = 1;
+  while (dataByDate[key]) { n++; key = d + "#" + n; }
+  const e = emptyEntry();
+  e.created = Date.now();
+  if (MY_LOGIN) e.by = MY_LOGIN;
+  e.note = "Списание инвента";
+  rows.forEach((r) => {
+    // в «Учёте» позиция — как на «Складе» (код и название склада), если она там есть
+    const w = r.it.code ? warehouseInfoFor(r.it.code, r.it.name) : null;
+    const item = { code: w ? w.code : (r.it.code || ""), name: w ? w.name : r.it.name };
+    const k = countKey("parts", item);
+    if (e.counts[k] === undefined) { e.sections.parts.push(item); e.counts[k] = 0; }
+    e.counts[k] += -r.diff;
+  });
+  dataByDate[key] = e;
+  saveDataByDate();
+  closeModal("invTotalOverlay");
+  switchTab("consumption");
+  selectTicket(key);
+});
+
+/* ---------- выгрузка .xlsx без сторонних библиотек ----------
+   Минимальная книга: один лист, текст — встроенными строками, числа — числами.
+   ZIP без сжатия (метод «stored»), контрольные суммы CRC-32. */
+function crc32(bytes) {
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) {
+    let c = (crc ^ bytes[i]) & 0xFF;
+    for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xEDB88320 : c >>> 1;
+    crc = (crc >>> 8) ^ c;
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+function zipStored(files, type) {
+  const enc = new TextEncoder(), parts = [], central = [];
+  let offset = 0;
+  files.forEach((f) => {
+    const name = enc.encode(f.name), data = enc.encode(f.text), crc = crc32(data), n = data.length;
+    const lh = new DataView(new ArrayBuffer(30));
+    [[0, 0x04034b50, 4], [4, 20, 2], [6, 0x0800, 2], [8, 0, 2], [10, 0, 2], [12, 0x21, 2], [14, crc, 4], [18, n, 4], [22, n, 4], [26, name.length, 2], [28, 0, 2]]
+      .forEach(([o, v, s]) => (s === 4 ? lh.setUint32(o, v, true) : lh.setUint16(o, v, true)));
+    parts.push(new Uint8Array(lh.buffer), name, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    [[0, 0x02014b50, 4], [4, 20, 2], [6, 20, 2], [8, 0x0800, 2], [10, 0, 2], [12, 0, 2], [14, 0x21, 2], [16, crc, 4], [20, n, 4], [24, n, 4], [28, name.length, 2], [42, offset, 4]]
+      .forEach(([o, v, s]) => (s === 4 ? ch.setUint32(o, v, true) : ch.setUint16(o, v, true)));
+    central.push(new Uint8Array(ch.buffer), name);
+    offset += 30 + name.length + n;
+  });
+  const cdSize = central.reduce((s, a) => s + a.length, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true);
+  end.setUint16(8, files.length, true);
+  end.setUint16(10, files.length, true);
+  end.setUint32(12, cdSize, true);
+  end.setUint32(16, offset, true);
+  return new Blob(parts.concat(central, [new Uint8Array(end.buffer)]), { type });
+}
+function buildXlsx(sheetName, rows, widths) {
+  const x = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const col = (i) => String.fromCharCode(65 + i);
+  const NS = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"';
+  const REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+  const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet ${NS}><cols>`
+    + widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join("") + `</cols><sheetData>`
+    + rows.map((r, ri) => `<row r="${ri + 1}">` + r.map((v, ci) => typeof v === "number"
+      ? `<c r="${col(ci)}${ri + 1}"><v>${v}</v></c>`
+      : `<c r="${col(ci)}${ri + 1}" t="inlineStr"><is><t xml:space="preserve">${x(v)}</t></is></c>`).join("") + `</row>`).join("")
+    + `</sheetData></worksheet>`;
+  return zipStored([
+    { name: "[Content_Types].xml", text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>` },
+    { name: "_rels/.rels", text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}/officeDocument" Target="xl/workbook.xml"/></Relationships>` },
+    { name: "xl/workbook.xml", text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook ${NS} xmlns:r="${REL}"><sheets><sheet name="${x(sheetName)}" sheetId="1" r:id="rId1"/></sheets></workbook>` },
+    { name: "xl/_rels/workbook.xml.rels", text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}/worksheet" Target="worksheets/sheet1.xml"/></Relationships>` },
+    { name: "xl/worksheets/sheet1.xml", text: sheet }
+  ], "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+}

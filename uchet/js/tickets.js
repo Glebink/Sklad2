@@ -12,7 +12,10 @@ function ticketDateLong(key) {
 }
 function updateLayoutClasses() {
   const cons = currentTab === "consumption";
-  document.body.classList.toggle("has-list", cons && !QR_KIOSK);
+  const inv = typeof invModeOn === "function" && invModeOn();   // инвентаризация во вкладке «1С»
+  document.body.classList.toggle("inv-mode", inv);
+  document.body.classList.toggle("inv-none", inv && !invSelected());
+  document.body.classList.toggle("has-list", (cons && !QR_KIOSK) || inv);
   document.body.classList.toggle("no-ticket", cons && !currentDate);
   document.body.classList.toggle("has-ticket", cons && !!currentDate);
 }
@@ -78,10 +81,11 @@ function selectTicket(key) {
   try { if (currentDate) sessionStorage.setItem("sklad2_sel_ticket", currentDate); else sessionStorage.removeItem("sklad2_sel_ticket"); } catch (e) {}
   afterTicketChange();
 }
-function createTicket(note) {
+// date — дата заявки «ГГГГ-ММ-ДД» (hleb выбирает при создании), по умолчанию сегодня.
+function createTicket(note, date) {
   if (shiftTodayTicket()) return;
   persistCurrentLocalOnly();
-  const d = todayStr();
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(date || "") ? date : todayStr();
   let key = d, n = 1;
   while (dataByDate[key]) { n++; key = d + "#" + n; }
   dataByDate[key] = emptyEntry();
@@ -103,21 +107,30 @@ function shiftTodayTicket() {
 document.getElementById("ticketNewBtn").addEventListener("click", () => {
   const own = shiftTodayTicket();
   if (own) { selectTicket(own); alert("На сегодня заявка уже есть. Добавляйте позиции в неё."); return; }
-  const n = ticketKeys().length + 1;
-  document.getElementById("newTicketText").textContent =
-    "Создать новую заявку на учёт № " + n + " за " + formatFull(todayStr()) + "?";
-  const note = document.getElementById("newTicketNote");
+  const hleb = MY_LOGIN === "hleb";
+  const note = document.getElementById("newTicketNote"), date = document.getElementById("newTicketDate");
   note.value = "";
-  note.hidden = MY_LOGIN !== "hleb";
+  note.hidden = !hleb;
+  date.value = todayStr();
+  date.hidden = !hleb;            // дату заявки выбирает только hleb, у остальных — сегодня
+  updateNewTicketText();
   openModal("newTicketOverlay");
 });
+function updateNewTicketText() {
+  const d = document.getElementById("newTicketDate").value || todayStr();
+  document.getElementById("newTicketText").textContent =
+    "Создать новую заявку на учёт № " + (ticketKeys().length + 1) + " за " + formatFull(d) + "?";
+}
+document.getElementById("newTicketDate").addEventListener("input", updateNewTicketText);
 document.getElementById("newTicketNo").addEventListener("click", () => closeModal("newTicketOverlay"));
 document.getElementById("newTicketOverlay").addEventListener("click", (e) => {
   if (e.target.id === "newTicketOverlay") closeModal("newTicketOverlay");
 });
 document.getElementById("newTicketYes").addEventListener("click", () => {
   closeModal("newTicketOverlay");
-  createTicket(MY_LOGIN === "hleb" ? document.getElementById("newTicketNote").value.trim() : "");
+  const hleb = MY_LOGIN === "hleb";
+  createTicket(hleb ? document.getElementById("newTicketNote").value.trim() : "",
+               hleb ? document.getElementById("newTicketDate").value : "");
 });
 document.getElementById("ticketBackBtn").addEventListener("click", () => { if (!QR_KIOSK) selectTicket(null); });
 /* ==================== QR-вход для склада (только hleb) ====================

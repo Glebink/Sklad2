@@ -12,8 +12,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Склад">
 <link rel="stylesheet" href="../lib/fonts/fonts.css">
-<link rel="stylesheet" href="style.css?v=2610221459">
-<link rel="stylesheet" href="../auth.css?v=2610221459">
+<link rel="stylesheet" href="style.css?v=2610241707">
+<link rel="stylesheet" href="../auth.css?v=2610241707">
 </head>
 <body>
 
@@ -100,6 +100,19 @@
   </label>
   <div class="t-cards" id="ticketCards"></div>
 </section>
+<!-- Левый столбец во вкладке «1С» в режиме инвентаризации (только hleb): список инвентаризаций -->
+<section class="u-list" id="invList">
+  <div class="t-tools">
+    <button class="tool-btn inv-exit" id="invExitBtn" title="Закрыть инвентаризацию — к списку 1С" aria-label="Закрыть инвентаризацию">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg><span>1С</span>
+    </button>
+    <button class="tool-btn" id="invNewBtn" aria-label="Новая инвентаризация" title="Новая инвентаризация">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+  </div>
+  <div class="t-cards" id="invCards"></div>
+</section>
+<div class="ticket-empty" id="invEmpty">Выберите инвентаризацию слева или создайте новую кнопкой «+».</div>
 <div class="ticket-empty" id="ticketEmpty">Выберите заявку на учёт слева или создайте новую кнопкой «+».</div>
 
 <!-- ===================== ВКЛАДКА: УЧЁТ ===================== -->
@@ -195,7 +208,7 @@
     <button class="iconbtn" id="ocRedoBtn" disabled title="Повторить действие">↷</button>
     <span class="oc-filter-label" id="ocFilterLabel"></span>
     <button class="util oc-import-btn" id="ocImportBtn" title="Импорт остатков из Excel">⬆ Импорт</button>
-    <button class="util" id="ocInventoryBtn" title="Инвентаризация">📋<span class="inv-label"> Инвентаризация</span></button>
+    <button class="util" id="ocInventoryBtn" title="Инвентаризация" hidden>📋<span class="inv-label"> Инвентаризация</span></button>
     <div class="spacer"></div>
   </div>
   <div class="table-scroll">
@@ -213,6 +226,42 @@
 
 </div>
 
+<!-- ===================== 1С: ИНВЕНТАРИЗАЦИЯ ===================== -->
+<div id="viewInv">
+  <div class="section-head inv-head">
+    <button class="iconbtn inv-back" id="invBackBtn" title="К списку инвентаризаций" aria-label="К списку инвентаризаций">‹</button>
+    <h2 class="section-title" id="invTitle">Инвентаризация</h2>
+    <span class="oc-filter-label" id="invProgress"></span>
+    <div class="spacer"></div>
+    <button class="util" id="invRefreshBtn" title="Взять остатки из текущего списка 1С (введённое не пропадёт)">⟳<span class="inv-label"> Обновить из 1С</span></button>
+    <button class="util primary" id="invTotalBtn">Итого</button>
+  </div>
+  <div class="inv-filters">
+    <input type="search" id="invSearch" placeholder="Поиск: код или название" autocomplete="off">
+    <select id="invCat" title="Категория">
+      <option value="all">Все категории</option>
+      <option value="scooter">Самокаты</option>
+      <option value="tool">Инструменты</option>
+      <option value="cons">Расходники</option>
+      <option value="other">Остальное</option>
+      <option value="nowh">Не на складе</option>
+    </select>
+    <select id="invModel" title="Модель" hidden>
+      <option value="all">Все модели</option>
+      <option value="YGW 4.0">YGW 4.0</option>
+      <option value="YGW 5.0">YGW 5.0</option>
+      <option value="9Bot">9Bot</option>
+      <option value="none">Без модели</option>
+    </select>
+  </div>
+  <div class="table-scroll">
+  <table class="inv-table">
+    <thead><tr><th>Код</th><th>Наименование</th><th class="inv-num">1С</th><th class="inv-num">Склад</th></tr></thead>
+    <tbody id="invBody"></tbody>
+  </table>
+  </div>
+</div>
+
 </div>
 
 <div id="printArea"></div>
@@ -221,10 +270,43 @@
 <div class="modal-overlay" id="newTicketOverlay">
   <div class="modal-box">
     <p id="newTicketText">Создать заявку на учёт?</p>
+    <input type="date" id="newTicketDate" class="full-w mb-10" title="Дата заявки" hidden>
     <input type="text" id="newTicketNote" class="full-w" maxlength="60" placeholder="Комментарий (необязательно)" hidden>
     <div class="modal-actions">
       <button class="confirm-no" id="newTicketNo">Отмена</button>
       <button class="confirm-yes accent" id="newTicketYes">Создать</button>
+    </div>
+  </div>
+</div>
+
+<!-- Новая инвентаризация -->
+<div class="modal-overlay" id="invNewOverlay">
+  <div class="modal-box">
+    <p class="modal-title">Новая инвентаризация</p>
+    <p class="sync-status-line">Список и остатки берутся из «1С» на момент создания.</p>
+    <input type="date" id="invNewDate" class="full-w mb-10" title="Дата инвентаризации">
+    <div class="modal-actions">
+      <button class="confirm-no" id="invNewNo">Отмена</button>
+      <button class="confirm-yes accent" id="invNewYes">Создать</button>
+    </div>
+  </div>
+</div>
+
+<!-- Итого по инвентаризации -->
+<div class="modal-overlay" id="invTotalOverlay">
+  <div class="modal-box wide inv-total-box">
+    <p class="modal-title" id="invTotalTitle">Итого</p>
+    <div class="model-switch inv-mode-switch" id="invTotalMode" data-value="write">
+      <button type="button" class="ms-opt" data-model="write">Списать</button>
+      <button type="button" class="ms-opt" data-model="issue">Выдать</button>
+    </div>
+    <label class="inv-threshold">Расхождение от <input type="number" id="invThreshold" min="1" value="1" inputmode="numeric"> шт.</label>
+    <div class="sync-status-line" id="invTotalSummary"></div>
+    <div class="inv-total-list" id="invTotalList"></div>
+    <div class="modal-actions inv-total-actions">
+      <button class="confirm-no" id="invTotalClose">Закрыть</button>
+      <button class="util" id="invExcelBtn">⬇ Excel</button>
+      <button class="confirm-yes accent" id="invToTicketBtn" title="Весь список «Списать» — новой заявкой в «Учёт»">В учёт</button>
     </div>
   </div>
 </div>
@@ -541,19 +623,20 @@
 </div>
 
 <script src="../lib/supabase-2.45.4.js"></script>
-<script src="../auth.js?v=2610221459"></script>
-<script src="qrcode.js?v=2610221459"></script>
+<script src="../auth.js?v=2610241707"></script>
+<script src="qrcode.js?v=2610241707"></script>
 <!-- Учёт: обычные скрипты с общей областью видимости, порядок важен -->
-<script src="js/core.js?v=2610221459"></script>
-<script src="js/consumption.js?v=2610221459"></script>
-<script src="js/tickets.js?v=2610221459"></script>
-<script src="js/warehouse.js?v=2610221459"></script>
-<script src="js/tabs.js?v=2610221459"></script>
-<script src="js/stock-import.js?v=2610221459"></script>
-<script src="js/onec.js?v=2610221459"></script>
-<script src="js/ui.js?v=2610221459"></script>
-<script src="js/sync.js?v=2610221459"></script>
-<script src="js/start.js?v=2610221459"></script>
+<script src="js/core.js?v=2610241707"></script>
+<script src="js/consumption.js?v=2610241707"></script>
+<script src="js/tickets.js?v=2610241707"></script>
+<script src="js/warehouse.js?v=2610241707"></script>
+<script src="js/tabs.js?v=2610241707"></script>
+<script src="js/stock-import.js?v=2610241707"></script>
+<script src="js/onec.js?v=2610241707"></script>
+<script src="js/ui.js?v=2610241707"></script>
+<script src="js/sync.js?v=2610241707"></script>
+<script src="js/inventory.js?v=2610241707"></script>
+<script src="js/start.js?v=2610241707"></script>
 
 </body>
 </html>

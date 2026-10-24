@@ -31,7 +31,7 @@ function switchTab(target) {
     showSearchBarFor(target);
     if (backTarget && target !== backTarget.dest) hideBackBtn();
     if (target === "warehouse") renderWarehouseAll();
-    if (target === "onec") renderOneCAll();
+    if (target === "onec") { renderOneCAll(); invRender(); }
     // Вкладка — в адресе (#warehouse), чтобы её можно было открыть в новой вкладке и обновить страницу на ней
     try { history.replaceState(null, "", target === "consumption" ? location.pathname + location.search : "#" + target); } catch (e) {}
     // Возврат в «Учёт» — всегда с начала списка (а не с места прокрутки «Склада»/«1С»)

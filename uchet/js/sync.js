@@ -10,6 +10,7 @@ const BACKUP_KEYS = [
   "potreblenie_onec_v1",
   "potreblenie_transfer_list_v1",
   "potreblenie_best_stock_v1",
+  "potreblenie_inventory_v1",
   "potreblenie_sort_state_v1",
   "potreblenie_sync_history_v1"
 ];
@@ -83,20 +84,22 @@ document.getElementById("backupFileInput").addEventListener("change", (e) => {
    Сервер к тому же хранит предыдущие версии каждого ключа (sklad_kv_log): за 7 дней,
    не чаще одной в 10 минут. */
 // Сменщик синхронизирует только данные учёта по дням; остальные ключи ему сервер не отдаёт.
-const SYNC_KEYS = isShift() ? ["potreblenie_data_by_date_v3"] : BACKUP_KEYS.slice(0, 5);   // в бэкапе они названы по-старому (potreblenie_*)
+const SYNC_KEYS = isShift() ? ["potreblenie_data_by_date_v3"] : BACKUP_KEYS.slice(0, 6);   // в бэкапе они названы по-старому (potreblenie_*)
 const SYNC_FIELD = {
   potreblenie_data_by_date_v3: "dataByDate",
   potreblenie_warehouse_v1: "warehouse",
   potreblenie_onec_v1: "onec",
   potreblenie_transfer_list_v1: "transferList",
-  potreblenie_best_stock_v1: "bestStock"
+  potreblenie_best_stock_v1: "bestStock",
+  potreblenie_inventory_v1: "inventory"
 };
 const SYNC_LABEL = {
   potreblenie_data_by_date_v3: "Учёт",
   potreblenie_warehouse_v1: "Склад",
   potreblenie_onec_v1: "1С",
   potreblenie_transfer_list_v1: "Список перемещения",
-  potreblenie_best_stock_v1: "Остатки Бестужевской"
+  potreblenie_best_stock_v1: "Остатки Бестужевской",
+  potreblenie_inventory_v1: "Инвентаризация"
 };
 const SYNC_META_KEY = "sklad2_sync_meta_v1";     // { ключ: { at: updated_at сервера, h: хэш значения } }
 const SYNC_AUTO_KEY = "sklad2_sync_auto_v1";     // "0" — автосинхронизация выключена
@@ -539,6 +542,10 @@ function applySyncPayload(payload) {
       bestStock = payload.bestStock;
       saveBestStock(bestStock);
     }
+    if (payload.inventory && typeof payload.inventory === "object" && !Array.isArray(payload.inventory)) {
+      inventory = payload.inventory;
+      try { localStorage.setItem(INV_KEY, JSON.stringify(inventory)); } catch (e) {}
+    }
     bindCurrent();   // выбранная заявка остаётся своей на каждом устройстве
     // С сервера могли прийти позиции со старыми названиями (метка версии
     // ещё в тексте) — сразу прогоняем автопростановку модели, иначе
@@ -561,6 +568,7 @@ function applySyncPayload(payload) {
     renderWarehouseAll();
     renderOneCAll();
     try { renderTransferList(); } catch (e) {}
+    if (!isTypingNow()) invRender();   // во время ввода количества таблицу не перерисовываем
   } finally {
     applyingRemote = false;
   }
@@ -606,6 +614,7 @@ function isValidRemote(rk, v) {
   }
   if (rk === "potreblenie_transfer_list_v1") return Array.isArray(v);
   if (rk === "potreblenie_best_stock_v1") return !!v && Array.isArray(v.rows);
+  if (rk === "potreblenie_inventory_v1") return !!v && typeof v === "object" && !Array.isArray(v);
   return false;
 }
 function syncErrText(e) {
@@ -730,6 +739,24 @@ function mergeSyncValue(rk, B, L, R) {
     }
     if (rk === "potreblenie_best_stock_v1") {
       return ((L && L.savedAt) || 0) > ((R && R.savedAt) || 0) ? L : R;   // это выгрузка целиком: берём более свежую
+    }
+    if (rk === "potreblenie_inventory_v1") {
+      // по инвентаризациям: удалённая с одной стороны и не тронутая с другой — удаляется;
+      // введённые количества сливаются по позициям (обе стороны ввели разное — остаётся моё)
+      const out = {};
+      new Set([].concat(Object.keys(B), Object.keys(L), Object.keys(R))).forEach((id) => {
+        const inL = id in L, inR = id in R, inB = id in B;
+        if (inL && inR) {
+          if (mEq(L[id], R[id])) { out[id] = L[id]; return; }
+          const b = B[id] || {};
+          out[id] = mergeObj(b, L[id], R[id], null);
+          out[id].fact = mergeObj(b.fact || {}, L[id].fact || {}, R[id].fact || {}, null);
+          return;
+        }
+        if (inL) { if (inB && mEq(L[id], B[id])) return; out[id] = L[id]; return; }
+        if (inR) { if (inB && mEq(R[id], B[id])) return; out[id] = R[id]; }
+      });
+      return out;
     }
   } catch (e) {}
   return null;

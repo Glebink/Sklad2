@@ -302,18 +302,20 @@ let warehouse = loadWarehouse(); // { parts: [{code,name,qty,model}], consumable
 // остановились в прошлый раз): открыли на следующий день — календарь сам на нём.
 /* Учёт ведётся ЗАЯВКАМИ: каждая — запись в dataByDate с ключом «ГГГГ-ММ-ДД» (первая за день)
    или «ГГГГ-ММ-ДД#2», «#3»… (следующие). Номер заявки не хранится: это порядковый номер среди
-   всех заявок по возрастанию даты, поэтому на всех устройствах он одинаков. Не выбрана
+   всех заявок в порядке создания (поле created; у старых заявок без него — по дате), поэтому
+   на всех устройствах он одинаков. Заявка, созданная задним числом (hleb выбирает дату),
+   получает следующий номер и стоит в списке сверху, а не уходит вниз к своей дате. Не выбрана
    заявка (currentDate = null) — рабочее поле пустое. */
 let currentDate = null;
 const TICKET_KEY_RE = /^\d{4}-\d{2}-\d{2}(#\d+)?$/;
 function emptyEntry() { return { sections: emptySections(), counts: {}, checked: {} }; }
-function ticketCmp(a, b) {
-  const da = a.slice(0, 10), db = b.slice(0, 10);
-  if (da !== db) return da < db ? -1 : 1;
-  const na = a.indexOf("#") >= 0 ? parseInt(a.split("#")[1], 10) : 1;
-  const nb = b.indexOf("#") >= 0 ? parseInt(b.split("#")[1], 10) : 1;
-  return na - nb;
+// Момент создания заявки: поле created, у старых заявок без него — полночь МСК её даты (+ номер за день).
+function ticketCreatedAt(k) {
+  const e = dataByDate[k];
+  if (e && e.created) return e.created;
+  return Date.parse(k.slice(0, 10) + "T00:00:00+03:00") + (k.indexOf("#") >= 0 ? parseInt(k.split("#")[1], 10) : 1);
 }
+function ticketCmp(a, b) { return (ticketCreatedAt(a) - ticketCreatedAt(b)) || (a < b ? -1 : a > b ? 1 : 0); }
 function ticketKeys() { return Object.keys(dataByDate).filter((k) => TICKET_KEY_RE.test(k)).sort(ticketCmp); }
 function ticketNumberMap() { const m = {}; ticketKeys().forEach((k, i) => { m[k] = i + 1; }); return m; }
 function entryItemCount(e) {

@@ -1458,3 +1458,67 @@ body.qr-kiosk.has-ticket #datePickerBox { display: flex !important; }
 
 /* QR-вход: срок действия кода истёк — код бледный */
 .qr-box.qr-expired svg { opacity: .25; }
+
+/* ==================== 1С: инвентаризация (только hleb) ====================
+   Режим вкладки «1С»: слева список инвентаризаций (как заявки в «Учёте»), в центре таблица.
+   На телефоне — два экрана: список и выбранная инвентаризация. */
+#invList, #viewInv, #invEmpty { display: none; }
+body:not(.inv-mode) #invList { display: none !important; }
+body.inv-mode #ticketList, body.inv-mode #ticketEmpty, body.inv-mode #viewOneC, body.inv-mode #ocSearchBar { display: none !important; }
+body.inv-mode:not(.inv-none) #viewInv { display: block; }
+@media (min-width: 900px) {
+  body.inv-mode #invList { display: block; }
+  body.inv-mode.inv-none #invEmpty { display: block; }
+  #viewInv { width: min(100%, max(calc(0.72 * (100vw - var(--list-w-old) - 48px)), 680px)); margin: 0 auto; }
+  #invBackBtn { display: none; }
+}
+@media (max-width: 899px) {
+  body.inv-mode.inv-none #invList { display: block; }
+  body.inv-mode:not(.inv-none) #invList { display: none !important; }
+}
+.u-list .tool-btn.inv-exit { width: auto; padding: 0 12px 0 8px; gap: 2px; font-weight: 600; }
+.inv-head { flex-wrap: wrap; gap: 8px; }
+.inv-head .inv-back { width: 40px; height: 40px; font-size: 24px; line-height: 1; }
+.inv-filters { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }
+.inv-filters input[type="search"] { flex: 1 1 200px; min-height: 40px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 8px; padding: 0 10px; font: inherit; }
+.inv-filters select { min-height: 40px; border: 1px solid var(--border); border-radius: 8px; padding: 0 8px; font: inherit; background: var(--surface); }
+.inv-filters select[hidden] { display: none; }
+.inv-table { table-layout: fixed; width: 100%; }
+.inv-table thead th:nth-child(1) { width: calc(10 * var(--code-fs, 14px) + 22px); }
+.inv-table th.inv-num { width: 64px; text-align: center; }
+.inv-table thead th:nth-child(4) { width: 96px; }
+.inv-table td.code { font-size: var(--code-fs, 14px); font-weight: 700; color: var(--fg); }
+.inv-table td.name { position: relative; padding-right: 44px; overflow-wrap: break-word; }
+.inv-table td.inv-num { text-align: center; font-weight: 600; }
+.inv-table td.inv-oc { color: var(--muted); font-size: 17px; }
+.inv-table td.inv-fact { position: relative; padding: 4px; }
+.inv-input { width: 100%; height: 38px; box-sizing: border-box; border: 1px solid var(--line-strong); border-radius: 8px; text-align: center; font: inherit; font-size: 18px; font-weight: 700; background: var(--surface); }
+.inv-input::placeholder { color: var(--muted); opacity: .45; font-weight: 500; }
+.inv-input:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+.inv-diff { position: absolute; top: 1px; right: 6px; font-size: 10px; font-weight: 700; pointer-events: none; }
+.inv-table tr.inv-more td { background: var(--s-ordered-bg); }
+.inv-table tr.inv-more .inv-diff { color: var(--ok-ink); }
+.inv-table tr.inv-less td { background: var(--s-rejected-bg); }
+.inv-table tr.inv-less .inv-diff { color: var(--bad-ink); }
+.inv-table tr.inv-equal .inv-diff { color: var(--ok); }
+@media (max-width: 899px) {
+  .inv-table thead th:nth-child(1) { width: 92px; }
+  .inv-table th.inv-num { width: 44px; }
+  .inv-table thead th:nth-child(4) { width: 70px; }
+  .inv-table td.code { font-size: 11.5px; overflow-wrap: anywhere; }
+  .inv-table td.name { padding-right: 30px; font-size: 14px; }
+  .inv-input { font-size: 16px; }
+  .inv-head .inv-label { display: none; }
+}
+/* Итого */
+.inv-total-box.modal-box.wide { max-width: 640px; }
+.inv-mode-switch { margin: 8px 0; }
+.inv-mode-switch .ms-opt { flex: 1 1 0; }
+.inv-threshold { display: flex; align-items: center; gap: 8px; margin: 8px 0; white-space: nowrap; }
+.inv-threshold #invThreshold { flex: 0 0 auto; width: 80px; min-height: 36px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 8px; text-align: center; font: inherit; font-size: 16px; }
+.inv-total-list { margin: 8px 0; max-height: 50vh; overflow-y: auto; }
+.inv-total-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.inv-total-table th, .inv-total-table td { padding: 4px 6px; border-bottom: 1px solid var(--line); text-align: left; }
+.inv-total-table td:nth-child(n+3), .inv-total-table th:nth-child(n+3) { text-align: right; white-space: nowrap; }
+.inv-total-actions { flex-wrap: wrap; }
+.inv-total-actions [hidden] { display: none; }
