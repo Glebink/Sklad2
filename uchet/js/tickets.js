@@ -40,7 +40,7 @@ function ticketCheckState(k, e) {
   return { done: items.filter((it) => ch[countKey("parts", it)]).length, total: items.length };
 }
 function checkDot(st) {
-  if (!st) return "";
+  if (!st || MY_LOGIN !== "hleb") return "";   // пометка только для аккаунта hleb
   const all = st.done === st.total;
   return `<span class="t-check-dot ${all ? "ok" : "todo"}" title="${all ? "Все позиции отмечены" : "Отмечено " + st.done + " из " + st.total}"></span>`;
 }
