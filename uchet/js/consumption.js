@@ -304,7 +304,7 @@ const DELETE_ACTIONS = {
     const key = pendingDelete.section;          // ключ заявки
     if (!canDeleteTickets() || !dataByDate[key]) return;
     delete dataByDate[key];
-    if (localChecks[key]) { delete localChecks[key]; try { localStorage.setItem(CHECKS_KEY, JSON.stringify(localChecks)); } catch (e) {} }
+    if (localChecks[key]) { delete localChecks[key]; saveChecksLocal(); }
     if (currentDate === key) {
       currentDate = null;
       try { sessionStorage.removeItem("sklad2_sel_ticket"); } catch (e) {}

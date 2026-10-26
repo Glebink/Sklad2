@@ -84,14 +84,19 @@ document.getElementById("backupFileInput").addEventListener("change", (e) => {
    Сервер к тому же хранит предыдущие версии каждого ключа (sklad_kv_log): за 7 дней,
    не чаще одной в 10 минут. */
 // Сменщик синхронизирует только данные учёта по дням; остальные ключи ему сервер не отдаёт.
-const SYNC_KEYS = isShift() ? ["potreblenie_data_by_date_v3"] : BACKUP_KEYS.slice(0, 6);   // в бэкапе они названы по-старому (potreblenie_*)
+// Галочки «учтено» у hleb синхронизируются между его устройствами (у остальных — только на устройстве).
+// В браузере это тот же ключ, что и раньше: sklad2_checks_v1_hleb (= CHECKS_KEY).
+const CHECKS_SYNC_KEY = "potreblenie_checks_v1_hleb";
+const SYNC_KEYS = isShift() ? ["potreblenie_data_by_date_v3"]
+  : BACKUP_KEYS.slice(0, 6).concat(MY_LOGIN === "hleb" ? [CHECKS_SYNC_KEY] : []);   // в бэкапе они названы по-старому (potreblenie_*)
 const SYNC_FIELD = {
   potreblenie_data_by_date_v3: "dataByDate",
   potreblenie_warehouse_v1: "warehouse",
   potreblenie_onec_v1: "onec",
   potreblenie_transfer_list_v1: "transferList",
   potreblenie_best_stock_v1: "bestStock",
-  potreblenie_inventory_v1: "inventory"
+  potreblenie_inventory_v1: "inventory",
+  potreblenie_checks_v1_hleb: "checks"
 };
 const SYNC_LABEL = {
   potreblenie_data_by_date_v3: "Учёт",
@@ -99,7 +104,8 @@ const SYNC_LABEL = {
   potreblenie_onec_v1: "1С",
   potreblenie_transfer_list_v1: "Список перемещения",
   potreblenie_best_stock_v1: "Остатки Бестужевской",
-  potreblenie_inventory_v1: "Инвентаризация"
+  potreblenie_inventory_v1: "Инвентаризация",
+  potreblenie_checks_v1_hleb: "Галочки «учтено»"
 };
 const SYNC_META_KEY = "sklad2_sync_meta_v1";     // { ключ: { at: updated_at сервера, h: хэш значения } }
 const SYNC_AUTO_KEY = "sklad2_sync_auto_v1";     // "0" — автосинхронизация выключена
@@ -542,6 +548,10 @@ function applySyncPayload(payload) {
       bestStock = payload.bestStock;
       saveBestStock(bestStock);
     }
+    if (payload.checks && typeof payload.checks === "object" && !Array.isArray(payload.checks)) {
+      localChecks = payload.checks;    // bindCurrent ниже привяжет галочки выбранной заявки
+      saveChecksLocal();
+    }
     if (payload.inventory && typeof payload.inventory === "object" && !Array.isArray(payload.inventory)) {
       inventory = payload.inventory;
       try { localStorage.setItem(INV_KEY, JSON.stringify(inventory)); } catch (e) {}
@@ -614,7 +624,7 @@ function isValidRemote(rk, v) {
   }
   if (rk === "potreblenie_transfer_list_v1") return Array.isArray(v);
   if (rk === "potreblenie_best_stock_v1") return !!v && Array.isArray(v.rows);
-  if (rk === "potreblenie_inventory_v1") return !!v && typeof v === "object" && !Array.isArray(v);
+  if (rk === "potreblenie_inventory_v1" || rk === CHECKS_SYNC_KEY) return !!v && typeof v === "object" && !Array.isArray(v);
   return false;
 }
 function syncErrText(e) {
@@ -713,6 +723,18 @@ function mergeDayEntry(b, l, r) {
   out.counts = counts; out.checked = chk;
   return out;
 }
+// Объект «id → запись» (инвентаризации, галочки по заявкам): удалённая с одной стороны и не тронутая
+// с другой запись удаляется; изменённую с обеих сторон сливает mergeOne(база, моя, серверная).
+function mergeById(B, L, R, mergeOne) {
+  const out = {};
+  new Set([].concat(Object.keys(B), Object.keys(L), Object.keys(R))).forEach((id) => {
+    const inL = id in L, inR = id in R, inB = id in B;
+    if (inL && inR) { out[id] = mEq(L[id], R[id]) ? L[id] : mergeOne(B[id] || {}, L[id], R[id]); return; }
+    if (inL) { if (inB && mEq(L[id], B[id])) return; out[id] = L[id]; return; }
+    if (inR) { if (inB && mEq(R[id], B[id])) return; out[id] = R[id]; }
+  });
+  return out;
+}
 // Возвращает слитое значение или null, если слить нельзя.
 function mergeSyncValue(rk, B, L, R) {
   try {
@@ -741,22 +763,12 @@ function mergeSyncValue(rk, B, L, R) {
       return ((L && L.savedAt) || 0) > ((R && R.savedAt) || 0) ? L : R;   // это выгрузка целиком: берём более свежую
     }
     if (rk === "potreblenie_inventory_v1") {
-      // по инвентаризациям: удалённая с одной стороны и не тронутая с другой — удаляется;
       // введённые количества сливаются по позициям (обе стороны ввели разное — остаётся моё)
-      const out = {};
-      new Set([].concat(Object.keys(B), Object.keys(L), Object.keys(R))).forEach((id) => {
-        const inL = id in L, inR = id in R, inB = id in B;
-        if (inL && inR) {
-          if (mEq(L[id], R[id])) { out[id] = L[id]; return; }
-          const b = B[id] || {};
-          out[id] = mergeObj(b, L[id], R[id], null);
-          out[id].fact = mergeObj(b.fact || {}, L[id].fact || {}, R[id].fact || {}, null);
-          return;
-        }
-        if (inL) { if (inB && mEq(L[id], B[id])) return; out[id] = L[id]; return; }
-        if (inR) { if (inB && mEq(R[id], B[id])) return; out[id] = R[id]; }
-      });
-      return out;
+      return mergeById(B, L, R, (b, l, r) => Object.assign(mergeObj(b, l, r, null), { fact: mergeObj(b.fact || {}, l.fact || {}, r.fact || {}, null) }));
+    }
+    if (rk === CHECKS_SYNC_KEY) {
+      // галочки сливаются по позициям заявки
+      return mergeById(B, L, R, (b, l, r) => mergeObj(b, l, r, null));
     }
   } catch (e) {}
   return null;
@@ -809,6 +821,8 @@ async function runSync(policy) {
     if (!L) { if (R && policy !== "mine") toPull.push(rk); continue; }   // у нас этого ключа нет
     // Устройство ещё ни разу не обменивалось этим ключом (новое) — только принимает данные сервера.
     // Исключение — восстановленная копия: там спрашиваем, чьи данные оставить.
+    // Галочки — исключение: отметки с этого устройства и с сервера объединяются (база — пусто).
+    if (!m && policy === "safe" && rk === CHECKS_SYNC_KEY && R) { toMerge.push({ rk, value: mergeSyncValue(rk, {}, L.v, R.value), at: cur }); continue; }
     if (!m && policy === "safe" && !isRestoredPending()) { if (R) toPull.push(rk); continue; }
     const remoteChanged = !m || m.at !== cur;
     const localChanged = !m || m.h !== L.h;

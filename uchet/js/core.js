@@ -357,15 +357,23 @@ function entryFor(date) {
 }
 
 let sections, counts, checked;
-// Галочки «учтено» — личные, только на этом устройстве и аккаунте: в синхронизацию не попадают.
+// Галочки «учтено» — личные для аккаунта: у hleb синхронизируются между его устройствами
+// (ключ potreblenie_checks_v1_hleb, см. sync.js), у остальных — только на этом устройстве.
 const CHECKS_KEY = "sklad2_checks_v1_" + (MY_LOGIN || "");
 let localChecks = {};
 try { localChecks = JSON.parse(localStorage.getItem(CHECKS_KEY) || "{}") || {}; } catch (e) { localChecks = {}; }
+let checksSaved = JSON.stringify(localChecks);
+function saveChecksLocal() {
+  checksSaved = JSON.stringify(localChecks);
+  try { localStorage.setItem(CHECKS_KEY, checksSaved); } catch (e) {}
+}
 function persistChecks() {
   if (!currentDate) return;
   localChecks[currentDate] = checked;
-  try { localStorage.setItem(CHECKS_KEY, JSON.stringify(localChecks)); } catch (e) {}
-  if (typeof renderTicketList === "function") renderTicketList();   // кружок «всё учтено» в карточке заявки
+  if (typeof renderTicketList === "function") renderTicketList();   // кружок «всё учтено» (меняют и галочки, и состав заявки)
+  if (JSON.stringify(localChecks) === checksSaved) return;   // отметки не менялись (например, просто сменили заявку)
+  saveChecksLocal();
+  if (MY_LOGIN === "hleb") scheduleSync();
 }
 // Привязывает рабочие переменные к выбранной заявке (или к пустой заглушке, если заявка не выбрана).
 function bindCurrent() {
