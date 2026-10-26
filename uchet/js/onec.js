@@ -31,12 +31,16 @@ let onec = loadOneC();
    пустая (без версии). Голое «25» вне скобок НЕ считается меткой, иначе
    ловились бы размеры вроде «Винт M6x25».
    Используется и при автопростановке, и при добавлении новых позиций
-   (в т.ч. при импорте остатков из Excel). */
+   (в т.ч. при импорте остатков из Excel).
+   У деталей Ninebot (коды AB.…) «(25)», «(23)», «22-25» — год, а не модель YGW: для них по названию
+   определяется только явная метка 9Bot, а метка года из названия на «Складе» не вырезается. */
 const MODEL_TAG_RE = /[\(\[]\s*25\s*[\)\]]|[\(\[]?\s*(?:wind|ygw)\s*(25|[45][.,]0)\s*[\)\]]?/i;
 const BOT_TAG_RE = /\b9\s*[-]?\s*bot\b|ninebot|найнбот/i;
-function detectModelFromName(name) {
+function isNinebotCode(code) { return /^\s*ab\./i.test(code || ""); }
+function detectModelFromName(name, code) {
   // 9Bot определяем отдельно — метка не по шаблону wind/ygw
   if (BOT_TAG_RE.test(name || "")) return "9Bot";
+  if (isNinebotCode(code)) return "";
   const m = MODEL_TAG_RE.exec(name || "");
   if (!m) return "";
   if (!m[1]) return "YGW 5.0";           // сработала ветка «(25)» без слова wind/ygw
@@ -45,7 +49,8 @@ function detectModelFromName(name) {
   if (tag === "4.0") return "YGW 4.0";
   return "";
 }
-function stripModelTag(name) {
+function stripModelTag(name, code) {
+  if (isNinebotCode(code)) return name || "";
   return (name || "").replace(MODEL_TAG_RE, "").replace(/\s{2,}/g, " ").trim().replace(/[\s\-–—]+$/, "");
 }
 function runModelMigrationOnce() {
@@ -56,14 +61,14 @@ function runModelMigrationOnce() {
   // (undefined) — явно выбранное «без версии» (пустая строка) не перетираем.
   let touched = false;
   warehouse.parts.forEach((it) => {
-    const model = detectModelFromName(it.name);
+    const model = detectModelFromName(it.name, it.code);
     if (model && it.model === undefined) { it.model = model; touched = true; }
     // Метку из названия на СКЛАДЕ убираем всегда — она живёт в поле model
-    const cleaned = stripModelTag(it.name);
+    const cleaned = stripModelTag(it.name, it.code);
     if (cleaned && cleaned !== it.name) { it.name = cleaned; touched = true; }
   });
   onec.parts.forEach((it) => {
-    const model = detectModelFromName(it.name);
+    const model = detectModelFromName(it.name, it.code);
     if (model && it.model === undefined) { it.model = model; touched = true; } // название в 1С не чистим
   });
   if (touched) {
@@ -660,7 +665,7 @@ function openOcToWh(section, index) {
   // Модель берём из позиции 1С; если там пусто — пробуем определить по
   // названию (метка wind/ygw в тексте), чтобы не выбирать руками.
   setModelsSwitch(document.getElementById("ocToWhModel"),
-    modelsOf(item).length ? modelsOf(item) : [detectModelFromName(item.name)]);
+    modelsOf(item).length ? modelsOf(item) : [detectModelFromName(item.name, item.code)]);
   setModelSwitch(document.getElementById("ocToWhCat"), whCatOf(item));
   openModal("ocToWhOverlay");
   setTimeout(() => {

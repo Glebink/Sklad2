@@ -597,7 +597,7 @@ document.getElementById("ocImportRun").addEventListener("click", () => {
       const w = p.row.code ? warehouseInfoFor(p.row.code, p.row.name) : null;
       const wi = w && warehouse[w.section][w.index];
       if (wi && wi.model) { item.model = wi.model; if (wi.model2) item.model2 = wi.model2; }
-      else { const model = detectModelFromName(p.row.name); if (model) item.model = model; }
+      else { const model = detectModelFromName(p.row.name, p.row.code); if (model) item.model = model; }
       onec.parts.push(item);
     }
   });
