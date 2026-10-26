@@ -31,6 +31,19 @@ function ticketMatches(key, e, q) {
   if (found.length) return found;
   return head.indexOf(q) !== -1 ? [] : null;
 }
+// Личная пометка «всё учтено»: сколько позиций заявки отмечено галочкой на этом устройстве и аккаунте.
+// null — в заявке нет позиций (кружок не показываем).
+function ticketCheckState(k, e) {
+  const items = (e && e.sections && e.sections.parts) || [];
+  if (!items.length) return null;
+  const ch = localChecks[k] || {};
+  return { done: items.filter((it) => ch[countKey("parts", it)]).length, total: items.length };
+}
+function checkDot(st) {
+  if (!st) return "";
+  const all = st.done === st.total;
+  return `<span class="t-check-dot ${all ? "ok" : "todo"}" title="${all ? "Все позиции отмечены" : "Отмечено " + st.done + " из " + st.total}"></span>`;
+}
 function authorLabel(login) { const l = String(login || ""); return l.charAt(0).toUpperCase() + l.slice(1); }
 function renderTicketList() {
   const box = document.getElementById("ticketCards");
@@ -51,7 +64,7 @@ function renderTicketList() {
     }).join("");
     const more = found.length > 6 ? `<div class="t-hit-more">и ещё ${found.length - 6}</div>` : "";
     out.push(`<button class="t-card${k === currentDate ? " sel" : ""}" data-key="${escapeHtml(k)}">`
-      + `<div class="t-row"><span class="mono">№ ${nums[k]}</span>${e.note ? `<span class="t-note">${escapeHtml(e.note)}</span>` : ""}<span class="t-date">${ticketDateLong(k)}</span></div>`
+      + `<div class="t-row"><span class="t-num"><span class="mono">№ ${nums[k]}</span>${checkDot(ticketCheckState(k, e))}</span>${e.note ? `<span class="t-note">${escapeHtml(e.note)}</span>` : ""}<span class="t-date">${ticketDateLong(k)}</span></div>`
       + `<div class="t-sub">${pluralRu(cnt, "позиция", "позиции", "позиций")}</div>`
       + ((canDeleteTickets() || e.by) ? `<div class="t-foot">`
           + (canDeleteTickets() ? `<span class="t-menu-wrap"><span class="t-menu-btn" role="button" tabindex="0" title="Действия">⋮</span>`

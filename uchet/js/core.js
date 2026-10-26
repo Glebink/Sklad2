@@ -365,6 +365,7 @@ function persistChecks() {
   if (!currentDate) return;
   localChecks[currentDate] = checked;
   try { localStorage.setItem(CHECKS_KEY, JSON.stringify(localChecks)); } catch (e) {}
+  if (typeof renderTicketList === "function") renderTicketList();   // кружок «всё учтено» в карточке заявки
 }
 // Привязывает рабочие переменные к выбранной заявке (или к пустой заглушке, если заявка не выбрана).
 function bindCurrent() {

@@ -1521,3 +1521,10 @@ body.inv-mode:not(.inv-none) #invSearchBar { display: flex !important; }   /* с
 .inv-total-table td:nth-child(n+3), .inv-total-table th:nth-child(n+3) { text-align: right; white-space: nowrap; }
 .inv-total-actions { flex-wrap: wrap; }
 .inv-total-actions [hidden] { display: none; }
+
+/* Карточка заявки: кружок справа от номера — личная пометка по галочкам «учтено»
+   (зелёный — отмечены все позиции, красный — не все; у пустой заявки нет) */
+.t-num { display: inline-flex; align-items: center; gap: 7px; flex: none; }
+.t-check-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.t-check-dot.ok { background: var(--ok); }
+.t-check-dot.todo { background: var(--bad); }
