@@ -912,7 +912,7 @@
   .add-panel.one-row .add-clear:active { background:var(--line-strong); }
   /* Подсказки при вводе названия — во всю ширину панели (а не узкого поля
      ввода), чтобы длинные названия и коды было видно целиком. */
-  .add-panel.one-row #addSuggestBox {
+  .add-panel.one-row #addSuggestBox, .add-panel.one-row #invAddSuggestBox {
     left: 12px;
     right: 12px;
   }
@@ -921,7 +921,7 @@
     width: 48px;
     text-align: center;
   }
-  .add-panel.one-row #newItemQty { width: 60px; }
+  .add-panel.one-row #newItemQty, .add-panel.one-row #invAddQty { width: 60px; }
   .add-panel.one-row button.util {
     flex: 0 0 auto;
     width: 44px;
@@ -1170,7 +1170,7 @@ body.shift-ro .btn.plus, body.shift-ro .btn.minus { display: none !important; }
 
 /* Поле количества в блоке добавления: компактное (оно text, а не number, поэтому общие правила
    для текстовых полей делали его огромным) */
-.add-panel.one-row input#newItemQty { flex: 0 0 auto; min-width: 0; text-align: center; padding-left: 4px; padding-right: 4px; }
+.add-panel.one-row input#newItemQty, .add-panel.one-row input#invAddQty { flex: 0 0 auto; min-width: 0; text-align: center; padding-left: 4px; padding-right: 4px; }
 
 /* ПК: код детали в таблице учёта крупнее и жирнее */
 @media (min-width: 900px) {
@@ -1194,9 +1194,9 @@ body:not(.ca-search-collapsed) .ca-search-toggle, body:not([data-tab="consumptio
 .add-panel.one-row { gap: 0; }
 .add-panel.one-row .add-name-wrap { flex: 1 1 auto; }
 
-.add-panel.one-row input#newItemQty { width: 64px; max-width: 64px; border-radius: 0; margin-left: -1px; }
+.add-panel.one-row input#newItemQty, .add-panel.one-row input#invAddQty { width: 64px; max-width: 64px; border-radius: 0; margin-left: -1px; }
 .add-panel.one-row .ca-search-toggle.in-row { width: 44px; }
-.add-panel.one-row button.util#addItemBtn { border-radius: 0 8px 8px 0; margin-left: -1px; }
+.add-panel.one-row button.util#addItemBtn, .add-panel.one-row button.util#invAddBtn { border-radius: 0 8px 8px 0; margin-left: -1px; }
 
 /* Лупа — первой в строке; внутренняя рамка панели убрана */
 .add-panel.one-row, .add-panel.search-bar { border: none; background: transparent; box-shadow: none; }
@@ -1467,6 +1467,10 @@ body:not(.inv-mode) #invList { display: none !important; }
 body.inv-mode #ticketList, body.inv-mode #ticketEmpty, body.inv-mode #viewOneC, body.inv-mode #ocSearchBar { display: none !important; }
 body.inv-mode:not(.inv-none) #viewInv { display: block; }
 body.inv-mode:not(.inv-none) #invSearchBar { display: flex !important; }   /* строка поиска — как у «1С» */
+/* Панель добавления — как в «Учёте»: лупа раскрывает строку поиска под ней */
+body.inv-mode:not(.inv-none) #addPanelInv { display: flex !important; }
+body.inv-mode.inv-search-collapsed #invSearchBar { display: none !important; }
+body.inv-mode.inv-search-collapsed #invSearchToggle { display: inline-flex !important; }
 .inv-meta { color: var(--muted); font-size: 13px; }
 @media (min-width: 900px) {
   body.inv-mode #invList { display: block; }

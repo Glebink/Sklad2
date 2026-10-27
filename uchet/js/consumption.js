@@ -348,8 +348,9 @@ function searchStore(store, query) {
   store.parts.forEach((item) => {
     const name = (item.name || "").toLowerCase();
     const code = (item.code || "").toLowerCase();
-    if (nameMatchesQuery(name, q) || code.includes(q)) {
+    if (nameMatchesQuery(name, q) || (item.alt && nameMatchesQuery(item.alt.toLowerCase(), q)) || code.includes(q)) {
       const r = { section: "parts", code: item.code || "", name: item.name, model: item.model || "", model2: item.model2 || "" };
+      if (item.idx !== undefined) r.idx = item.idx;         // инвентаризация: номер строки; alt — название из 1С
       if (item.ocqty !== undefined) r.ocqty = item.ocqty;   // у сменщика — остаток 1С из каталога
       if (item.ocName) r.ocName = item.ocName;              // название в 1С — для кодов-заглушек
       results.push(r);

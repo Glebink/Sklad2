@@ -12,8 +12,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Склад">
 <link rel="stylesheet" href="../lib/fonts/fonts.css">
-<link rel="stylesheet" href="style.css?v=2610270627">
-<link rel="stylesheet" href="../auth.css?v=2610270627">
+<link rel="stylesheet" href="style.css?v=2610270636">
+<link rel="stylesheet" href="../auth.css?v=2610270636">
 </head>
 <body>
 
@@ -62,6 +62,18 @@
   <div class="add-panel search-bar" id="caSearchBar"></div>
   <div class="add-panel search-bar hide-init" id="ocSearchBar"></div>
   <div class="add-panel search-bar hide-init" id="invSearchBar"></div>
+  <!-- Инвентаризация: добавление найденного — как в «Учёте». Количество прибавляется
+       к столбцу «Склад» выбранной позиции (нашёл ещё коробку — добавил ещё). -->
+  <div class="add-panel one-row hide-init" id="addPanelInv">
+    <button type="button" class="iconbtn ca-search-toggle in-row" id="invSearchToggle" title="Поиск по инвентаризации" aria-label="Поиск по инвентаризации"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+    <div class="add-name-wrap">
+      <input type="text" id="invAddName" placeholder="Деталь" autocomplete="off">
+      <button type="button" class="add-clear" id="invAddClear" title="Очистить">✕</button>
+    </div>
+    <input type="text" id="invAddQty" inputmode="numeric" pattern="[0-9]*" maxlength="5" autocomplete="off" placeholder="1" title="Найдено сейчас (если пусто — 1)">
+    <button class="util primary" id="invAddBtn" title="Прибавить к «Склад»">+</button>
+    <div class="suggest-box" id="invAddSuggestBox"></div>
+  </div>
 
   <!-- Панель добавления живёт в общей шапке: на «Учёте» она нужна постоянно,
        а список под ней длинный. Показывается только на «Учёте» — см.
@@ -628,20 +640,20 @@
 </div>
 
 <script src="../lib/supabase-2.45.4.js"></script>
-<script src="../auth.js?v=2610270627"></script>
-<script src="qrcode.js?v=2610270627"></script>
+<script src="../auth.js?v=2610270636"></script>
+<script src="qrcode.js?v=2610270636"></script>
 <!-- Учёт: обычные скрипты с общей областью видимости, порядок важен -->
-<script src="js/core.js?v=2610270627"></script>
-<script src="js/consumption.js?v=2610270627"></script>
-<script src="js/tickets.js?v=2610270627"></script>
-<script src="js/warehouse.js?v=2610270627"></script>
-<script src="js/tabs.js?v=2610270627"></script>
-<script src="js/stock-import.js?v=2610270627"></script>
-<script src="js/onec.js?v=2610270627"></script>
-<script src="js/ui.js?v=2610270627"></script>
-<script src="js/sync.js?v=2610270627"></script>
-<script src="js/inventory.js?v=2610270627"></script>
-<script src="js/start.js?v=2610270627"></script>
+<script src="js/core.js?v=2610270636"></script>
+<script src="js/consumption.js?v=2610270636"></script>
+<script src="js/tickets.js?v=2610270636"></script>
+<script src="js/warehouse.js?v=2610270636"></script>
+<script src="js/tabs.js?v=2610270636"></script>
+<script src="js/stock-import.js?v=2610270636"></script>
+<script src="js/onec.js?v=2610270636"></script>
+<script src="js/ui.js?v=2610270636"></script>
+<script src="js/sync.js?v=2610270636"></script>
+<script src="js/inventory.js?v=2610270636"></script>
+<script src="js/start.js?v=2610270636"></script>
 
 </body>
 </html>

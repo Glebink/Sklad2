@@ -218,6 +218,81 @@ invBody.addEventListener("focusin", (e) => {
   if (e.target.classList.contains("inv-input")) setTimeout(() => { try { e.target.select(); } catch (err) {} }, 0);
 });
 
+/* ---------- добавление найденного (как в «Учёте») ----------
+   Выбрал позицию, ввёл сколько нашёл сейчас — число прибавляется к «Склад».
+   Нашёл ещё коробку той же детали — добавляешь ещё, сумма растёт. */
+const invAddName = document.getElementById("invAddName");
+const invAddQty = document.getElementById("invAddQty");
+const invAddBox = document.getElementById("invAddSuggestBox");
+const invAddClear = document.getElementById("invAddClear");
+let invAddPicked = null;   // { idx, name } — выбранная из подсказки строка инвентаризации
+function invAddStore() {
+  const inv = invSelected();
+  if (!inv) return { parts: [] };
+  return { parts: inv.items.map((it, i) => {
+    const shown = invShownNames[i] || invNameOf(it);
+    return { idx: i, code: it.code, name: shown, alt: shown === it.name ? "" : it.name, model: it.model, model2: it.model2 };
+  }) };
+}
+function invAddReset() {
+  invAddName.value = ""; invAddQty.value = ""; invAddPicked = null;
+  invAddBox.classList.remove("open"); invAddBox.innerHTML = "";
+  invAddClear.classList.remove("show");
+}
+invAddName.addEventListener("input", () => {
+  invAddPicked = null;
+  invAddClear.classList.toggle("show", !!invAddName.value);
+  renderSuggestionsFrom(invAddBox, invAddName.value, (r) => {
+    invAddPicked = r;
+    invAddName.value = r.name;
+    invAddQty.focus();
+  }, invAddStore(), "В этой инвентаризации такой позиции нет.");
+});
+registerSuggestZone(invAddBox, [invAddName]);
+invAddClear.addEventListener("click", () => { invAddReset(); invAddName.focus(); });
+invAddQty.addEventListener("input", () => {
+  const d = invAddQty.value.replace(/\D+/g, "");
+  if (d !== invAddQty.value) invAddQty.value = d;
+});
+invAddQty.addEventListener("focus", () => setTimeout(() => { try { invAddQty.select(); } catch (e) {} }, 0));
+function invAddCommit() {
+  const inv = invSelected();
+  const name = invAddName.value.trim();
+  if (!inv || !name) return;
+  let i = invAddPicked && invAddPicked.name === name ? invAddPicked.idx : -1;
+  if (i === -1) {
+    // набрали без выбора из подсказки — берём, только если совпадение одно
+    const found = searchStore(invAddStore(), name);
+    if (found.length !== 1) { invAddName.dispatchEvent(new Event("input")); invAddName.focus(); return; }
+    i = found[0].idx;
+  }
+  let qty = parseInt(invAddQty.value, 10);
+  if (isNaN(qty) || qty < 1) qty = 1;
+  inv.fact[i] = (inv.fact[i] || 0) + qty;
+  saveInventory();
+  invAddReset();
+  renderInvTable();
+  renderInvList();
+  const tr = rowByDataIndex("inv-body-parts", i);
+  if (tr) { scrollRowIntoView(tr); flashRow(tr); }
+}
+document.getElementById("invAddBtn").addEventListener("click", invAddCommit);
+[invAddName, invAddQty].forEach((el) => el.addEventListener("keydown", (e) => { if (e.key === "Enter") invAddCommit(); }));
+// Поиск по инвентаризации свёрнут до лупы в строке добавления (как в «Учёте»)
+document.body.classList.add("inv-search-collapsed");
+(function () {
+  const input = document.getElementById("invSearchInput");
+  const setOpen = (o) => {
+    document.body.classList.toggle("inv-search-collapsed", !o);
+    if (o) setTimeout(() => { try { input.focus(); } catch (e) {} }, 0);
+    try { syncStickyTopHeight(true); } catch (e) {}
+  };
+  document.getElementById("invSearchToggle").addEventListener("click", () => setOpen(true));
+  input.addEventListener("blur", () => setTimeout(() => {
+    if (!input.value && !document.getElementById("invSearchBar").contains(document.activeElement)) setOpen(false);
+  }, 250));
+})();
+
 /* ---------- список, создание, удаление ---------- */
 document.getElementById("ocInventoryBtn").addEventListener("click", () => setInvOpen(true));
 document.getElementById("invExitBtn").addEventListener("click", () => {
