@@ -121,11 +121,27 @@ function invRowState(inv, i) {
   const d = f - (inv.items[i].qty || 0);
   return { cls: d > 0 ? "inv-more" : d < 0 ? "inv-less" : "inv-equal", diff: d ? (d > 0 ? "+" + d : "−" + -d) : "✓" };
 }
+// Название в таблице — как на «Складе», если позиция там есть, иначе из 1С.
+// Для поиска запоминаем оба: находится и по названию склада, и по названию 1С.
+let invShownNames = [];
+function invNameOf(it) {
+  const w = it.code ? warehouseInfoFor(it.code, it.name) : null;
+  return w && w.name ? w.name : it.name;
+}
+function invSearchStore() {
+  const inv = invSelected();
+  if (!inv) return { parts: [] };
+  return { parts: inv.items.map((it, i) => {
+    const shown = invShownNames[i] || it.name;
+    return { code: it.code, name: shown === it.name ? shown : shown + " " + it.name };
+  }) };
+}
 function renderInvTable() {
   const inv = invSelected();
   const body = document.getElementById("inv-body-parts");
   if (!inv) { body.innerHTML = ""; return; }
   rebuildCrossIndexes();
+  invShownNames = inv.items.map(invNameOf);
   const rows = [];
   inv.items.forEach((it, i) => {
     if (!invMatches(it)) return;
@@ -133,7 +149,7 @@ function renderInvTable() {
     const f = inv.fact[i];
     rows.push(`<tr data-index="${i}" data-section="parts" class="${st.cls}">
       <td class="code">${it.code ? `<span class="code-text" data-code="${escapeHtml(it.code)}">${formatCodeDisplay(it.code)}</span>` : "—"}</td>
-      <td class="name"><div class="main-name">${escapeHtml(it.name)}</div>${modelBadgesHtml(ocModelsOf(it), true)}</td>
+      <td class="name"><div class="main-name">${escapeHtml(invShownNames[i])}</div>${modelBadgesHtml(ocModelsOf(it), true)}</td>
       <td class="inv-num inv-oc">${it.qty || 0}</td>
       <td class="inv-num inv-fact"><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" class="inv-input" value="${f === undefined ? "" : f}" placeholder="${it.qty || 0}" aria-label="Фактическое количество"><span class="inv-diff">${st.diff}</span></td>
     </tr>`);
