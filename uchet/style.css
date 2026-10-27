@@ -1468,6 +1468,7 @@ body.inv-mode #ticketList, body.inv-mode #ticketEmpty, body.inv-mode #viewOneC, 
 body.inv-mode:not(.inv-none) #viewInv { display: block; }
 body.inv-mode:not(.inv-none) #invSearchBar { display: flex !important; }   /* строка поиска — как у «1С» */
 /* Панель добавления — как в «Учёте»: лупа раскрывает строку поиска под ней */
+#addPanelInv { display: none !important; }   /* .add-panel.one-row сильнее .hide-init — прячем явно вне инвентаризации */
 body.inv-mode:not(.inv-none) #addPanelInv { display: flex !important; }
 body.inv-mode.inv-search-collapsed #invSearchBar { display: none !important; }
 body.inv-mode.inv-search-collapsed #invSearchToggle { display: inline-flex !important; }
