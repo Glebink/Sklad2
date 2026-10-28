@@ -481,9 +481,11 @@ document.getElementById("invToTicketBtn").addEventListener("click", () => {
     dataByDate[key] = e;
   }
   saveDataByDate();
-  closeModal("invTotalOverlay");
-  switchTab("consumption");
-  selectTicket(key);
+  // Остаёмся в инвентаризации: в «Учёт» не переключаем, только отмечаем на кнопке, что заявка готова.
+  const btn = document.getElementById("invToTicketBtn"), label = btn.dataset.label || (btn.dataset.label = btn.textContent);
+  btn.textContent = "✓ Заявка № " + ticketNumberMap()[key] + (existing ? " обновлена" : " создана");
+  clearTimeout(btn._t);
+  btn._t = setTimeout(() => { btn.textContent = label; }, 2500);
 });
 
 /* ---------- выгрузка .xlsx без сторонних библиотек ----------
