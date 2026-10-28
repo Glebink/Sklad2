@@ -37,8 +37,15 @@ function invSelected() { return invCurrent && inventory[invCurrent] ? inventory[
 function invIds() { return Object.keys(inventory).sort((a, b) => (inventory[a].created || 0) - (inventory[b].created || 0)); }
 function invNumberOf(id) { return invIds().indexOf(id) + 1; }
 function invDateText(d) { const [y, m, dd] = String(d || "").split("-"); return dd ? dd + "." + m + "." + String(y).slice(2) : "—"; }
+// Повторы с тем же кодом и названием — одна позиция (в 1С они бывают только как копии-ошибки).
 function invSnapshot() {
-  return onec.parts.map((it) => {
+  const seen = new Set();
+  return onec.parts.filter((it) => {
+    const k = normItemName(it.code) + "|" + normItemName(it.name);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  }).map((it) => {
     const o = { code: it.code || "", name: it.name || "", qty: it.qty || 0 };
     if (it.model) o.model = it.model;
     if (it.model2) o.model2 = it.model2;
