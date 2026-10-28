@@ -445,20 +445,20 @@ document.getElementById("invExcelBtn").addEventListener("click", () => {
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 });
 
-// Весь список «Списать» — новой заявкой на сегодня в «Учёт» с комментарием «Списание инвента».
+// Весь список «Списать» — заявкой на сегодня в «Учёт» с комментарием «Списание инвента».
+// Если такая заявка за сегодня уже есть — список в ней заменяется, новая не создаётся.
+const INV_TICKET_NOTE = "Списание инвента";
 document.getElementById("invToTicketBtn").addEventListener("click", () => {
   const rows = invTotalRows().filter((r) => r.diff < 0);
   if (!rows.length) return;
-  if (!confirm("Создать в «Учёте» заявку на сегодня «Списание инвента»: позиций " + rows.length + "?")) return;
+  const d = todayStr();
+  const existing = ticketKeys().find((k) => k.slice(0, 10) === d && dataByDate[k].note === INV_TICKET_NOTE) || null;
+  if (!confirm(existing
+    ? "Обновить сегодняшнюю заявку «" + INV_TICKET_NOTE + "» в «Учёте»: список заменится, позиций " + rows.length + "?"
+    : "Создать в «Учёте» заявку на сегодня «" + INV_TICKET_NOTE + "»: позиций " + rows.length + "?")) return;
   rebuildCrossIndexes();
   persistCurrentLocalOnly();
-  const d = todayStr();
-  let key = d, n = 1;
-  while (dataByDate[key]) { n++; key = d + "#" + n; }
   const e = emptyEntry();
-  e.created = Date.now();
-  if (MY_LOGIN) e.by = MY_LOGIN;
-  e.note = "Списание инвента";
   rows.forEach((r) => {
     // в «Учёте» позиция — как на «Складе» (код и название склада), если она там есть
     const w = r.it.code ? warehouseInfoFor(r.it.code, r.it.name) : null;
@@ -467,7 +467,19 @@ document.getElementById("invToTicketBtn").addEventListener("click", () => {
     if (e.counts[k] === undefined) { e.sections.parts.push(item); e.counts[k] = 0; }
     e.counts[k] += -r.diff;
   });
-  dataByDate[key] = e;
+  let key = existing;
+  if (existing) {
+    dataByDate[existing].sections = e.sections;   // номер, автор и дата создания остаются прежними
+    dataByDate[existing].counts = e.counts;
+    if (currentDate === existing) bindCurrent();
+  } else {
+    key = d;
+    for (let n = 2; dataByDate[key]; n++) key = d + "#" + n;
+    e.created = Date.now();
+    if (MY_LOGIN) e.by = MY_LOGIN;
+    e.note = INV_TICKET_NOTE;
+    dataByDate[key] = e;
+  }
   saveDataByDate();
   closeModal("invTotalOverlay");
   switchTab("consumption");
