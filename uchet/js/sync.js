@@ -680,19 +680,37 @@ function mergeObj(b, l, r, numericKeys) {
   return out;
 }
 // Список позиций. Порядок — как на сервере, мои новые дописываются в конец.
+// Позиция узнаётся по коду. Но в 1С бывают коды-заглушки (Б210426, ВРЕМЕННЫЙ…) у разных товаров —
+// для таких кодов ключ = код + название + номер повтора, иначе разные товары склеились бы в один
+// (так 22.10 тринадцать позиций спецодежды превратились в копии «Стельки гигиенической»).
 function mergeItemList(section, bl, ll, rl, mergeItem) {
-  const idOf = (it) => countKey(section, it);
-  const map = (arr) => { const m = new Map(); (arr || []).forEach((it) => { const k = idOf(it); if (!m.has(k)) m.set(k, it); }); return m; };
+  const shared = new Set();
+  [bl, ll, rl].forEach((arr) => {
+    const seen = new Set();
+    (arr || []).forEach((it) => { const k = countKey(section, it); if (seen.has(k)) shared.add(k); seen.add(k); });
+  });
+  const idsOf = (arr) => {
+    const n = {};
+    return (arr || []).map((it) => {
+      const k = countKey(section, it);
+      if (!shared.has(k)) return k;
+      const kk = k + "|" + normItemName(it.name);
+      n[kk] = (n[kk] || 0) + 1;
+      return kk + "#" + n[kk];
+    });
+  };
+  const map = (arr) => { const m = new Map(), ids = idsOf(arr); (arr || []).forEach((it, i) => { if (!m.has(ids[i])) m.set(ids[i], it); }); return m; };
   const bm = map(bl), lm = map(ll), rm = map(rl);
+  const rIds = idsOf(rl), lIds = idsOf(ll);
   const out = [];
-  (rl || []).forEach((r) => {
-    const k = idOf(r);
+  (rl || []).forEach((r, i) => {
+    const k = rIds[i];
     if (lm.has(k)) { out.push(mergeItem(bm.get(k), lm.get(k), r)); return; }
     if (bm.has(k) && mEq(bm.get(k), r)) return;     // я удалил, на сервере не трогали — удаляем
     out.push(r);                                      // новая на сервере или там правили — оставляем
   });
-  (ll || []).forEach((l) => {
-    const k = idOf(l);
+  (ll || []).forEach((l, i) => {
+    const k = lIds[i];
     if (rm.has(k)) return;
     if (bm.has(k) && mEq(bm.get(k), l)) return;     // на сервере удалили, у меня не трогали — удаляем
     out.push(l);                                      // моя новая или я правил — оставляем
