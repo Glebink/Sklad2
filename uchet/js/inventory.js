@@ -17,7 +17,12 @@ function loadInventory() {
 }
 let inventory = loadInventory();
 function saveInventory() {
-  try { localStorage.setItem(INV_KEY, JSON.stringify(inventory)); } catch (e) {}
+  try { localStorage.setItem(INV_KEY, JSON.stringify(inventory)); }
+  catch (e) {
+    // Не сохранилось на устройстве — синхронизация этого не увидит, и число пропадёт. Говорим сразу.
+    alert("Не удалось сохранить инвентаризацию на этом устройстве (память браузера заполнена). Последнее введённое число может пропасть — сообщите об этом.");
+    return;
+  }
   scheduleSync();
 }
 
@@ -32,7 +37,6 @@ function invSelected() { return invCurrent && inventory[invCurrent] ? inventory[
 function invIds() { return Object.keys(inventory).sort((a, b) => (inventory[a].created || 0) - (inventory[b].created || 0)); }
 function invNumberOf(id) { return invIds().indexOf(id) + 1; }
 function invDateText(d) { const [y, m, dd] = String(d || "").split("-"); return dd ? dd + "." + m + "." + String(y).slice(2) : "—"; }
-function invRowKey(it) { return normItemName(it.code) + "|" + normItemName(it.name); }
 function invSnapshot() {
   return onec.parts.map((it) => {
     const o = { code: it.code || "", name: it.name || "", qty: it.qty || 0 };
@@ -344,11 +348,9 @@ document.getElementById("invCards").addEventListener("click", (e) => {
 document.getElementById("invRefreshBtn").addEventListener("click", () => {
   const inv = invSelected();
   if (!inv || !confirm("Обновить список и остатки из текущей вкладки «1С»? Введённые количества сохранятся.")) return;
-  const byKey = {};
-  inv.items.forEach((it, i) => { if (inv.fact[i] !== undefined && !(invRowKey(it) in byKey)) byKey[invRowKey(it)] = inv.fact[i]; });
+  const byKey = invFactsByKey(inv);   // по позиции, одинаковые строки — по порядку (см. sync.js)
   inv.items = invSnapshot();
-  inv.fact = {};
-  inv.items.forEach((it, i) => { const f = byKey[invRowKey(it)]; if (f !== undefined) inv.fact[i] = f; });
+  inv.fact = invFactsToIndex(inv.items, byKey);
   saveInventory();
   invRender();
 });

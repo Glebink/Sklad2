@@ -89,6 +89,7 @@ document.getElementById("backupFileInput").addEventListener("change", (e) => {
 const CHECKS_SYNC_KEY = "potreblenie_checks_v1_hleb";
 const SYNC_KEYS = isShift() ? ["potreblenie_data_by_date_v3"]
   : BACKUP_KEYS.slice(0, 6).concat(MY_LOGIN === "hleb" ? [CHECKS_SYNC_KEY] : []);   // в бэкапе они названы по-старому (potreblenie_*)
+const MERGE_NO_BASE = [CHECKS_SYNC_KEY, "potreblenie_inventory_v1"];   // сливаются и без базы — см. runSync
 const SYNC_FIELD = {
   potreblenie_data_by_date_v3: "dataByDate",
   potreblenie_warehouse_v1: "warehouse",
@@ -735,6 +736,40 @@ function mergeById(B, L, R, mergeOne) {
   });
   return out;
 }
+/* Инвентаризация: количества «Склад» хранятся по номеру строки, но после «Обновить из 1С»
+   строки сдвигаются — поэтому сливаем по самой позиции (код + название; одинаковые строки
+   различаем по порядку), а не по номеру. Список позиций — та сторона, что его обновила.
+   Без базы (base = {}) ничего не теряем: позиции, введённые только у меня, добавляются,
+   а при разных числах остаётся число сервера. */
+function invFactKeys(items) {
+  const seen = {};
+  return (items || []).map((it) => {
+    const k = normItemName(it.code) + "|" + normItemName(it.name);
+    seen[k] = (seen[k] || 0) + 1;
+    return k + "#" + seen[k];
+  });
+}
+function invFactsByKey(inv) {
+  const keys = invFactKeys(inv && inv.items), out = {};
+  Object.keys((inv && inv.fact) || {}).forEach((i) => { if (keys[i] !== undefined) out[keys[i]] = inv.fact[i]; });
+  return out;
+}
+function invFactsToIndex(items, byKey) {
+  const out = {};
+  invFactKeys(items).forEach((k, i) => { if (byKey[k] !== undefined) out[i] = byKey[k]; });
+  return out;
+}
+function mergeInventory(B, L, R) {
+  const noBase = Object.keys(B || {}).length === 0;
+  return mergeById(B || {}, L, R, (b, l, r) => {
+    const out = mergeObj(b, l, r, null);
+    out.items = mEq(l.items, r.items) ? l.items : (b.items && mEq(l.items, b.items) ? r.items : (b.items && mEq(r.items, b.items) ? l.items : r.items));
+    const bk = invFactsByKey(b), lk = invFactsByKey(l), rk = invFactsByKey(r);
+    const fk = noBase ? Object.assign({}, lk, rk) : mergeObj(bk, lk, rk, null);
+    out.fact = invFactsToIndex(out.items, fk);
+    return out;
+  });
+}
 // Возвращает слитое значение или null, если слить нельзя.
 function mergeSyncValue(rk, B, L, R) {
   try {
@@ -762,10 +797,7 @@ function mergeSyncValue(rk, B, L, R) {
     if (rk === "potreblenie_best_stock_v1") {
       return ((L && L.savedAt) || 0) > ((R && R.savedAt) || 0) ? L : R;   // это выгрузка целиком: берём более свежую
     }
-    if (rk === "potreblenie_inventory_v1") {
-      // введённые количества сливаются по позициям (обе стороны ввели разное — остаётся моё)
-      return mergeById(B, L, R, (b, l, r) => Object.assign(mergeObj(b, l, r, null), { fact: mergeObj(b.fact || {}, l.fact || {}, r.fact || {}, null) }));
-    }
+    if (rk === "potreblenie_inventory_v1") return mergeInventory(B, L, R);
     if (rk === CHECKS_SYNC_KEY) {
       // галочки сливаются по позициям заявки
       return mergeById(B, L, R, (b, l, r) => mergeObj(b, l, r, null));
@@ -822,14 +854,16 @@ async function runSync(policy) {
     // Устройство ещё ни разу не обменивалось этим ключом (новое) — только принимает данные сервера.
     // Исключение — восстановленная копия: там спрашиваем, чьи данные оставить.
     // Галочки — исключение: отметки с этого устройства и с сервера объединяются (база — пусто).
-    if (!m && policy === "safe" && rk === CHECKS_SYNC_KEY && R) { toMerge.push({ rk, value: mergeSyncValue(rk, {}, L.v, R.value), at: cur }); continue; }
+    if (!m && policy === "safe" && MERGE_NO_BASE.indexOf(rk) !== -1 && R) { toMerge.push({ rk, value: mergeSyncValue(rk, {}, L.v, R.value), at: cur }); continue; }
     if (!m && policy === "safe" && !isRestoredPending()) { if (R) toPull.push(rk); continue; }
     const remoteChanged = !m || m.at !== cur;
     const localChanged = !m || m.h !== L.h;
     if (policy === "mine") toPush.push({ rk, at: cur, force: true });
     else if (policy === "server") { if (R) toPull.push(rk); }
     else if (remoteChanged && localChanged) {
-      const mv = (R && m) ? mergeSyncValue(rk, foldSyncValue(rk, base[rk]), L.v, R.value) : null;
+      // Галочки и инвентаризация сливаются и без сохранённой базы (тогда база — пусто): введённое не теряется.
+      const b0 = base[rk] === undefined && MERGE_NO_BASE.indexOf(rk) !== -1 ? {} : foldSyncValue(rk, base[rk]);
+      const mv = (R && m) ? mergeSyncValue(rk, b0, L.v, R.value) : null;
       if (mv === null || mv === undefined) res.conflicts.push(rk);
       else toMerge.push({ rk, value: mv, at: cur });
     }
