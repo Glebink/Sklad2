@@ -12,8 +12,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Склад">
 <link rel="stylesheet" href="../lib/fonts/fonts.css">
-<link rel="stylesheet" href="style.css?v=2610301318">
-<link rel="stylesheet" href="../auth.css?v=2610301318">
+<link rel="stylesheet" href="style.css?v=2610301322">
+<link rel="stylesheet" href="../auth.css?v=2610301322">
 </head>
 <body>
 
@@ -100,9 +100,6 @@
   <div class="t-tools">
     <button class="tool-btn" id="ticketSearchBtn" aria-label="Поиск по деталям в заявках" title="Поиск по деталям в заявках">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-    </button>
-    <button class="tool-btn qr-btn" id="qrShiftBtn" aria-label="QR-вход для склада" title="QR-вход для склада" hidden>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></svg>
     </button>
     <button class="tool-btn history-btn" id="syncHistoryBtn" aria-label="История сохранений" title="История сохранений">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/><path d="M12 7v5l3 2"/></svg>
@@ -340,19 +337,6 @@
     <div class="modal-actions">
       <button class="confirm-no" id="ticketNoteCancel">Отмена</button>
       <button class="confirm-yes accent" id="ticketNoteSave">Сохранить</button>
-    </div>
-  </div>
-</div>
-
-<!-- QR-вход для склада (только hleb): сканирование сразу входит в аккаунт sklad и открывает заявку на текущий день -->
-<div class="modal-overlay" id="qrShiftOverlay">
-  <div class="modal-box">
-    <p class="modal-title">QR-вход для склада</p>
-    <div class="qr-box" id="qrShiftBox"></div>
-    <div class="sync-status-line" id="qrShiftInfo"></div>
-    <div class="modal-actions">
-      <button class="confirm-no" id="qrShiftClose">Закрыть</button>
-      <button class="confirm-yes accent" id="qrShiftNew">Сгенерировать новый</button>
     </div>
   </div>
 </div>
@@ -647,20 +631,19 @@
 </div>
 
 <script src="../lib/supabase-2.45.4.js"></script>
-<script src="../auth.js?v=2610301318"></script>
-<script src="qrcode.js?v=2610301318"></script>
+<script src="../auth.js?v=2610301322"></script>
 <!-- Учёт: обычные скрипты с общей областью видимости, порядок важен -->
-<script src="js/core.js?v=2610301318"></script>
-<script src="js/consumption.js?v=2610301318"></script>
-<script src="js/tickets.js?v=2610301318"></script>
-<script src="js/warehouse.js?v=2610301318"></script>
-<script src="js/tabs.js?v=2610301318"></script>
-<script src="js/stock-import.js?v=2610301318"></script>
-<script src="js/onec.js?v=2610301318"></script>
-<script src="js/ui.js?v=2610301318"></script>
-<script src="js/sync.js?v=2610301318"></script>
-<script src="js/inventory.js?v=2610301318"></script>
-<script src="js/start.js?v=2610301318"></script>
+<script src="js/core.js?v=2610301322"></script>
+<script src="js/consumption.js?v=2610301322"></script>
+<script src="js/tickets.js?v=2610301322"></script>
+<script src="js/warehouse.js?v=2610301322"></script>
+<script src="js/tabs.js?v=2610301322"></script>
+<script src="js/stock-import.js?v=2610301322"></script>
+<script src="js/onec.js?v=2610301322"></script>
+<script src="js/ui.js?v=2610301322"></script>
+<script src="js/sync.js?v=2610301322"></script>
+<script src="js/inventory.js?v=2610301322"></script>
+<script src="js/start.js?v=2610301322"></script>
 
 </body>
 </html>

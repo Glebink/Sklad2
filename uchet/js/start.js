@@ -25,27 +25,14 @@ updateAddPanelVisibility();
 renderWarehouseAll();
 // Вкладка из адреса (#warehouse / #onec / #inv) — открыта колесом мыши или после обновления страницы.
 // Сменщику «Склад» и «1С» недоступны.
-// #today (QR-код на складе): после входа и обмена с сервером открыть последнюю заявку за сегодня,
-// а если её нет — создать (от имени вошедшего аккаунта).
-// Кнопки только для hleb — сразу по роли, сохранённой на устройстве (core.js: Auth.cachedRole),
-// а не после ответа сервера при входе: иначе они появлялись с задержкой в несколько секунд.
+// Вкладка только для hleb — сразу по роли, сохранённой на устройстве (core.js: Auth.cachedRole),
+// а не после ответа сервера при входе: иначе она появлялась с задержкой в несколько секунд.
 document.getElementById("tabInvBtn").hidden = !canInventory();
-{ const qb = document.getElementById("qrShiftBtn"); if (qb) qb.hidden = MY_LOGIN !== "hleb"; }
-let openTodayPending = false;
 (function () {
   const h = (location.hash || "").replace("#", "");
-  if (h === "today") openTodayPending = true;   // #today снимается после открытия заявки (вход может перезагрузить страницу)
-  else if ((h === "warehouse" || h === "onec" || h === "inv") && !isShift()) switchTab(h);
+  if ((h === "warehouse" || h === "onec" || h === "inv") && !isShift()) switchTab(h);
   else if (h) { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} }
 })();
-function openTodayTicket() {
-  openTodayPending = false;
-  switchTab("consumption");
-  const t = todayStr();
-  const keys = ticketKeys().filter((k) => k.slice(0, 10) === t);
-  if (keys.length) selectTicket(keys[keys.length - 1]);
-  else createTicket();
-}
 renderOneCAll();
 
 updateDirtyIndicator();
@@ -69,8 +56,6 @@ if (window.Auth) {
         const r = await Auth.loadRole();
         if (r && r.role !== ROLE) { location.reload(); return; }
         if (r) MY_LOGIN = r.login;
-        setQrKiosk(isShift() && /^(otp|magiclink)$/.test((await Auth.loginMethod()) || ""));
-        { const qb = document.getElementById("qrShiftBtn"); if (qb) qb.hidden = MY_LOGIN !== "hleb"; }
         document.getElementById("tabInvBtn").hidden = !canInventory();   // инвентаризация — только hleb
         if (invOpen && !canInventory()) switchTab("onec");
       } catch (e) {}
@@ -79,16 +64,11 @@ if (window.Auth) {
       updateDirtyIndicator();
       setSyncStatus("idle", manualModeStatusText());
       refreshAccountLine();
-      if (openTodayPending || QR_KIOSK) {
-        // сначала забираем заявки с сервера — иначе можно создать вторую заявку на сегодня
-        if (!isAutoSyncOff()) { try { await syncNow("safe", { auto: true }); } catch (e) {} }
-        openTodayTicket();
-      } else if (!isAutoSyncOff()) syncNow("safe", { auto: true });
+      if (!isAutoSyncOff()) syncNow("safe", { auto: true });
       startRealtime();
     },
     onLogout: () => {
       syncUserOk = false;
-      setQrKiosk(false);
       stopRealtime();
       if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; }
       updateDirtyIndicator();
@@ -104,13 +84,6 @@ setInterval(() => {
   if (applyingRemote) return;
   if (cleanupEmptyTickets(true)) { bindCurrent(); renderTicketList(); renderAll(); updateAddPanelVisibility(); }
 }, 60000);
-// Вход по QR: всегда открыта заявка за текущий день (после полуночи — новая; пустую могла убрать очистка).
-function kioskKeepToday() {
-  if (!QR_KIOSK || !syncUserOk || applyingRemote) return;
-  if (!currentDate || !dataByDate[currentDate] || currentDate.slice(0, 10) !== todayStr()) openTodayTicket();
-}
-setInterval(kioskKeepToday, 60000);
-document.addEventListener("visibilitychange", () => { if (!document.hidden) kioskKeepToday(); });
 // Сменщик: в полночь и в 04:00 МСК меняется, какую заявку можно править — раз в минуту обновляем режим.
 if (isShift()) {
   let lastEditable = canEditCurrent();

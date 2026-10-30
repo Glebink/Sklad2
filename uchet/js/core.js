@@ -218,26 +218,14 @@ let ROLE = null, MY_LOGIN = "";
   try { const c = window.Auth && Auth.cachedRole(); if (c) { ROLE = c.role; MY_LOGIN = c.login || ""; } } catch (e) {}
 })();
 function isShift() { return ROLE === "shift"; }
-// Вход по QR (сменщик): только сегодняшняя заявка — без списка заявок, разделов и меню аккаунта.
-// Режим запоминается на устройстве, чтобы экран сразу открывался закрытым; уточняется после входа.
-const QR_KIOSK_KEY = "sklad2_qr_kiosk";
-let QR_KIOSK = false;
-try { QR_KIOSK = isShift() && localStorage.getItem(QR_KIOSK_KEY) === "1"; } catch (e) {}
-function setQrKiosk(on) {
-  QR_KIOSK = !!on;
-  try { if (on) localStorage.setItem(QR_KIOSK_KEY, "1"); else localStorage.removeItem(QR_KIOSK_KEY); } catch (e) {}
-  document.body.classList.toggle("qr-kiosk", QR_KIOSK);
-  if (typeof updateLayoutClasses === "function") updateLayoutClasses();
-}
-document.body.classList.toggle("qr-kiosk", QR_KIOSK);
-// Сменщик: hleb нажал «Сгенерировать новый» QR — устройства, вошедшие в sklad по QR раньше, выходят (по паролю — нет)
-// (сервер перестаёт отдавать им данные). Проверка при входе, при возврате на вкладку и раз в минуту.
+// Сменщик: сервер отдаёт данные только сессии, начатой входом по паролю (sklad_session_ok).
+// Старые сессии входа по QR (QR убран 30.10) выходят. Проверка при входе, при возврате на вкладку и раз в минуту.
 async function shiftSessionAlive() {
   if (!isShift() || !window.Auth) return true;
   let r;
   try { r = await Auth.sb.rpc("sklad_session_ok"); } catch (e) { return true; }   // нет связи — не выкидываем
   if (r.error || r.data !== false) return true;
-  Auth.logout("Выдан новый QR-код — отсканируйте его, чтобы войти.");
+  Auth.logout("Вход по QR-коду больше не действует — войдите по логину и паролю.");
   return false;
 }
 if (isShift()) {

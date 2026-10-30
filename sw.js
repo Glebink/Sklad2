@@ -3,7 +3,7 @@
 const CACHE_NAME = "sklad2-cache-v2.0";
 const SHELL = [
   "./", "index.html", "manifest.json", "auth.js", "auth.css", "icon-192.png", "icon-512.png",
-  "uchet/", "uchet/index.html", "uchet/style.css", "uchet/qrcode.js",
+  "uchet/", "uchet/index.html", "uchet/style.css",
   "uchet/js/core.js", "uchet/js/consumption.js", "uchet/js/tickets.js", "uchet/js/warehouse.js", "uchet/js/tabs.js", "uchet/js/stock-import.js", "uchet/js/onec.js", "uchet/js/ui.js", "uchet/js/sync.js", "uchet/js/inventory.js", "uchet/js/start.js",
   "zayavki/", "zayavki/index.html", "zayavki/style.css", "zayavki/app.js",
   "lib/supabase-2.45.4.js",  // библиотека и шрифты лежат в репозитории: CDN из РФ бывает недоступен

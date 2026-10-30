@@ -1,4 +1,4 @@
-/* Учёт потребления — Левый столбец: список заявок на учёт, создание, комментарий, удаление; QR-вход для склада.
+/* Учёт потребления — Левый столбец: список заявок на учёт, создание, комментарий, удаление.
    Файлы — обычные скрипты с общей областью видимости, подключаются по порядку (см. index.html). */
 /* ==================== Левый столбец: заявки на учёт ==================== */
 let ticketQuery = "", ticketSearchOpen = false;
@@ -15,7 +15,7 @@ function updateLayoutClasses() {
   const inv = typeof invModeOn === "function" && invModeOn();   // раздел «Инвентаризация» (в виде «1С»)
   document.body.classList.toggle("inv-mode", inv);
   document.body.classList.toggle("inv-none", inv && !invSelected());
-  document.body.classList.toggle("has-list", (cons && !QR_KIOSK) || inv);
+  document.body.classList.toggle("has-list", cons || inv);
   document.body.classList.toggle("no-ticket", cons && !currentDate);
   document.body.classList.toggle("has-ticket", cons && !!currentDate);
 }
@@ -145,58 +145,7 @@ document.getElementById("newTicketYes").addEventListener("click", () => {
   createTicket(hleb ? document.getElementById("newTicketNote").value.trim() : "",
                hleb ? document.getElementById("newTicketDate").value : "");
 });
-document.getElementById("ticketBackBtn").addEventListener("click", () => { if (!QR_KIOSK) selectTicket(null); });
-/* ==================== QR-вход для склада (только hleb) ====================
-   Скан QR сразу входит в аккаунт sklad и открывает заявку на текущий день (#today).
-   В QR — токен; сервер хранит один действующий, «Сгенерировать новый» отменяет старый,
-   а через 72 часа код перестаёт действовать сам. */
-// Код действует 72 часа с момента выдачи — так же проверяет сервер (функция qr-login).
-const QR_TTL_MS = 72 * 3600 * 1000;
-function qrShiftUrl(token) { return location.origin + location.pathname + "?qr=" + token + "#today"; }
-function qrSvg(text) {
-  const m = window.QRLib.matrix(text, "M"), b = 4, n = m.size + b * 2;
-  let d = "";
-  for (let r = 0; r < m.size; r++) for (let c = 0; c < m.size; c++) if (m.dark(r, c)) d += `M${c + b} ${r + b}h1v1h-1z`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges"><rect width="${n}" height="${n}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
-}
-function showQrShift(info) {
-  const box = document.getElementById("qrShiftBox"), line = document.getElementById("qrShiftInfo");
-  if (info && info.token && window.QRLib) {
-    box.innerHTML = qrSvg(qrShiftUrl(info.token));
-    const d = info.created_at ? new Date(info.created_at) : null;
-    const until = d ? new Date(d.getTime() + QR_TTL_MS) : null;
-    const fmt = (x) => x.toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
-    line.textContent = until && until <= new Date()
-      ? "Срок действия кода истёк " + fmt(until) + " — нажмите «Сгенерировать новый»."
-      : "Скан сразу входит в аккаунт sklad и открывает заявку на текущий день." + (until ? " Действует до " + fmt(until) + "." : "");
-    box.classList.toggle("qr-expired", !!until && until <= new Date());
-  } else {
-    box.innerHTML = `<div class="qr-empty">${info === null ? "QR-кода ещё нет — нажмите «Сгенерировать новый»." : "Не удалось загрузить QR-код (нет связи?)."}</div>`;
-    line.textContent = "";
-  }
-}
-async function qrShiftCall(fn) {
-  const r = await Auth.withTimeout(Auth.sb.rpc(fn), 15000);
-  if (r.error) throw r.error;
-  return r.data || null;
-}
-{
-  const qrBtn = document.getElementById("qrShiftBtn");
-  if (qrBtn && MY_LOGIN === "hleb") qrBtn.hidden = false;
-  if (qrBtn) qrBtn.addEventListener("click", async () => {
-    if (MY_LOGIN !== "hleb" || !window.Auth) return;
-    document.getElementById("qrShiftBox").innerHTML = `<div class="qr-empty">Загрузка…</div>`;
-    document.getElementById("qrShiftInfo").textContent = "";
-    openModal("qrShiftOverlay");
-    try { showQrShift(await qrShiftCall("sklad_qr_get")); } catch (e) { showQrShift(undefined); }
-  });
-  document.getElementById("qrShiftClose").addEventListener("click", () => closeModal("qrShiftOverlay"));
-  document.getElementById("qrShiftOverlay").addEventListener("click", (e) => { if (e.target.id === "qrShiftOverlay") closeModal("qrShiftOverlay"); });
-  document.getElementById("qrShiftNew").addEventListener("click", async () => {
-    if (!confirm("Сгенерировать новый QR-код? Старый сразу перестанет работать, а устройства, вошедшие в sklad по QR, выйдут из аккаунта (вошедшие по паролю останутся).")) return;
-    try { showQrShift(await qrShiftCall("sklad_qr_new")); } catch (e) { alert("Не удалось создать QR-код: " + ((e && e.message) || e)); }
-  });
-}
+document.getElementById("ticketBackBtn").addEventListener("click", () => selectTicket(null));
 function closeTicketMenus() { document.querySelectorAll(".t-menu-wrap.open").forEach((w) => w.classList.remove("open")); }
 document.addEventListener("click", (e) => { if (!e.target.closest(".t-menu-wrap")) closeTicketMenus(); });
 // Комментарий заявки (только hleb): правка в отдельном окне

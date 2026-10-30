@@ -127,42 +127,14 @@
     renderLogin(gateEl, { msg: msg, onSuccess: function () { hideGate(); if (gateOpts && gateOpts.onLogin) gateOpts.onLogin(); } });
   }
   function hideGate() { if (gateEl) { gateEl.hidden = true; gateEl.innerHTML = ''; } }
-  /* Вход по QR-коду склада (?qr=токен): сервер (функция qr-login) проверяет, что токен действующий
-     (его выдаёт hleb, новый отменяет старый), и даёт одноразовый вход в аккаунт sklad.
-     Возвращает true (вошли), строку с ошибкой или null (в адресе нет QR). */
-  async function qrLoginFromUrl() {
-    var p, t;
-    try { p = new URLSearchParams(location.search); t = p.get('qr'); } catch (e) { return null; }
-    if (!t) return null;
-    p.delete('qr');
-    try { history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p.toString() : '') + location.hash); } catch (e) {}
-    try {
-      var res = await withTimeout(fetch(SUPABASE_URL + '/functions/v1/qr-login', {
-        method: 'POST',
-        headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: t })
-      }), 15000);
-      var j = {}; try { j = await res.json(); } catch (e) {}
-      if (!res.ok || !j.token_hash) return res.status === 403 ? 'QR-код больше не действует — попросите новый.' : 'Не удалось войти по QR-коду.';
-      authStore.mode = 'local'; clearTabSession();
-      var v = await sb.auth.verifyOtp({ token_hash: j.token_hash, type: 'magiclink' });
-      if (v.error) return 'Не удалось войти по QR-коду.';
-      return true;
-    } catch (e) { return errText(e); }
-  }
   async function gate(opts) {
     gateOpts = opts || {};
-    var qr = await qrLoginFromUrl();
-    var qrMsg = typeof qr === 'string' ? qr : '';
     var r;
     try { r = await withTimeout(sb.auth.getSession(), 10000); } catch (e) { r = { data: { session: null }, error: e }; }
     var session = r && r.data && r.data.session;
     var offlineOk = !session && hasStoredSession() && (!navigator.onLine || (r.error && /fetch|network/i.test(r.error.message || '')));
-    if (!session && !offlineOk) showGate(qrMsg || undefined);
-    else {
-      if (qrMsg) setTimeout(function () { alert(qrMsg); }, 0);
-      if (gateOpts.onLogin) gateOpts.onLogin();
-    }
+    if (!session && !offlineOk) showGate();
+    else if (gateOpts.onLogin) gateOpts.onLogin();
     // ВАЖНО: внутри обработчика нельзя ждать другие вызовы supabase.auth (getSession и т.п.):
     // библиотека держит блокировку, пока обработчик не вернётся, и всё зависает навсегда
     // (в том числе вход в соседнем сервисе). Поэтому работу уносим в setTimeout.
@@ -175,20 +147,10 @@
     });
     gateReady = true;
   }
-  // Как вошли в текущую сессию: 'password' (логин и пароль) или 'otp' (QR-код). Из токена доступа (amr).
-  async function loginMethod() {
-    try {
-      var r = await sb.auth.getSession(), t = r && r.data && r.data.session && r.data.session.access_token;
-      if (!t) return null;
-      var b = t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-      var amr = JSON.parse(atob(b + '==='.slice((b.length + 3) % 4))).amr || [];
-      return amr.length ? String(amr[0].method || '') : null;
-    } catch (e) { return null; }
-  }
   function logout(msg) { clearSession(); if (gateOpts) { if (gateOpts.onLogout) gateOpts.onLogout(); showGate(msg); } }
 
   window.Auth = {
     sb: sb, authStore: authStore, emailOf: emailOf, doLogin: doLogin, renderLogin: renderLogin,
-    getUser: getUser, loadRole: loadRole, cachedRole: cachedRole, withTimeout: withTimeout, gate: gate, logout: logout, loginMethod: loginMethod, clearSession: clearSession, hasStoredSession: hasStoredSession
+    getUser: getUser, loadRole: loadRole, cachedRole: cachedRole, withTimeout: withTimeout, gate: gate, logout: logout, clearSession: clearSession, hasStoredSession: hasStoredSession
   };
 })();

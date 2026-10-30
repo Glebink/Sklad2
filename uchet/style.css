@@ -1453,27 +1453,15 @@ html { touch-action: manipulation; }
 }
 /* Вкладки «Учёт / Склад / 1С» — ссылки (открываются колесом мыши в новой вкладке), вид как у кнопок */
 a.tab-btn { display: block; box-sizing: border-box; text-decoration: none; color: inherit; }
-/* QR-вход для склада */
-.u-list .t-tools .qr-btn { margin-left: auto; }
-.u-list .t-tools .qr-btn:not([hidden]) + .history-btn { margin-left: 8px; }
-.qr-box { display: flex; justify-content: center; margin: 6px 0 10px; }
-.qr-box svg { width: min(72vw, 280px); height: auto; background: #fff; border-radius: 8px; }
-.qr-box .qr-empty { padding: 30px 10px; color: var(--muted); text-align: center; }
 
 .u-list .tool-btn[hidden] { display: none; }
 
-/* Вход по QR (сменщик): только сегодняшняя заявка */
-body.qr-kiosk .u-list, body.qr-kiosk #ticketBackBtn, body.qr-kiosk .mod-menu-wrap, body.qr-kiosk .ticket-empty { display: none !important; }
-body.qr-kiosk #profileBtn, body.qr-kiosk #datePickerBox { pointer-events: none; }
-body.qr-kiosk.has-ticket #datePickerBox { display: flex !important; }
 .model-switch.hist-filter { height: auto; min-height: 40px; }
 .model-switch.hist-filter .ms-opt { white-space: normal; line-height: 1.15; padding: 4px 4px; }
 /* Лупа: размер иконки фиксированный — Safari ужимал svg во flex-кнопке до точки */
 .ca-search-toggle { padding: 0; }
 .ca-search-toggle svg { display: block; flex: 0 0 20px; width: 20px; height: 20px; min-width: 20px; min-height: 20px; }
 
-/* QR-вход: срок действия кода истёк — код бледный */
-.qr-box.qr-expired svg { opacity: .25; }
 
 /* ==================== 1С: инвентаризация (только hleb) ====================
    Режим вкладки «1С»: слева список инвентаризаций (как заявки в «Учёте»), в центре таблица.
