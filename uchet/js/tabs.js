@@ -1,9 +1,8 @@
 /* Учёт потребления — Переключение вкладок, сортировка по заголовкам, строки поиска вкладок.
    Файлы — обычные скрипты с общей областью видимости, подключаются по порядку (см. index.html). */
 /* ==================== Переключение вкладок ==================== */
-const TAB_LABELS = { consumption: "Учёт", warehouse: "Склад", onec: "1C" };
 function switchTab(target) {
-  // «Инвентаризация» — свой пункт меню, но показывается в виде «1С» (режим invOpen, только hleb).
+  // «Инвентаризация» — своя вкладка в шапке, но показывается в виде «1С» (режим invOpen, только hleb).
   const inv = target === "inv" && typeof canInventory === "function" && canInventory();
   if (target === "inv") target = "onec";
   // 1) Сначала — гарантированное переключение вида. Ничего, что может упасть.
@@ -20,14 +19,8 @@ function switchTab(target) {
     document.getElementById(viewId).classList.toggle("active", on);
   });
   document.getElementById("tabInvBtn").classList.toggle("active", inv);
-  const label = document.querySelector("#modMenuBtn .brand-label");
-  if (label) label.textContent = inv ? "Инвентаризация" : TAB_LABELS[target];
-  const panel = document.getElementById("tabsMenuPanel");
-  if (panel) panel.classList.remove("open");
   const modPanel = document.getElementById("modMenuPanel");
   if (modPanel) modPanel.classList.remove("open");
-  const modBtn = document.getElementById("modUchetBtn");
-  if (modBtn) modBtn.setAttribute("aria-expanded", "false");
 
   // 2) Остальное — в защищённом блоке: даже если что-то упадёт,
   //    вкладка уже переключилась и экран не «залипнет».
@@ -54,14 +47,6 @@ function tabTargetFromId(id) {
   if (id === "tabInvBtn") return "inv";
   return "consumption";
 }
-// «Учёт потребления» в меню разделов раскрывает вложенный выбор: Учёт / Склад / 1С / Инвентаризация.
-document.getElementById("modUchetBtn").addEventListener("click", (e) => {
-  e.stopPropagation();
-  const sub = document.getElementById("tabsMenuPanel");
-  const open = sub.classList.toggle("open");
-  e.currentTarget.setAttribute("aria-expanded", open ? "true" : "false");
-});
-
 /* ==================== Сортировка по клику на заголовок столбца ====================
    Учёт: Наименование (алфавит), Код (по первым 3 цифрам), Кол-во (числовое).
    Склад: то же + На складе / Выдано / Остаток (числовые). */

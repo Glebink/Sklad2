@@ -119,10 +119,6 @@
      место. Не используем класс .tab-btn, чтобы её не подхватывал глобальный
      обработчик переключения вкладок (иначе второй тап сбрасывал на «Учёт»). */
 
-  #tabsMenuPanel { background: var(--surface); border-color: var(--line-strong); }
-  #tabsMenuPanel .tab-btn { background: var(--surface-2); color: var(--fg); border-color: var(--line); }
-  #tabsMenuPanel .tab-btn:active { background: var(--accent-soft); }
-  #tabsMenuPanel .tab-btn.active { background: var(--accent); color: var(--solid-fg); border-color: var(--accent); }
 
   /* Верхняя прилипающая шапка (дата + меню вкладок + «Экспорт»/«История») —
      одинаковый вид всех элементов в ряд */
@@ -1236,15 +1232,29 @@ body:not(.ca-search-collapsed) .ca-search-toggle, body:not([data-tab="consumptio
 .u-list .t-tools .history-btn { margin-left: auto; margin-right: 8px; }
 
 /* Вложенный выбор в меню разделов: Учёт потребления → Учёт / Склад / 1С */
-.mod-parent { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; border: 0; background: transparent; font: inherit; font-weight: 600; font-size: 15px; cursor: pointer; text-align: left; }
-.mod-parent.active { background: var(--accent-soft); color: var(--accent-ink); }
-.mod-parent .mod-sub-caret { transition: transform .15s; }
-.mod-parent[aria-expanded="true"] .mod-sub-caret { transform: rotate(180deg); }
-.mod-sub { display: none; padding: 2px 0 4px 14px; gap: 4px; }
-.mod-sub.open { display: grid; }
-.mod-sub .tab-btn { flex: none; width: 100%; min-height: 40px; text-align: left; padding: 8px 12px; font-size: 14px; background: var(--surface-2); color: var(--fg); border-color: var(--line); border-radius: 8px; }
-.mod-sub .tab-btn.active { background: var(--accent); color: var(--solid-fg, #fff); border-color: var(--accent); }
-body.role-shift #modUchetBtn .mod-sub-caret { display: none; }
+button.mod-item { width: 100%; border: 0; background: transparent; font: inherit; font-weight: 600; font-size: 15px; text-align: left; cursor: pointer; }
+button.mod-item.active { background: var(--accent-soft); color: var(--accent-ink); }
+/* Вкладки строкой в шапке: Учёт · [Склад | 1С] · Инвентаризация */
+.tabs-strip { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.tabs-strip .tab-btn { flex: none; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;
+  height: 44px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line-strong); border-radius: 10px;
+  background: var(--surface); color: var(--fg); font-size: 15px; font-weight: 700; white-space: nowrap; }
+.tabs-strip .tab-btn:active { background: var(--accent-soft); }
+.tabs-strip .tab-btn.active { background: var(--accent); color: var(--solid-fg); border-color: var(--accent); }
+.tabs-strip [hidden] { display: none !important; }
+.tab-pair { display: inline-flex; }
+.tab-pair .tab-btn:first-child { border-radius: 10px 0 0 10px; border-right-width: 0; }
+.tab-pair .tab-btn:last-child { border-radius: 0 10px 10px 0; border-left: 1px solid var(--line-strong); }
+.tab-short { display: none; }
+@media (max-width: 1199px) { .tab-long { display: none; } .tab-short { display: inline; } }
+@media (max-width: 899px) {
+  .tabs-strip { gap: 4px; }
+  .tabs-strip .tab-btn { padding: 0 9px; font-size: 14px; }
+  body.has-ticket .tabs-strip { display: none; }
+}
+body.role-shift .tabs-strip { display: none !important; }
+/* узкий телефон: вкладкам не хватает места — версия прячется (видна на ПК), кнопки чуть уже */
+@media (max-width: 400px) { .topbar #appVersionBadge { display: none; } .tabs-strip .tab-btn { padding: 0 7px; } }
 
 #viewConsumption td.code, #viewConsumption td.code .code-text { font-weight: 700; }
 @media (max-width: 899px) {

@@ -12,6 +12,8 @@
     if (e.target.closest("#modMenuPanel") || e.target.closest("#modMenuBtn")) return;
     panel.classList.remove("open");
   });
+  // «Учёт потребления» — мы уже здесь: просто закрыть меню
+  document.getElementById("modUchetBtn").addEventListener("click", () => panel.classList.remove("open"));
 })();
 
 /* ==================== Старт ==================== */

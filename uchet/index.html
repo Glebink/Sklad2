@@ -12,8 +12,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Склад">
 <link rel="stylesheet" href="../lib/fonts/fonts.css">
-<link rel="stylesheet" href="style.css?v=2610301257">
-<link rel="stylesheet" href="../auth.css?v=2610301257">
+<link rel="stylesheet" href="style.css?v=2610301300">
+<link rel="stylesheet" href="../auth.css?v=2610301300">
 </head>
 <body>
 
@@ -24,20 +24,22 @@
   <div class="topbar-left">
   <div class="menu-wrap mod-menu-wrap">
     <button class="brand-btn" id="modMenuBtn" aria-haspopup="true" aria-label="Разделы">
-      <span class="brand-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg></span><span class="brand-label">Учёт</span>
+      <span class="brand-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg></span><span class="brand-label">Учёт потребления</span>
       <svg class="brand-caret" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
     </button>
     <div class="mod-panel" id="modMenuPanel">
-      <button type="button" class="mod-item active mod-parent" id="modUchetBtn" aria-expanded="false">Учёт потребления<svg class="mod-sub-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
-      <div class="mod-sub" id="tabsMenuPanel">
-        <a class="tab-btn active" id="tabConsumptionBtn" href="#consumption">Учёт</a>
-        <a class="tab-btn" id="tabWarehouseBtn" href="#warehouse">Склад</a>
-        <a class="tab-btn" id="tabOneCBtn" href="#onec">1C</a>
-        <a class="tab-btn" id="tabInvBtn" href="#inv" hidden>Инвентаризация</a>
-      </div>
+      <button type="button" class="mod-item active" id="modUchetBtn">Учёт потребления</button>
       <a class="mod-item" href="../zayavki/">Заявки на закупку</a>
     </div>
   </div>
+  <!-- Вкладки — строкой в шапке. «Склад | 1С» — одна кнопка, разделённая пополам. -->
+  <nav class="tabs-strip" id="tabsStrip" aria-label="Вкладки">
+    <a class="tab-btn active" id="tabConsumptionBtn" href="#consumption">Учёт</a>
+    <span class="tab-pair">
+      <a class="tab-btn" id="tabWarehouseBtn" href="#warehouse">Склад</a><a class="tab-btn" id="tabOneCBtn" href="#onec">1С</a>
+    </span>
+    <a class="tab-btn" id="tabInvBtn" href="#inv" hidden><span class="tab-long">Инвентаризация</span><span class="tab-short">Инвент.</span></a>
+  </nav>
   <div class="app-header">
     <button class="iconbtn ticket-back" id="ticketBackBtn" title="К списку заявок" aria-label="К списку заявок">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
@@ -643,20 +645,20 @@
 </div>
 
 <script src="../lib/supabase-2.45.4.js"></script>
-<script src="../auth.js?v=2610301257"></script>
-<script src="qrcode.js?v=2610301257"></script>
+<script src="../auth.js?v=2610301300"></script>
+<script src="qrcode.js?v=2610301300"></script>
 <!-- Учёт: обычные скрипты с общей областью видимости, порядок важен -->
-<script src="js/core.js?v=2610301257"></script>
-<script src="js/consumption.js?v=2610301257"></script>
-<script src="js/tickets.js?v=2610301257"></script>
-<script src="js/warehouse.js?v=2610301257"></script>
-<script src="js/tabs.js?v=2610301257"></script>
-<script src="js/stock-import.js?v=2610301257"></script>
-<script src="js/onec.js?v=2610301257"></script>
-<script src="js/ui.js?v=2610301257"></script>
-<script src="js/sync.js?v=2610301257"></script>
-<script src="js/inventory.js?v=2610301257"></script>
-<script src="js/start.js?v=2610301257"></script>
+<script src="js/core.js?v=2610301300"></script>
+<script src="js/consumption.js?v=2610301300"></script>
+<script src="js/tickets.js?v=2610301300"></script>
+<script src="js/warehouse.js?v=2610301300"></script>
+<script src="js/tabs.js?v=2610301300"></script>
+<script src="js/stock-import.js?v=2610301300"></script>
+<script src="js/onec.js?v=2610301300"></script>
+<script src="js/ui.js?v=2610301300"></script>
+<script src="js/sync.js?v=2610301300"></script>
+<script src="js/inventory.js?v=2610301300"></script>
+<script src="js/start.js?v=2610301300"></script>
 
 </body>
 </html>
