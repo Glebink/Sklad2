@@ -12,7 +12,7 @@ function ticketDateLong(key) {
 }
 function updateLayoutClasses() {
   const cons = currentTab === "consumption";
-  const inv = typeof invModeOn === "function" && invModeOn();   // инвентаризация во вкладке «1С»
+  const inv = typeof invModeOn === "function" && invModeOn();   // раздел «Инвентаризация» (в виде «1С»)
   document.body.classList.toggle("inv-mode", inv);
   document.body.classList.toggle("inv-none", inv && !invSelected());
   document.body.classList.toggle("has-list", (cons && !QR_KIOSK) || inv);

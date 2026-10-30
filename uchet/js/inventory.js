@@ -1,4 +1,4 @@
-/* Учёт потребления — Инвентаризация во вкладке «1С» (только hleb).
+/* Учёт потребления — Инвентаризация: свой пункт в меню разделов (только hleb), показывается в виде «1С».
    Слева список инвентаризаций (как заявки в «Учёте»), «+» создаёт новую с выбранной датой.
    Инвентаризация запоминает список и остатки 1С на момент создания («Обновить из 1С» берёт
    текущие, введённое не пропадает). В столбик «Склад» вводится фактическое количество;
@@ -26,11 +26,9 @@ function saveInventory() {
   scheduleSync();
 }
 
+// Открыта ли инвентаризация, решает пункт меню (switchTab("inv") / адрес #inv), а не запоминание.
 let invOpen = false, invCurrent = null;
-try {
-  invOpen = sessionStorage.getItem("sklad2_inv_open") === "1";
-  invCurrent = sessionStorage.getItem("sklad2_sel_inv");
-} catch (e) {}
+try { invCurrent = sessionStorage.getItem("sklad2_sel_inv"); } catch (e) {}
 function canInventory() { return MY_LOGIN === "hleb"; }
 function invModeOn() { return invOpen && currentTab === "onec" && canInventory(); }
 function invSelected() { return invCurrent && inventory[invCurrent] ? inventory[invCurrent] : null; }
@@ -67,7 +65,6 @@ function invDiffRows(inv) {
 
 function setInvOpen(on) {
   invOpen = !!on && canInventory();
-  try { sessionStorage.setItem("sklad2_inv_open", invOpen ? "1" : "0"); } catch (e) {}
   invRender();
   window.scrollTo(0, 0);
 }
@@ -126,6 +123,45 @@ function invMatches(it) {
   if (invFilter.model === "none") return ocModelsOf(it).length === 0;
   return ocModelsOf(it).indexOf(invFilter.model) !== -1;
 }
+/* Сортировка по столбцам «1С» и «Склад»: нажатие — по убыванию, ещё раз — по возрастанию, третий — как в 1С.
+   «Склад» без введённого числа считается как в 1С. Порядок только в таблице (номера строк в данных не меняются),
+   выбор хранится на устройстве. */
+const INV_SORT_KEY = "sklad2_inv_sort_v1";
+let invSort = (function () {
+  try {
+    const s = JSON.parse(localStorage.getItem(INV_SORT_KEY) || "null");
+    if (s && (s.col === "oc" || s.col === "fact") && (s.dir === "asc" || s.dir === "desc")) return s;
+  } catch (e) {}
+  return { col: null, dir: null };
+})();
+function invSortValue(inv, i) {
+  const q = inv.items[i].qty || 0;
+  if (invSort.col === "oc") return q;
+  return inv.fact[i] === undefined ? q : inv.fact[i];
+}
+function invSortedIndexes(inv) {
+  const idx = inv.items.map((it, i) => i);
+  if (!invSort.col) return idx;
+  const k = invSort.dir === "asc" ? 1 : -1;
+  return idx.sort((a, b) => (invSortValue(inv, a) - invSortValue(inv, b)) * k || a - b);
+}
+function updateInvSortUI() {
+  document.querySelectorAll(".inv-table th.inv-sort").forEach((th) => {
+    const on = th.dataset.col === invSort.col;
+    th.classList.toggle("sort-active", on);
+    th.querySelector(".sort-arrow").textContent = on ? (invSort.dir === "asc" ? "↑" : "↓") : "";
+  });
+}
+document.querySelectorAll(".inv-table th.inv-sort").forEach((th) => {
+  th.addEventListener("click", () => {
+    const col = th.dataset.col;
+    if (invSort.col !== col) invSort = { col, dir: "desc" };
+    else if (invSort.dir === "desc") invSort = { col, dir: "asc" };
+    else invSort = { col: null, dir: null };
+    try { localStorage.setItem(INV_SORT_KEY, JSON.stringify(invSort)); } catch (e) {}
+    renderInvTable();
+  });
+});
 function invRowState(inv, i) {
   const f = inv.fact[i];
   if (f === undefined) return { cls: "", diff: "" };
@@ -154,7 +190,8 @@ function renderInvTable() {
   rebuildCrossIndexes();
   invShownNames = inv.items.map(invNameOf);
   const rows = [];
-  inv.items.forEach((it, i) => {
+  invSortedIndexes(inv).forEach((i) => {
+    const it = inv.items[i];
     if (!invMatches(it)) return;
     const st = invRowState(inv, i);
     const f = inv.fact[i];
@@ -167,6 +204,7 @@ function renderInvTable() {
   });
   body.innerHTML = rows.length ? rows.join("") : `<tr><td colspan="4" class="wh-empty">В этой категории ничего нет</td></tr>`;
   updateInvFilterUI(rows.length);
+  updateInvSortUI();
   updateInvProgress();
   applySearchFns.inv();
 }
@@ -305,11 +343,6 @@ document.body.classList.add("inv-search-collapsed");
 })();
 
 /* ---------- список, создание, удаление ---------- */
-document.getElementById("ocInventoryBtn").addEventListener("click", () => setInvOpen(true));
-document.getElementById("invExitBtn").addEventListener("click", () => {
-  searchInputs.inv.value = "";   // строка поиска инвентаризации — пустой при следующем открытии
-  setInvOpen(false);
-});
 document.getElementById("invBackBtn").addEventListener("click", () => selectInv(null));
 document.getElementById("invNewBtn").addEventListener("click", () => {
   document.getElementById("invNewDate").value = todayStr();

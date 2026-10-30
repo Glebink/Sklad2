@@ -21,7 +21,7 @@ renderAll();
 renderTicketList();
 updateAddPanelVisibility();
 renderWarehouseAll();
-// Вкладка из адреса (#warehouse / #onec) — открыта колесом мыши или после обновления страницы.
+// Вкладка из адреса (#warehouse / #onec / #inv) — открыта колесом мыши или после обновления страницы.
 // Сменщику «Склад» и «1С» недоступны.
 // #today (QR-код на складе): после входа и обмена с сервером открыть последнюю заявку за сегодня,
 // а если её нет — создать (от имени вошедшего аккаунта).
@@ -29,7 +29,7 @@ let openTodayPending = false;
 (function () {
   const h = (location.hash || "").replace("#", "");
   if (h === "today") openTodayPending = true;   // #today снимается после открытия заявки (вход может перезагрузить страницу)
-  else if ((h === "warehouse" || h === "onec") && !isShift()) switchTab(h);
+  else if ((h === "warehouse" || h === "onec" || h === "inv") && !isShift()) switchTab(h);
   else if (h) { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} }
 })();
 function openTodayTicket() {
@@ -65,8 +65,8 @@ if (window.Auth) {
         if (r) MY_LOGIN = r.login;
         setQrKiosk(isShift() && /^(otp|magiclink)$/.test((await Auth.loginMethod()) || ""));
         { const qb = document.getElementById("qrShiftBtn"); if (qb) qb.hidden = MY_LOGIN !== "hleb"; }
-        document.getElementById("ocInventoryBtn").hidden = !canInventory();   // инвентаризация — только hleb
-        invRender();
+        document.getElementById("tabInvBtn").hidden = !canInventory();   // инвентаризация — только hleb
+        if (invOpen && !canInventory()) switchTab("onec");
       } catch (e) {}
       if (isShift()) { if (!(await shiftSessionAlive())) return; await loadCatalogFromServer(); }
       syncUserOk = true;

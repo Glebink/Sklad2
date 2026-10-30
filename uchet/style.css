@@ -1428,7 +1428,6 @@ html { touch-action: manipulation; }
 /* Крестик очистки в поле «Деталь» — по центру поля по высоте, внутри рамки */
 .add-panel.one-row .add-clear { top: 50%; right: 8px; transform: translateY(-50%); z-index: 2; }
 /* Телефон: у «Инвентаризации» только значок, чтобы шапка «1С» умещалась в строку */
-@media (max-width: 899px) { #ocInventoryBtn .inv-label { display: none; } }
 /* iPhone увеличивает страницу при фокусе на поле с шрифтом меньше 16px (окно «+»/«–» и др.) —
    на телефоне все поля ввода в окнах не мельче 16px, тогда зума нет. */
 @media (max-width: 899px) {
@@ -1483,11 +1482,13 @@ body.inv-mode.inv-search-collapsed #invSearchToggle { display: inline-flex !impo
   body.inv-mode.inv-none #invList { display: block; }
   body.inv-mode:not(.inv-none) #invList { display: none !important; }
 }
-.u-list .tool-btn.inv-exit { width: auto; padding: 0 12px 0 8px; gap: 2px; font-weight: 600; }
 .inv-head { flex-wrap: wrap; gap: 8px; }
 .inv-head .inv-back { width: 40px; height: 40px; font-size: 24px; line-height: 1; }
 .inv-table th.inv-num { width: 64px; text-align: center; }
 .inv-table thead th:nth-child(4) { width: 72px; }
+.inv-table th.inv-sort { cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation; white-space: nowrap; }
+.inv-table th.inv-sort.sort-active { color: var(--accent); }
+.inv-table th.inv-sort.sort-active .sort-arrow { display: inline; font-size: 11px; margin-left: 2px; }
 /* модели — в правом верхнем углу названия, как в «1С»; справа оставлено место, чтобы текст под них не заезжал.
    Высота строки — как в «1С»: в поле «Склад» удобно попадать пальцем. */
 .inv-table td.name { padding-right: 44px; height: 54px; }

@@ -12,8 +12,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Склад">
 <link rel="stylesheet" href="../lib/fonts/fonts.css">
-<link rel="stylesheet" href="style.css?v=2610301229">
-<link rel="stylesheet" href="../auth.css?v=2610301229">
+<link rel="stylesheet" href="style.css?v=2610301257">
+<link rel="stylesheet" href="../auth.css?v=2610301257">
 </head>
 <body>
 
@@ -33,6 +33,7 @@
         <a class="tab-btn active" id="tabConsumptionBtn" href="#consumption">Учёт</a>
         <a class="tab-btn" id="tabWarehouseBtn" href="#warehouse">Склад</a>
         <a class="tab-btn" id="tabOneCBtn" href="#onec">1C</a>
+        <a class="tab-btn" id="tabInvBtn" href="#inv" hidden>Инвентаризация</a>
       </div>
       <a class="mod-item" href="../zayavki/">Заявки на закупку</a>
     </div>
@@ -113,12 +114,9 @@
   </label>
   <div class="t-cards" id="ticketCards"></div>
 </section>
-<!-- Левый столбец во вкладке «1С» в режиме инвентаризации (только hleb): список инвентаризаций -->
+<!-- Левый столбец в разделе «Инвентаризация» (только hleb): список инвентаризаций -->
 <section class="u-list" id="invList">
   <div class="t-tools">
-    <button class="tool-btn inv-exit" id="invExitBtn" title="Закрыть инвентаризацию — к списку 1С" aria-label="Закрыть инвентаризацию">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg><span>1С</span>
-    </button>
     <button class="tool-btn" id="invNewBtn" aria-label="Новая инвентаризация" title="Новая инвентаризация">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
     </button>
@@ -223,7 +221,6 @@
     <button class="iconbtn" id="ocRedoBtn" disabled title="Повторить действие">↷</button>
     <span class="oc-filter-label" id="ocFilterLabel"></span>
     <button class="util oc-import-btn" id="ocImportBtn" title="Импорт остатков из Excel">⬆ Импорт</button>
-    <button class="util" id="ocInventoryBtn" title="Инвентаризация" hidden>📋<span class="inv-label"> Инвентаризация</span></button>
     <div class="spacer"></div>
   </div>
   <div class="table-scroll">
@@ -276,7 +273,7 @@
   </div>
   <div class="table-scroll">
   <table class="inv-table">
-    <thead><tr><th>Код</th><th>Наименование</th><th class="inv-num">1С</th><th class="inv-num">Склад</th></tr></thead>
+    <thead><tr><th>Код</th><th>Наименование</th><th class="inv-num inv-sort" data-col="oc" title="Сортировать по остатку 1С">1С<span class="sort-arrow"></span></th><th class="inv-num inv-sort" data-col="fact" title="Сортировать по количеству на складе">Склад<span class="sort-arrow"></span></th></tr></thead>
     <tbody id="inv-body-parts"></tbody>
   </table>
   </div>
@@ -646,20 +643,20 @@
 </div>
 
 <script src="../lib/supabase-2.45.4.js"></script>
-<script src="../auth.js?v=2610301229"></script>
-<script src="qrcode.js?v=2610301229"></script>
+<script src="../auth.js?v=2610301257"></script>
+<script src="qrcode.js?v=2610301257"></script>
 <!-- Учёт: обычные скрипты с общей областью видимости, порядок важен -->
-<script src="js/core.js?v=2610301229"></script>
-<script src="js/consumption.js?v=2610301229"></script>
-<script src="js/tickets.js?v=2610301229"></script>
-<script src="js/warehouse.js?v=2610301229"></script>
-<script src="js/tabs.js?v=2610301229"></script>
-<script src="js/stock-import.js?v=2610301229"></script>
-<script src="js/onec.js?v=2610301229"></script>
-<script src="js/ui.js?v=2610301229"></script>
-<script src="js/sync.js?v=2610301229"></script>
-<script src="js/inventory.js?v=2610301229"></script>
-<script src="js/start.js?v=2610301229"></script>
+<script src="js/core.js?v=2610301257"></script>
+<script src="js/consumption.js?v=2610301257"></script>
+<script src="js/tickets.js?v=2610301257"></script>
+<script src="js/warehouse.js?v=2610301257"></script>
+<script src="js/tabs.js?v=2610301257"></script>
+<script src="js/stock-import.js?v=2610301257"></script>
+<script src="js/onec.js?v=2610301257"></script>
+<script src="js/ui.js?v=2610301257"></script>
+<script src="js/sync.js?v=2610301257"></script>
+<script src="js/inventory.js?v=2610301257"></script>
+<script src="js/start.js?v=2610301257"></script>
 
 </body>
 </html>

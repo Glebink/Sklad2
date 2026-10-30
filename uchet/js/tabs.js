@@ -3,6 +3,9 @@
 /* ==================== Переключение вкладок ==================== */
 const TAB_LABELS = { consumption: "Учёт", warehouse: "Склад", onec: "1C" };
 function switchTab(target) {
+  // «Инвентаризация» — свой пункт меню, но показывается в виде «1С» (режим invOpen, только hleb).
+  const inv = target === "inv" && typeof canInventory === "function" && canInventory();
+  if (target === "inv") target = "onec";
   // 1) Сначала — гарантированное переключение вида. Ничего, что может упасть.
   const map = {
     consumption: ["tabConsumptionBtn", "viewConsumption"],
@@ -13,11 +16,12 @@ function switchTab(target) {
   Object.keys(map).forEach((k) => {
     const [btnId, viewId] = map[k];
     const on = (k === target);
-    document.getElementById(btnId).classList.toggle("active", on);
+    document.getElementById(btnId).classList.toggle("active", on && !(inv && k === "onec"));
     document.getElementById(viewId).classList.toggle("active", on);
   });
+  document.getElementById("tabInvBtn").classList.toggle("active", inv);
   const label = document.querySelector("#modMenuBtn .brand-label");
-  if (label) label.textContent = TAB_LABELS[target];
+  if (label) label.textContent = inv ? "Инвентаризация" : TAB_LABELS[target];
   const panel = document.getElementById("tabsMenuPanel");
   if (panel) panel.classList.remove("open");
   const modPanel = document.getElementById("modMenuPanel");
@@ -31,9 +35,9 @@ function switchTab(target) {
     showSearchBarFor(target);
     if (backTarget && target !== backTarget.dest) hideBackBtn();
     if (target === "warehouse") renderWarehouseAll();
-    if (target === "onec") { renderOneCAll(); invRender(); }
+    if (target === "onec") { renderOneCAll(); setInvOpen(inv); }
     // Вкладка — в адресе (#warehouse), чтобы её можно было открыть в новой вкладке и обновить страницу на ней
-    try { history.replaceState(null, "", target === "consumption" ? location.pathname + location.search : "#" + target); } catch (e) {}
+    try { history.replaceState(null, "", target === "consumption" ? location.pathname + location.search : "#" + (inv ? "inv" : target)); } catch (e) {}
     // Возврат в «Учёт» — всегда с начала списка (а не с места прокрутки «Склада»/«1С»)
     if (target === "consumption") {
       window.scrollTo(0, 0);
@@ -47,9 +51,10 @@ function switchTab(target) {
 function tabTargetFromId(id) {
   if (id === "tabWarehouseBtn") return "warehouse";
   if (id === "tabOneCBtn") return "onec";
+  if (id === "tabInvBtn") return "inv";
   return "consumption";
 }
-// «Учёт потребления» в меню разделов раскрывает вложенный выбор: Учёт / Склад / 1С.
+// «Учёт потребления» в меню разделов раскрывает вложенный выбор: Учёт / Склад / 1С / Инвентаризация.
 document.getElementById("modUchetBtn").addEventListener("click", (e) => {
   e.stopPropagation();
   const sub = document.getElementById("tabsMenuPanel");
