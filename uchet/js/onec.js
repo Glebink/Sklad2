@@ -344,13 +344,13 @@ function jumpToWarehouse(code, fromSection, fromIndex) {
 
 /* ==================== Фильтр списка 1С ====================
    Как на «Складе»: одна таблица (детали и расходники подряд), выбор по
-   заголовку — Самокаты (Все / YGW 4.0 / YGW 5.0 / 9Bot / Без модели),
+   заголовку — Все (вся таблица), Самокаты (Все / YGW 4.0 / YGW 5.0 / 9Bot / Без модели),
    Инструменты, Расходники, Одежда, Остальное. Категория позиции 1С — как у связанной
    позиции склада, иначе по тем же правилам. Дополнительно: «Остаток меньше N».
    Только просмотр, выбор запоминается на устройстве. */
 const OC_FILTER_KEY = "sklad2_oc_filter_v2";
-// Категории «1С» = категории «Склада» + «Не на складе» (позиции, не добавленные на склад «+»).
-const OC_CATS = Object.assign({}, WH_CATS, { nowh: "Не на складе" });
+// Категории «1С» = «Все» + категории «Склада» + «Не на складе» (позиции, не добавленные на склад «+»).
+const OC_CATS = Object.assign({ all: "Все" }, WH_CATS, { nowh: "Не на складе" });
 let ocFilter = loadOcFilter();
 function loadOcFilter() {
   try {
@@ -370,7 +370,7 @@ function ocCatOf(item) {
 function ocMatches(item) {
   if (ocFilter.cat === "nowh") {
     if (item.code && warehouseInfoFor(item.code, item.name)) return false;
-  } else if (ocCatOf(item) !== ocFilter.cat) return false;
+  } else if (ocFilter.cat !== "all" && ocCatOf(item) !== ocFilter.cat) return false;
   if (ocFilter.stock && !((item.qty || 0) < (ocFilter.qty || 0))) return false;
   if (ocFilter.cat !== "scooter" || ocFilter.model === "all") return true;
   if (ocFilter.model === "none") return ocModelsOf(item).length === 0;

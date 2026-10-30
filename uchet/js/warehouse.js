@@ -26,7 +26,7 @@ function modelBadgesHtml(models, stripYgw) {
 }
 
 /* ==================== Категории склада ====================
-   Фильтр: Самокаты (Все / YGW 5.0 / YGW 4.0 / 9Bot / Без модели), Инструменты,
+   Фильтр: Все (вся таблица), Самокаты (Все / YGW 5.0 / YGW 4.0 / 9Bot / Без модели), Инструменты,
    Расходники, Одежда, Остальное. Категория позиции — поле cat (ставится в окне правки);
    если не задана, определяется правилами ниже по названию, коду и модели.
    Только просмотр: фильтр данные не меняет, выбор запоминается на устройстве. */
@@ -58,7 +58,7 @@ const WH_FILTER_KEY = "sklad2_wh_filter_v2";
 let whFilter = (function () {
   try {
     const f = JSON.parse(localStorage.getItem(WH_FILTER_KEY) || "null");
-    if (f && WH_CATS[f.cat]) return { cat: f.cat, model: f.model || "all" };
+    if (f && (f.cat === "all" || WH_CATS[f.cat])) return { cat: f.cat, model: f.model || "all" };
   } catch (e) {}
   return { cat: "scooter", model: "all" };
 })();
@@ -66,6 +66,7 @@ function saveWhFilter() {
   try { localStorage.setItem(WH_FILTER_KEY, JSON.stringify(whFilter)); } catch (e) {}
 }
 function whMatches(item) {
+  if (whFilter.cat === "all") return true;
   if (whCatOf(item) !== whFilter.cat) return false;
   if (whFilter.cat !== "scooter" || whFilter.model === "all") return true;
   if (whFilter.model === "none") return modelsOf(item).length === 0;
@@ -77,6 +78,7 @@ function whFilterShowItem(item) {
   saveWhFilter();
 }
 function whFilterTitle() {
+  if (whFilter.cat === "all") return "Все";
   if (whFilter.cat !== "scooter" || whFilter.model === "all") return WH_CATS[whFilter.cat];
   return "Самокаты · " + (whFilter.model === "none" ? "без модели" : whFilter.model);
 }
