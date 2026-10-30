@@ -1065,6 +1065,35 @@ function stopRealtime() {
   if (rtChannel) { try { Auth.sb.removeChannel(rtChannel); } catch (e) {} rtChannel = null; }
 }
 
+/* ==================== Несколько вкладок на одном устройстве ====================
+   Память браузера (localStorage) у вкладок общая, а рабочая копия данных у каждой своя.
+   Раньше вкладка не знала, что другая записала свежие данные (например, забрала с сервера
+   правку с телефона), и при своей следующей правке записывала и отправляла старую копию —
+   чужая правка терялась. Теперь браузер сообщает об изменении (событие storage), и вкладка
+   сразу берёт новые данные. Пока идёт ввод в таблице — ждём, чтобы не сбить поле. */
+const tabSyncPending = new Set();
+let tabSyncTimer = null;
+function applyFromOtherTab() {
+  tabSyncTimer = null;
+  if (!tabSyncPending.size) return;
+  const a = document.activeElement;
+  if (a && a.closest && a.closest("tbody") && isTypingNow()) { tabSyncTimer = setTimeout(applyFromOtherTab, 400); return; }
+  const payload = {};
+  tabSyncPending.forEach((rk) => {
+    const v = readLocalValue(rk);
+    if (v !== undefined && isValidRemote(rk, v)) payload[SYNC_FIELD[rk]] = v;
+  });
+  tabSyncPending.clear();
+  if (Object.keys(payload).length) applySyncPayload(payload);
+}
+window.addEventListener("storage", (e) => {
+  if (e.storageArea !== localStorage || !e.key) return;
+  const rk = Object.keys(SYNC_FIELD).find((k) => bkToLocal(k) === e.key);
+  if (!rk) return;
+  tabSyncPending.add(rk);
+  if (!tabSyncTimer) tabSyncTimer = setTimeout(applyFromOtherTab, 30);
+});
+
 // Сменщику: названия, коды и модели деталей (без остатков) — готовая выжимка на сервере.
 async function loadCatalogFromServer() {
   try {
