@@ -27,6 +27,10 @@ renderWarehouseAll();
 // Сменщику «Склад» и «1С» недоступны.
 // #today (QR-код на складе): после входа и обмена с сервером открыть последнюю заявку за сегодня,
 // а если её нет — создать (от имени вошедшего аккаунта).
+// Кнопки только для hleb — сразу по роли, сохранённой на устройстве (core.js: Auth.cachedRole),
+// а не после ответа сервера при входе: иначе они появлялись с задержкой в несколько секунд.
+document.getElementById("tabInvBtn").hidden = !canInventory();
+{ const qb = document.getElementById("qrShiftBtn"); if (qb) qb.hidden = MY_LOGIN !== "hleb"; }
 let openTodayPending = false;
 (function () {
   const h = (location.hash || "").replace("#", "");
