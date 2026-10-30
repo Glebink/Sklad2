@@ -1255,6 +1255,8 @@ button.mod-item.active { background: var(--accent-soft); color: var(--accent-ink
   .tabs-strip { gap: 4px; }
   .tabs-strip .tab-btn { padding: 0 9px; font-size: 14px; }
   .tabs-strip { --tab-half: 58px; }
+  /* на телефоне «Учёт» — шириной с половинку «Склад | 1С» */
+  .tabs-strip #tabConsumptionBtn { width: var(--tab-half); }
   /* на телефоне «Инвентаризация» — значком, чтобы «Учёт» и «Склад | 1С» поместились одинаковой ширины */
   #tabInvBtn { width: 44px; padding: 0; }
   #tabInvBtn .tab-short { display: none; }
@@ -1262,9 +1264,9 @@ button.mod-item.active { background: var(--accent-soft); color: var(--accent-ink
   body.has-ticket .tabs-strip { display: none; }
 }
 body.role-shift .tabs-strip { display: none !important; }
-/* узкий телефон: вкладкам не хватает места — версия прячется (видна на ПК), кнопки чуть уже */
-@media (max-width: 400px) { .topbar #appVersionBadge { display: none; } .tabs-strip .tab-btn { font-size: 13px; } .tabs-strip { --tab-half: 50px; } }
-@media (max-width: 370px) { .tabs-strip { --tab-half: 44px; } }
+/* совсем узкий телефон: версия прячется (видна на ПК), кнопки чуть уже */
+@media (max-width: 400px) { .tabs-strip .tab-btn { font-size: 13px; } .tabs-strip { --tab-half: 54px; } }
+@media (max-width: 370px) { .topbar #appVersionBadge { display: none; } .tabs-strip { --tab-half: 50px; } }
 
 #viewConsumption td.code, #viewConsumption td.code .code-text { font-weight: 700; }
 @media (max-width: 899px) {
