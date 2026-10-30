@@ -1148,7 +1148,7 @@ body.no-ticket .sticky-top { display: none; }
 @media (max-width: 899px) {
   .topbar { gap: 6px; }
   .topbar-left, .topbar .app-header { gap: 6px; }
-  .brand-label, .brand-caret { display: none; }
+  .brand-caret { display: none; }
   .brand-btn { padding: 4px; }
   .topbar .date-picker { padding: 0 8px; height: 44px; }
   body.has-ticket .topbar #appVersionBadge { display: none; }
@@ -1352,11 +1352,6 @@ td.wh-empty { text-align: center; color: var(--muted); padding: 18px 8px; }
   white-space: nowrap; pointer-events: none;
 }
 .oc-import-btn { margin-left: auto; }
-/* Кнопка раздела («Учёт» / «Склад» / «1С») на ПК — того же размера, что и «Заявки на закупку» */
-@media (min-width: 900px) {
-  .brand-btn { width: 252px; white-space: nowrap; }
-  .brand-btn .brand-caret { margin-left: auto; }
-}
 /* «Учёт» на ПК: строки ниже (ширина колонок не меняется) — больше строк на экране без прокрутки */
 @media (min-width: 900px) {
   #viewConsumption td { padding-top: 1px; padding-bottom: 1px; }
