@@ -12,8 +12,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Склад">
 <link rel="stylesheet" href="../lib/fonts/fonts.css">
-<link rel="stylesheet" href="style.css?v=2610281008">
-<link rel="stylesheet" href="../auth.css?v=2610281008">
+<link rel="stylesheet" href="style.css?v=2610301229">
+<link rel="stylesheet" href="../auth.css?v=2610301229">
 </head>
 <body>
 
@@ -170,6 +170,7 @@
         </div>
         <button class="util" data-cat="tool" data-model="all">Инструменты</button>
         <button class="util" data-cat="cons" data-model="all">Расходники</button>
+        <button class="util" data-cat="cloth" data-model="all">Одежда</button>
         <button class="util" data-cat="other" data-model="all">Остальное</button>
       </div>
     </div>
@@ -209,6 +210,7 @@
         </div>
         <button class="util" data-cat="tool" data-model="all">Инструменты</button>
         <button class="util" data-cat="cons" data-model="all">Расходники</button>
+        <button class="util" data-cat="cloth" data-model="all">Одежда</button>
         <button class="util" data-cat="other" data-model="all">Остальное</button>
         <button class="util" data-cat="nowh" data-model="all">Не на складе</button>
         <div class="oc-stock-row">
@@ -257,6 +259,7 @@
         </div>
         <button class="util" data-cat="tool" data-model="all">Инструменты</button>
         <button class="util" data-cat="cons" data-model="all">Расходники</button>
+        <button class="util" data-cat="cloth" data-model="all">Одежда</button>
         <button class="util" data-cat="other" data-model="all">Остальное</button>
         <button class="util" data-cat="nowh" data-model="all">Не на складе</button>
         <div class="oc-stock-row">
@@ -418,10 +421,11 @@
     </div>
     <div class="field-label">Категория</div>
     <div class="model-switch cat-switch" id="whEditCat" data-value="">
-      <button type="button" class="ms-opt" data-model="scooter">Самокаты</button>
+      <button type="button" class="ms-opt" data-model="scooter">Самок.</button>
       <button type="button" class="ms-opt" data-model="tool">Инстр.</button>
       <button type="button" class="ms-opt" data-model="cons">Расходн.</button>
-      <button type="button" class="ms-opt" data-model="other">Остальное</button>
+      <button type="button" class="ms-opt" data-model="cloth">Одежда</button>
+      <button type="button" class="ms-opt" data-model="other">Остальн.</button>
     </div>
     <div class="modal-actions">
       <button class="confirm-no" id="whEditCancel">Отмена</button>
@@ -450,10 +454,11 @@
     </div>
     <div class="field-label">Категория</div>
     <div class="model-switch cat-switch" id="ocToWhCat" data-value="">
-      <button type="button" class="ms-opt" data-model="scooter">Самокаты</button>
+      <button type="button" class="ms-opt" data-model="scooter">Самок.</button>
       <button type="button" class="ms-opt" data-model="tool">Инстр.</button>
       <button type="button" class="ms-opt" data-model="cons">Расходн.</button>
-      <button type="button" class="ms-opt" data-model="other">Остальное</button>
+      <button type="button" class="ms-opt" data-model="cloth">Одежда</button>
+      <button type="button" class="ms-opt" data-model="other">Остальн.</button>
     </div>
     <div class="modal-actions">
       <button class="confirm-no" id="ocToWhCancel">Отмена</button>
@@ -482,10 +487,11 @@
     </div>
     <div class="field-label">Категория</div>
     <div class="model-switch cat-switch" id="ocEditCat" data-value="">
-      <button type="button" class="ms-opt" data-model="scooter">Самокаты</button>
+      <button type="button" class="ms-opt" data-model="scooter">Самок.</button>
       <button type="button" class="ms-opt" data-model="tool">Инстр.</button>
       <button type="button" class="ms-opt" data-model="cons">Расходн.</button>
-      <button type="button" class="ms-opt" data-model="other">Остальное</button>
+      <button type="button" class="ms-opt" data-model="cloth">Одежда</button>
+      <button type="button" class="ms-opt" data-model="other">Остальн.</button>
     </div>
     <div class="modal-actions">
       <button class="confirm-no" id="ocEditCancel">Отмена</button>
@@ -640,20 +646,20 @@
 </div>
 
 <script src="../lib/supabase-2.45.4.js"></script>
-<script src="../auth.js?v=2610281008"></script>
-<script src="qrcode.js?v=2610281008"></script>
+<script src="../auth.js?v=2610301229"></script>
+<script src="qrcode.js?v=2610301229"></script>
 <!-- Учёт: обычные скрипты с общей областью видимости, порядок важен -->
-<script src="js/core.js?v=2610281008"></script>
-<script src="js/consumption.js?v=2610281008"></script>
-<script src="js/tickets.js?v=2610281008"></script>
-<script src="js/warehouse.js?v=2610281008"></script>
-<script src="js/tabs.js?v=2610281008"></script>
-<script src="js/stock-import.js?v=2610281008"></script>
-<script src="js/onec.js?v=2610281008"></script>
-<script src="js/ui.js?v=2610281008"></script>
-<script src="js/sync.js?v=2610281008"></script>
-<script src="js/inventory.js?v=2610281008"></script>
-<script src="js/start.js?v=2610281008"></script>
+<script src="js/core.js?v=2610301229"></script>
+<script src="js/consumption.js?v=2610301229"></script>
+<script src="js/tickets.js?v=2610301229"></script>
+<script src="js/warehouse.js?v=2610301229"></script>
+<script src="js/tabs.js?v=2610301229"></script>
+<script src="js/stock-import.js?v=2610301229"></script>
+<script src="js/onec.js?v=2610301229"></script>
+<script src="js/ui.js?v=2610301229"></script>
+<script src="js/sync.js?v=2610301229"></script>
+<script src="js/inventory.js?v=2610301229"></script>
+<script src="js/start.js?v=2610301229"></script>
 
 </body>
 </html>
