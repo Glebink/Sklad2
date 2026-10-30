@@ -1242,19 +1242,29 @@ button.mod-item.active { background: var(--accent-soft); color: var(--accent-ink
 .tabs-strip .tab-btn:active { background: var(--accent-soft); }
 .tabs-strip .tab-btn.active { background: var(--accent); color: var(--solid-fg); border-color: var(--accent); }
 .tabs-strip [hidden] { display: none !important; }
+/* «Учёт» — той же ширины, что «Склад | 1С»; половинки «Склад» и «1С» равные */
+.tabs-strip { --tab-half: 78px; }
+.tabs-strip #tabConsumptionBtn { width: calc(2 * var(--tab-half)); padding: 0; }
+.tab-pair .tab-btn { width: var(--tab-half); padding: 0; }
 .tab-pair { display: inline-flex; }
 .tab-pair .tab-btn:first-child { border-radius: 10px 0 0 10px; border-right-width: 0; }
 .tab-pair .tab-btn:last-child { border-radius: 0 10px 10px 0; border-left: 1px solid var(--line-strong); }
-.tab-short { display: none; }
+.tab-short, .tab-icon { display: none; }
 @media (max-width: 1199px) { .tab-long { display: none; } .tab-short { display: inline; } }
 @media (max-width: 899px) {
   .tabs-strip { gap: 4px; }
   .tabs-strip .tab-btn { padding: 0 9px; font-size: 14px; }
+  .tabs-strip { --tab-half: 58px; }
+  /* на телефоне «Инвентаризация» — значком, чтобы «Учёт» и «Склад | 1С» поместились одинаковой ширины */
+  #tabInvBtn { width: 44px; padding: 0; }
+  #tabInvBtn .tab-short { display: none; }
+  #tabInvBtn .tab-icon { display: block; }
   body.has-ticket .tabs-strip { display: none; }
 }
 body.role-shift .tabs-strip { display: none !important; }
 /* узкий телефон: вкладкам не хватает места — версия прячется (видна на ПК), кнопки чуть уже */
-@media (max-width: 400px) { .topbar #appVersionBadge { display: none; } .tabs-strip .tab-btn { padding: 0 7px; } }
+@media (max-width: 400px) { .topbar #appVersionBadge { display: none; } .tabs-strip .tab-btn { font-size: 13px; } .tabs-strip { --tab-half: 50px; } }
+@media (max-width: 370px) { .tabs-strip { --tab-half: 44px; } }
 
 #viewConsumption td.code, #viewConsumption td.code .code-text { font-weight: 700; }
 @media (max-width: 899px) {
