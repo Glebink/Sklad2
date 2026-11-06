@@ -45,3 +45,13 @@ body.vw-has-sheets .vw-viewer { bottom: calc(44px + env(safe-area-inset-bottom))
 .vw-pdf { padding: 12px; }
 .vw-pdf canvas { display: block; margin: 0 auto 12px; background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,.2); }
 .vw-img { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+
+/* Excel с картинками: ширина столбцов и высота строк — как в файле; плавающие картинки — слоем поверх сетки */
+.vw-sheet { position: relative; display: inline-block; vertical-align: top; }
+.vw-grid.vw-fixed { table-layout: fixed; width: max-content; }
+.vw-grid.vw-fixed td { min-width: 0; padding: 2px 4px; white-space: pre-wrap; overflow: hidden; overflow-wrap: anywhere; position: relative; }
+.vw-grid.vw-fixed th { min-width: 0; overflow: hidden; }
+.vw-grid.vw-fixed .vw-hid, .vw-grid.vw-fixed tr.vw-hid > * { padding: 0; border: 0; font-size: 0; line-height: 0; }
+.vw-cellpic { position: absolute; left: 2px; top: 2px; width: calc(100% - 4px); height: calc(100% - 4px); object-fit: contain; }
+.vw-piclayer { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
+.vw-floatpic { position: absolute; object-fit: contain; }
