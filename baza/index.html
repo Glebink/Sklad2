@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover">
+<title>База знаний</title>
+<link rel="manifest" href="../manifest.json">
+<meta name="theme-color" content="#2B4C9B">
+<link rel="icon" href="../icon-192.png">
+<link rel="apple-touch-icon" href="../icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Склад">
+<link rel="stylesheet" href="../lib/fonts/fonts.css">
+<!-- оформление — как в «Учёте»: общие стили учёта + немного своих -->
+<link rel="stylesheet" href="../uchet/style.css?v=2611060701">
+<link rel="stylesheet" href="style.css?v=2611060701">
+<link rel="stylesheet" href="../auth.css?v=2611060701">
+</head>
+<body class="has-list no-ticket">
+
+<header class="topbar" id="topbar">
+  <div class="topbar-left">
+  <div class="menu-wrap mod-menu-wrap">
+    <button class="brand-btn" id="modMenuBtn" aria-haspopup="true" aria-label="Разделы" title="Разделы">
+      <span class="brand-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg></span>
+      <svg class="brand-caret" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="mod-panel" id="modMenuPanel">
+      <a class="mod-item" href="../uchet/">Учёт потребления</a>
+      <a class="mod-item" href="../zayavki/">Заявки на закупку</a>
+      <button type="button" class="mod-item active" id="modKbBtn">База знаний</button>
+    </div>
+  </div>
+  <div class="app-header">
+    <button class="iconbtn ticket-back" id="kbBackBtn" title="К списку" aria-label="К списку">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+    </button>
+    <span class="kb-head-title" id="kbHeadTitle">База знаний</span>
+  </div>
+  </div>
+  <div class="topbar-right">
+    <span id="appVersionBadge" title="Версия"></span>
+    <button class="iconbtn profile-btn" id="profileBtn" title="Аккаунт" aria-label="Аккаунт">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="page">
+
+<!-- Левый столбец: ячейки базы знаний (на телефоне — отдельный экран) -->
+<section class="u-list" id="kbList">
+  <div class="t-tools">
+    <button class="tool-btn" id="kbSearchBtn" aria-label="Поиск по названию" title="Поиск по названию">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    </button>
+    <button class="tool-btn" id="kbNewBtn" aria-label="Новая ячейка" title="Новая ячейка" hidden>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+  </div>
+  <label class="t-search" id="kbSearchBox" hidden>
+    <input type="search" id="kbSearchInput" placeholder="Название ячейки или файла" autocomplete="off">
+  </label>
+  <div class="t-cards" id="kbCards"><div class="t-empty">Загрузка…</div></div>
+</section>
+<div class="ticket-empty" id="kbEmpty">Выберите ячейку слева.</div>
+
+<!-- Выбранная ячейка: файлы друг под другом -->
+<main class="kb-view" id="kbView" hidden>
+  <div class="section-head kb-view-head">
+    <h2 class="section-title kb-view-title" id="kbViewTitle"></h2>
+    <div class="spacer"></div>
+    <button class="util primary" id="kbAddFileBtn" hidden>+ Файл</button>
+    <input type="file" id="kbFileInput" multiple hidden
+      accept=".docx,.xlsx,.pdf,.png,.jpg,.jpeg,.webp,.gif,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf,image/png,image/jpeg,image/webp,image/gif">
+  </div>
+  <div class="kb-status" id="kbStatus" hidden></div>
+  <div id="kbFiles"></div>
+</main>
+
+</div>
+
+<!-- Название ячейки: новая / переименовать -->
+<div class="modal-overlay" id="kbNameOverlay">
+  <div class="modal-box">
+    <p class="modal-title" id="kbNameTitle">Новая ячейка</p>
+    <input type="text" id="kbNameInput" class="full-w mb-10" maxlength="100" placeholder="Например: Инвентаризация" autocomplete="off">
+    <div class="modal-actions">
+      <button class="confirm-no" id="kbNameNo">Отмена</button>
+      <button class="confirm-yes accent" id="kbNameYes">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Аккаунт -->
+<div class="modal-overlay" id="kbAccountOverlay">
+  <div class="modal-box">
+    <p class="modal-title">Аккаунт</p>
+    <p class="sync-status-line" id="kbAccountLine"></p>
+    <div class="modal-actions">
+      <button class="confirm-no" id="kbAccountClose">Закрыть</button>
+      <button class="confirm-yes" id="kbLogoutBtn">Выйти</button>
+    </div>
+  </div>
+</div>
+
+<script src="../lib/supabase-2.45.4.js"></script>
+<script src="../auth.js?v=2611060701"></script>
+<script src="app.js?v=2611060701"></script>
+
+</body>
+</html>

@@ -9,15 +9,15 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <script>
-// Открываем последний использованный раздел; по умолчанию — Учёт потребления.
+// Открываем последний использованный раздел (учёт, заявки, база знаний); по умолчанию — Учёт потребления.
 (function () {
   var m = 'uchet';
-  try { var v = localStorage.getItem('sklad2_last_module'); if (v === 'zayavki') m = v; } catch (e) {}
+  try { var v = localStorage.getItem('sklad2_last_module'); if (v === 'zayavki' || v === 'baza') m = v; } catch (e) {}
   location.replace('./' + m + '/' + location.hash);
 })();
 </script>
 </head>
 <body>
-<p><a href="uchet/">Учёт потребления</a> · <a href="zayavki/">Заявки на закупку</a></p>
+<p><a href="uchet/">Учёт потребления</a> · <a href="zayavki/">Заявки на закупку</a> · <a href="baza/">База знаний</a></p>
 </body>
 </html>
