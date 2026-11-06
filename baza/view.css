@@ -1,0 +1,47 @@
+/* База знаний — просмотр одного файла на весь экран. Цвета и кнопки — из ../uchet/style.css. */
+body.vw-page { margin: 0; overflow: hidden; background: var(--bg); }
+.vw-bar { position: fixed; left: 0; right: 0; top: 0; z-index: 10; display: flex; align-items: center; gap: 10px; box-sizing: border-box;
+  height: calc(56px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left));
+  background: var(--bg); border-bottom: 1px solid var(--line); }
+.vw-back { flex: none; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px;
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--fg); text-decoration: none; }
+.vw-title { flex: 1 1 auto; min-width: 0; font-weight: 700; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vw-zoom { flex: none; display: inline-flex; }
+.vw-zoom .util { min-width: 40px; height: 40px; padding: 0 10px; margin: 0; border-radius: 0; }
+.vw-zoom .util:first-child { border-radius: 8px 0 0 8px; }
+.vw-zoom .util:last-child { border-radius: 0 8px 8px 0; }
+.vw-zoom #vwZoomReset { min-width: 62px; font-variant-numeric: tabular-nums; border-left: 0; border-right: 0; }
+@media (max-width: 899px) { .vw-zoom { display: none; } }   /* на телефоне — двумя пальцами */
+
+/* окно: от шапки до низа (или до вкладок листов), прокрутка по обеим осям */
+.vw-viewer { position: fixed; left: 0; right: 0; top: calc(56px + env(safe-area-inset-top)); bottom: 0; overflow: auto;
+  overscroll-behavior: contain; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; background: var(--surface-2); }
+body.vw-has-sheets .vw-viewer { bottom: calc(44px + env(safe-area-inset-bottom)); }
+.vw-viewer.vw-zoomed { cursor: grab; }
+.vw-viewer.vw-dragging { cursor: grabbing; user-select: none; -webkit-user-select: none; }
+.vw-msg { padding: 48px 16px; text-align: center; color: var(--muted); }
+.vw-msg.err { color: var(--danger); }
+.kb-zoom { display: inline-block; min-width: 100%; box-sizing: border-box; vertical-align: top; }
+
+/* Excel: сетка как в Excel — буквы столбцов и номера строк закреплены */
+.vw-grid { border-collapse: separate; border-spacing: 0; font-size: 13px; background: var(--surface); color: var(--fg); }
+.vw-grid td, .vw-grid th { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 3px 8px; white-space: pre; vertical-align: top; min-width: 48px; }
+.vw-grid td.n { text-align: right; }
+.vw-grid thead th { position: sticky; top: 0; z-index: 2; background: var(--surface-2); color: var(--muted); font-weight: 600; text-align: center; }
+.vw-grid tbody th { position: sticky; left: 0; z-index: 1; background: var(--surface-2); color: var(--muted); font-weight: 500; text-align: right; min-width: 32px; }
+.vw-grid thead th.vw-corner { left: 0; z-index: 3; }
+.vw-sheets { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex; gap: 2px; overflow-x: auto; box-sizing: border-box;
+  height: calc(44px + env(safe-area-inset-bottom)); padding: 0 8px env(safe-area-inset-bottom); background: var(--bg); border-top: 1px solid var(--line); }
+.vw-sheets[hidden] { display: none; }
+.vw-sheet-tab { flex: none; height: 36px; margin-top: 4px; padding: 0 14px; border: 1px solid var(--line); border-radius: 0 0 8px 8px; border-top: 0;
+  background: var(--surface-2); color: var(--fg); font: inherit; font-size: 14px; white-space: nowrap; cursor: pointer; }
+.vw-sheet-tab.on { background: var(--surface); color: #1D7044; font-weight: 700; border-color: var(--line-strong); box-shadow: inset 0 2px 0 #1D7044; }
+
+/* Word — постранично, как в Word */
+.vw-docx .docx-wrapper { background: transparent !important; padding: 16px !important; }
+.vw-docx .docx-wrapper > section.docx { box-shadow: 0 1px 6px rgba(0,0,0,.2) !important; margin-bottom: 16px !important; }
+
+/* PDF и картинки (в приложении на главном экране) */
+.vw-pdf { padding: 12px; }
+.vw-pdf canvas { display: block; margin: 0 auto 12px; background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,.2); }
+.vw-img { display: block; max-width: 100%; height: auto; margin: 0 auto; }

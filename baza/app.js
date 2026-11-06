@@ -1,37 +1,22 @@
 'use strict';
-/* База знаний: ячейки с названиями, в каждой — файлы (Word .docx, Excel .xlsx, PDF, картинки).
-   Нажатие на ячейку показывает её файлы справа (на телефоне — отдельным экраном), друг под другом.
+/* База знаний — список: слева ячейки с названиями, справа — файлы выбранной ячейки строками
+   (на телефоне — отдельным экраном, как заявки в «Учёте»). Нажатие на файл открывает его
+   на весь экран (view.html): на ПК — в новой вкладке, в приложении на главном экране — в том же окне.
    hleb — админ: создаёт, переименовывает, двигает и удаляет ячейки, добавляет, двигает, удаляет
-   и скачивает файлы. Остальные (boss, sklad) — только смотрят: кнопки скачивания у них нет,
-   меню «сохранить картинку» отключено.
-   Данные — таблица kb_cells (files: [{ path, name, type, size }]), файлы — закрытый бакет kb.
-   Права проверяет сервер (RLS): менять может только hleb. Кнопки здесь — удобство.
-   Просмотр файлов — библиотеки из ../lib/kb, грузятся только когда нужны.
-   Открытые файлы запоминаются в кэше браузера: без связи ранее открытое тоже видно. */
-const APP_VERSION = "v2.0";
-const BUCKET = "kb";
-const FILE_CACHE = "sklad2-kb-files";
-const CELLS_CACHE_KEY = "sklad2_kb_cells_v1";   // список ячеек — для работы без связи
-const LIB = "../lib/kb/";
-
-let cells = [];
+   и скачивает файлы. Остальные (boss, sklad) — только смотрят.
+   Общее со страницей просмотра — common.js. */
+let cells = loadCellsLocal();
 let currentId = null;
 let MY_LOGIN = "", ROLE = null;
 let query = "";
 try { localStorage.setItem("sklad2_last_module", "baza"); } catch (e) {}
 try { const c = window.Auth && Auth.cachedRole(); if (c) { ROLE = c.role; MY_LOGIN = c.login || ""; } } catch (e) {}
 try { currentId = sessionStorage.getItem("sklad2_kb_sel") || null; } catch (e) {}
-try { cells = JSON.parse(localStorage.getItem(CELLS_CACHE_KEY) || "[]") || []; } catch (e) { cells = []; }
 
-const $ = (id) => document.getElementById(id);
 function isAdmin() { return MY_LOGIN === "hleb"; }
-function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
-function plural(n, a, b, c) { const m = n % 10, h = n % 100; return n + " " + (m === 1 && h !== 11 ? a : (m >= 2 && m <= 4 && (h < 10 || h >= 20) ? b : c)); }
 function openModal(id) { $(id).classList.add("open"); }
 function closeModal(id) { $(id).classList.remove("open"); }
 function current() { return cells.find((c) => c.id === currentId) || null; }
-function sb() { return window.Auth && Auth.sb; }
-function errText(e) { return (e && (e.message || e.error_description || e.error)) || String(e); }
 
 $("appVersionBadge").textContent = APP_VERSION;
 function applyRole() {
@@ -50,18 +35,9 @@ function updateLayout() {
   $("kbEmpty").hidden = !!c;
   $("kbView").hidden = !c;
   $("kbHeadTitle").textContent = c ? c.title : "База знаний";
-  if (c) requestAnimationFrame(fitViewer);
 }
 
 /* ---------- список ячеек ---------- */
-function fileKind(f) {
-  const n = String(f.name || "").toLowerCase(), t = String(f.type || "");
-  if (/\.docx$/.test(n) || /wordprocessingml/.test(t)) return "docx";
-  if (/\.xlsx$/.test(n) || /spreadsheetml/.test(t)) return "xlsx";
-  if (/\.pdf$/.test(n) || t === "application/pdf") return "pdf";
-  if (/^image\//.test(t) || /\.(png|jpe?g|webp|gif)$/.test(n)) return "image";
-  return "";
-}
 function renderList() {
   const q = query.trim().toLowerCase();
   const list = cells.filter((c) => !q || c.title.toLowerCase().includes(q)
@@ -131,7 +107,7 @@ async function loadCells() {
   if (r.error) throw r.error;
   const before = JSON.stringify(cells);
   cells = (r.data || []).map((c) => ({ ...c, files: Array.isArray(c.files) ? c.files : [] }));
-  try { localStorage.setItem(CELLS_CACHE_KEY, JSON.stringify(cells)); } catch (e) {}
+  saveCellsLocal(cells);
   if (JSON.stringify(cells) === before) return;
   if (currentId && !current()) currentId = null;
   renderList();
@@ -139,7 +115,7 @@ async function loadCells() {
   renderView();
 }
 async function refresh() {
-  try { await loadCells(); setStatus(""); }
+  try { await loadCells(); }
   catch (e) { if (!cells.length) $("kbCards").innerHTML = `<div class="t-empty">Нет связи с сервером — список не загрузился.</div>`; }
 }
 
@@ -277,7 +253,7 @@ async function fileAction(act, idx) {
 }
 $("kbFiles").addEventListener("click", (e) => {
   const b = e.target.closest("[data-fact]");
-  if (b) fileAction(b.dataset.fact, +b.dataset.idx);
+  if (b) { e.preventDefault(); fileAction(b.dataset.fact, +b.dataset.idx); }
 });
 async function downloadFile(f) {
   if (!isAdmin()) return;
@@ -292,247 +268,32 @@ async function downloadFile(f) {
   } catch (e) { alert("Не удалось скачать: " + errText(e)); }
 }
 
-/* ---------- получение файла: кэш браузера → сервер ---------- */
-const blobMem = new Map();
-async function getFileBlob(f) {
-  if (blobMem.has(f.path)) return blobMem.get(f.path);
-  const key = new Request(location.origin + "/__kb/" + f.path);
-  let cache = null;
-  try { cache = await caches.open(FILE_CACHE); } catch (e) {}
-  if (cache) {
-    const hit = await cache.match(key);
-    if (hit) { const b = await hit.blob(); blobMem.set(f.path, b); return b; }
-  }
-  const r = await Auth.withTimeout(sb().storage.from(BUCKET).download(f.path), 120000);
-  if (r.error) throw r.error;
-  const blob = r.data;
-  blobMem.set(f.path, blob);
-  if (cache) { try { await cache.put(key, new Response(blob, { headers: { "Content-Type": f.type || "application/octet-stream" } })); } catch (e) {} }
-  return blob;
-}
-function uncacheFile(path) {
-  blobMem.delete(path);
-  try { caches.open(FILE_CACHE).then((c) => c.delete(new Request(location.origin + "/__kb/" + path))); } catch (e) {}
-}
-
-/* ---------- библиотеки просмотра (по требованию) ---------- */
-const libLoads = {};
-function loadScript(src) {
-  if (!libLoads[src]) libLoads[src] = new Promise((res, rej) => {
-    const s = document.createElement("script");
-    s.src = LIB + src;
-    s.onload = res;
-    s.onerror = () => { delete libLoads[src]; rej(new Error("не загрузилась библиотека просмотра " + src)); };
-    document.head.appendChild(s);
-  });
-  return libLoads[src];
-}
-async function needDocx() { await loadScript("jszip-3.10.1.min.js"); await loadScript("docx-preview-0.4.1.min.js"); }
-async function needXlsx() { await loadScript("xlsx-0.18.5.mini.min.js"); }
-async function needPdf() {
-  await loadScript("pdf-3.11.174.min.js");
-  window.pdfjsLib.GlobalWorkerOptions.workerSrc = LIB + "pdf-3.11.174.worker.min.js";
-}
-
-/* ---------- показ файлов ---------- */
-let renderSeq = 0;
+/* ---------- файлы выбранной ячейки — строками; нажатие открывает файл ---------- */
 function renderView() {
   const c = current();
   const box = $("kbFiles");
-  const seq = ++renderSeq;
-  if (!c) { box.innerHTML = ""; box.dataset.sig = ""; return; }
-  fitViewer();
+  if (!c) { box.innerHTML = ""; return; }
   $("kbViewTitle").textContent = c.title;
   const files = c.files || [];
-  // список и порядок файлов не менялись — не перерисовываем (иначе сбивалась бы прокрутка)
-  const sig = c.id + "|" + files.map((f) => f.path).join(",") + "|" + isAdmin();
-  if (box.dataset.sig === sig) return;
-  box.dataset.sig = sig;
-  zoom = 1;   // другая ячейка или другой набор файлов — снова 100 %
-  updateZoomUI();
   if (!files.length) {
-    box.innerHTML = `<div class="kb-empty">${isAdmin() ? "Файлов нет. Добавьте кнопкой «+ Файл»: Word (.docx), Excel (.xlsx), PDF или картинки." : "В этой ячейке пока нет файлов."}</div>`;
+    box.innerHTML = `<div class="kb-empty">${isAdmin() ? "Файлов нет. Добавьте кнопкой «+ Файл»: Excel (.xlsx), Word (.docx), PDF или картинки." : "В этой ячейке пока нет файлов."}</div>`;
     return;
   }
-  const admin = isAdmin();
-  box.innerHTML = `<div class="kb-zoom">` + files.map((f, i) => `<section class="kb-file" data-idx="${i}">`
-    + `<div class="kb-file-head"><span class="kb-file-name">${esc(f.name)}</span>`
-    + (admin ? `<span class="kb-file-acts">`
-      + (i > 0 ? `<button class="iconbtn" data-fact="up" data-idx="${i}" title="Выше">↑</button>` : "")
-      + (i < files.length - 1 ? `<button class="iconbtn" data-fact="down" data-idx="${i}" title="Ниже">↓</button>` : "")
-      + `<button class="iconbtn" data-fact="dl" data-idx="${i}" title="Скачать">⬇</button>`
-      + `<button class="iconbtn danger" data-fact="del" data-idx="${i}" title="Удалить файл">🗑</button></span>` : "")
-    + `</div><div class="kb-file-body"><div class="kb-loading">Загрузка…</div></div></section>`).join("") + `</div>`;
-  box.scrollTop = 0; box.scrollLeft = 0;
-  files.forEach((f, i) => {
-    const body = box.querySelector(`.kb-file[data-idx="${i}"] .kb-file-body`);
-    showFile(f, body, seq).catch((e) => {
-      if (seq !== renderSeq) return;
-      body.innerHTML = `<div class="kb-error">Не удалось открыть файл: ${esc(errText(e))}</div>`;
-    });
-  });
+  const admin = isAdmin(), target = isStandalone() ? "" : ` target="_blank"`;
+  box.innerHTML = files.map((f, i) => {
+    const kind = fileKind(f);
+    return `<a class="kb-row" href="${esc(viewUrl(c.id, f.path))}"${target} title="Открыть">`
+      + `<span class="kb-ico kb-ico-${kind || "other"}">${KIND_LABEL[kind] || "?"}</span>`
+      + `<span class="kb-row-main"><span class="kb-row-name">${esc(f.name)}</span>`
+      + `<span class="kb-row-sub">${fmtSize(f.size)}</span></span>`
+      + (admin ? `<span class="kb-file-acts">`
+        + (i > 0 ? `<button class="iconbtn" data-fact="up" data-idx="${i}" title="Выше">↑</button>` : "")
+        + (i < files.length - 1 ? `<button class="iconbtn" data-fact="down" data-idx="${i}" title="Ниже">↓</button>` : "")
+        + `<button class="iconbtn" data-fact="dl" data-idx="${i}" title="Скачать">⬇</button>`
+        + `<button class="iconbtn danger" data-fact="del" data-idx="${i}" title="Удалить файл">🗑</button></span>` : "")
+      + `</a>`;
+  }).join("");
 }
-async function showFile(f, body, seq) {
-  const kind = fileKind(f);
-  const blob = await getFileBlob(f);
-  if (seq !== renderSeq) return;
-  if (kind === "image") {
-    const img = document.createElement("img");
-    img.className = "kb-img";
-    img.alt = f.name;
-    img.draggable = false;
-    img.src = URL.createObjectURL(blob);
-    body.replaceChildren(img);
-    return;
-  }
-  if (kind === "docx") {
-    await needDocx();
-    if (seq !== renderSeq) return;
-    const host = document.createElement("div");
-    host.className = "kb-docx";
-    body.replaceChildren(host);
-    // ширина страницы Word не навязывается: текст и картинки подстраиваются под экран телефона
-    await window.docx.renderAsync(blob, host, null, {
-      className: "docx", inWrapper: false, ignoreWidth: true, ignoreHeight: true, breakPages: false,
-      ignoreLastRenderedPageBreak: true, renderHeaders: false, renderFooters: false, useBase64URL: true
-    });
-    host.querySelectorAll("img").forEach((im) => { im.draggable = false; });
-    // пустые абзацы (ими в инструкциях разносят шаги по страницам) на экране не нужны
-    host.querySelectorAll("p").forEach((p) => { if (!p.textContent.trim() && !p.querySelector("img, table")) p.classList.add("kb-blank"); });
-    return;
-  }
-  if (kind === "xlsx") {
-    await needXlsx();
-    if (seq !== renderSeq) return;
-    const wb = window.XLSX.read(await blob.arrayBuffer(), { type: "array" });
-    const wrap = document.createElement("div");
-    wrap.className = "kb-xlsx";
-    wb.SheetNames.forEach((name) => {
-      if (wb.SheetNames.length > 1) {
-        const h = document.createElement("div");
-        h.className = "kb-sheet-name";
-        h.textContent = name;
-        wrap.appendChild(h);
-      }
-      const sc = document.createElement("div");
-      sc.className = "kb-sheet";
-      sc.innerHTML = window.XLSX.utils.sheet_to_html(wb.Sheets[name], { header: "", footer: "" });
-      wrap.appendChild(sc);
-    });
-    body.replaceChildren(wrap);
-    return;
-  }
-  if (kind === "pdf") {
-    await needPdf();
-    if (seq !== renderSeq) return;
-    const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) }).promise;
-    const wrap = document.createElement("div");
-    wrap.className = "kb-pdf";
-    body.replaceChildren(wrap);
-    const width = Math.max(280, wrap.clientWidth || body.clientWidth || 600);
-    // с запасом на увеличение: при масштабе ×2 страница ещё чёткая
-    const dpr = Math.min((window.devicePixelRatio || 1) * 2, 4);
-    for (let p = 1; p <= pdf.numPages; p++) {
-      if (seq !== renderSeq) return;
-      const page = await pdf.getPage(p);
-      const v1 = page.getViewport({ scale: 1 });
-      const vp = page.getViewport({ scale: (width / v1.width) * dpr });
-      const cv = document.createElement("canvas");
-      cv.width = Math.floor(vp.width); cv.height = Math.floor(vp.height);
-      cv.className = "kb-pdf-page";
-      wrap.appendChild(cv);
-      await page.render({ canvasContext: cv.getContext("2d"), viewport: vp }).promise;
-    }
-    return;
-  }
-  body.innerHTML = `<div class="kb-error">Этот формат не показывается.</div>`;
-}
-// Не админ: без «Сохранить картинку» по долгому нажатию или правой кнопке
-document.addEventListener("contextmenu", (e) => { if (!isAdmin() && e.target.closest("#kbFiles")) e.preventDefault(); });
-document.addEventListener("dragstart", (e) => { if (!isAdmin() && e.target.closest("#kbFiles")) e.preventDefault(); });
-
-/* ---------- масштаб в окне просмотра ----------
-   Как Ctrl + колесо в браузере, но только внутри окна: Ctrl + колесо (и щипок на тачпаде), два пальца
-   на тачскрине, кнопки − 100 % +. Увеличивается всё вместе — текст и картинки; точка под курсором
-   (между пальцами) остаётся на месте. Когда содержимое шире окна — прокрутка вбок: полоса снизу,
-   Shift + колесо, тачпад, а при увеличении — перетаскивание мышью. */
-const viewer = $("kbFiles");
-const ZMIN = 0.5, ZMAX = 5;
-let zoom = 1;
-// окно просмотра — до низа экрана, со своей прокруткой (иначе полоса вбок была бы в самом конце длинного документа)
-function fitViewer() {
-  if ($("kbView").hidden) return;
-  const top = viewer.getBoundingClientRect().top + window.scrollY;
-  viewer.style.height = Math.max(200, window.innerHeight - top - 12) + "px";
-}
-function zoomInner() { return viewer.querySelector(".kb-zoom"); }
-function updateZoomUI() {
-  $("kbZoomReset").textContent = Math.round(zoom * 100) + "%";
-  viewer.classList.toggle("kb-zoomed", zoom > 1);
-}
-function setZoom(s, px, py) {
-  const inner = zoomInner();
-  s = Math.min(ZMAX, Math.max(ZMIN, Math.round(s * 100) / 100));
-  if (!inner || s === zoom) return;
-  const s0 = zoom;
-  if (px === undefined) { px = viewer.clientWidth / 2; py = viewer.clientHeight / 2; }
-  // ширина содержимого фиксируется по окну (при 100 %), а zoom растягивает его целиком — как щипок на телефоне
-  if (s0 === 1) inner.style.width = inner.clientWidth + "px";
-  const cx = viewer.scrollLeft + px, cy = viewer.scrollTop + py;
-  zoom = s;
-  inner.style.zoom = s;
-  if (s === 1) inner.style.width = "";
-  viewer.scrollLeft = cx * s / s0 - px;
-  viewer.scrollTop = cy * s / s0 - py;
-  updateZoomUI();
-}
-function relPoint(x, y) { const r = viewer.getBoundingClientRect(); return [x - r.left, y - r.top]; }
-viewer.addEventListener("wheel", (e) => {
-  if (!e.ctrlKey && !e.metaKey) return;   // без Ctrl — обычная прокрутка (с Shift — вбок)
-  e.preventDefault();
-  const [px, py] = relPoint(e.clientX, e.clientY);
-  setZoom(zoom * Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0025)), px, py);
-}, { passive: false });
-// два пальца
-let pinch = null, pinchRaf = 0;
-function touchDist(t) { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
-viewer.addEventListener("touchstart", (e) => {
-  if (e.touches.length === 2) { pinch = { d: touchDist(e.touches), s: zoom }; e.preventDefault(); }
-}, { passive: false });
-viewer.addEventListener("touchmove", (e) => {
-  if (!pinch || e.touches.length !== 2) return;
-  e.preventDefault();
-  const t = e.touches, d = touchDist(t);
-  const [px, py] = relPoint((t[0].clientX + t[1].clientX) / 2, (t[0].clientY + t[1].clientY) / 2);
-  cancelAnimationFrame(pinchRaf);
-  pinchRaf = requestAnimationFrame(() => setZoom(pinch ? pinch.s * d / pinch.d : zoom, px, py));
-}, { passive: false });
-viewer.addEventListener("touchend", (e) => { if (e.touches.length < 2) pinch = null; });
-viewer.addEventListener("touchcancel", () => { pinch = null; });
-// Safari: не давать щипку в окне увеличивать всю страницу
-["gesturestart", "gesturechange"].forEach((t) => document.addEventListener(t, (e) => { if (e.target.closest && e.target.closest("#kbFiles")) e.preventDefault(); }, { passive: false }));
-// при увеличении — двигать содержимое мышью
-let drag = null;
-viewer.addEventListener("mousedown", (e) => {
-  if (zoom <= 1 || e.button !== 0 || e.target.closest("button, a, input")) return;
-  drag = { x: e.clientX, y: e.clientY, l: viewer.scrollLeft, t: viewer.scrollTop };
-  viewer.classList.add("kb-dragging");
-  e.preventDefault();
-});
-document.addEventListener("mousemove", (e) => {
-  if (!drag) return;
-  viewer.scrollLeft = drag.l - (e.clientX - drag.x);
-  viewer.scrollTop = drag.t - (e.clientY - drag.y);
-});
-document.addEventListener("mouseup", () => { if (drag) { drag = null; viewer.classList.remove("kb-dragging"); } });
-$("kbZoomIn").addEventListener("click", () => setZoom(zoom * 1.25));
-$("kbZoomOut").addEventListener("click", () => setZoom(zoom / 1.25));
-$("kbZoomReset").addEventListener("click", () => setZoom(1));
-window.addEventListener("resize", () => {
-  fitViewer();
-  const inner = zoomInner();
-  if (inner && zoom !== 1) { const s = zoom; setZoom(1); setZoom(s); }   // новая ширина окна — пересчитать
-});
 
 /* ---------- меню разделов, аккаунт ---------- */
 (function () {
@@ -563,11 +324,7 @@ if (window.Auth) {
     onLogin: async () => {
       try {
         const r = await Auth.loadRole();
-        if (r) {
-          ROLE = r.role; MY_LOGIN = r.login;
-          applyRole();
-          if (currentId) $("kbFiles").dataset.sig = "";   // права могли смениться — кнопки у файлов перерисовать
-        }
+        if (r) { ROLE = r.role; MY_LOGIN = r.login; applyRole(); }
       } catch (e) {}
       await refresh();
       renderList();

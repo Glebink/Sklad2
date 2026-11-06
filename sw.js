@@ -6,7 +6,7 @@ const SHELL = [
   "uchet/", "uchet/index.html", "uchet/style.css",
   "uchet/js/core.js", "uchet/js/consumption.js", "uchet/js/tickets.js", "uchet/js/warehouse.js", "uchet/js/tabs.js", "uchet/js/stock-import.js", "uchet/js/onec.js", "uchet/js/ui.js", "uchet/js/sync.js", "uchet/js/inventory.js", "uchet/js/start.js",
   "zayavki/", "zayavki/index.html", "zayavki/style.css", "zayavki/app.js",
-  "baza/", "baza/index.html", "baza/style.css", "baza/app.js",   // библиотеки просмотра (lib/kb) кэшируются при первом открытии файла
+  "baza/", "baza/index.html", "baza/style.css", "baza/common.js", "baza/app.js", "baza/view.html", "baza/view.css", "baza/view.js",   // библиотеки просмотра (lib/kb) кэшируются при первом открытии файла
   "lib/supabase-2.45.4.js",  // библиотека и шрифты лежат в репозитории: CDN из РФ бывает недоступен
   "lib/fonts/fonts.css",
   "lib/fonts/ibm-plex-mono-cyrillic-500-normal.woff2",

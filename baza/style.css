@@ -1,58 +1,33 @@
-/* База знаний — поверх стилей «Учёта» (../uchet/style.css): только своё. */
-.page { padding-top: calc(var(--top0) + var(--topbar-h)); padding-bottom: 0; }
-/* страница не прокручивается — прокручивается окно просмотра */
-body.has-ticket { overflow: hidden; }
+/* База знаний — список; поверх стилей «Учёта» (../uchet/style.css): только своё. */
+.page { padding-top: calc(var(--top0) + var(--topbar-h)); padding-bottom: 24px; }
 .kb-head-title { font-weight: 700; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .kb-card-title { font-weight: 600; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-/* у не-админа в карточке нет меню «⋮» — нижняя строка не нужна */
 .u-list .tool-btn[hidden] { display: none; }
 
 .kb-view { min-width: 0; }
 .kb-view-head { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
 .kb-view-title { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .kb-status { margin: 0 0 10px; padding: 8px 12px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink); font-size: 14px; }
-.kb-empty, .kb-loading, .kb-error { padding: 32px 16px; text-align: center; color: var(--muted); }
-.kb-error { color: var(--danger); }
+.kb-empty { padding: 32px 16px; text-align: center; color: var(--muted); }
 
-/* окно просмотра: своя прокрутка по обеим осям, высота — до низа экрана (fitViewer в app.js) */
-.kb-viewer { overflow: auto; overscroll-behavior: contain; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; border-radius: 12px; }
-.kb-viewer.kb-zoomed { cursor: grab; }
-.kb-viewer.kb-dragging { cursor: grabbing; user-select: none; -webkit-user-select: none; }
-.kb-zoom-ctl { display: inline-flex; flex: none; }
-.kb-zoom-ctl .util { min-width: 40px; padding: 0 10px; border-radius: 0; margin: 0; }
-.kb-zoom-ctl .util:first-child { border-radius: 8px 0 0 8px; }
-.kb-zoom-ctl .util:last-child { border-radius: 0 8px 8px 0; }
-.kb-zoom-ctl #kbZoomReset { min-width: 62px; font-variant-numeric: tabular-nums; border-left: 0; border-right: 0; }
-.kb-file { margin-bottom: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; }
-.kb-file-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
-.kb-file-name { flex: 1 1 auto; min-width: 0; font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* файлы ячейки — строками */
+.kb-files { display: flex; flex-direction: column; gap: 8px; max-width: 900px; }
+.kb-row { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); color: var(--fg); text-decoration: none; cursor: pointer; }
+.kb-row:hover { border-color: var(--accent); }
+.kb-row:active { background: var(--accent-soft); }
+.kb-ico { flex: none; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff; background: #6B7280; }
+.kb-ico-xlsx { background: #1D7044; }
+.kb-ico-docx { background: #2B579A; }
+.kb-ico-pdf { background: #C4314B; }
+.kb-ico-image { background: #8A5CC2; }
+.kb-row-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.kb-row-name { font-weight: 600; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kb-row-sub { color: var(--muted); font-size: 12px; }
 .kb-file-acts { display: flex; gap: 6px; flex: none; }
 .kb-file-acts .iconbtn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--fg); font-size: 16px; cursor: pointer; }
 .kb-file-acts .iconbtn.danger { color: var(--danger); }
-.kb-file-body { padding: 12px; overflow-x: auto; }
-
-/* картинки и страницы PDF — по ширине экрана; без «Сохранить изображение» по долгому нажатию на iPhone */
-.kb-img, .kb-pdf-page { display: block; max-width: 100%; height: auto; margin: 0 auto; }
-.kb-pdf-page { width: 100%; margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.15); background: #fff; }
-body:not(.kb-admin) #kbFiles img, body:not(.kb-admin) #kbFiles canvas { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-
-/* Word: светлый лист, текст и картинки подстраиваются под ширину */
-.kb-docx { background: #fff; color: #111; border-radius: 8px; padding: 16px; line-height: 1.4; overflow-wrap: anywhere; }
-.kb-docx section.docx { padding: 0 !important; width: auto !important; min-height: 0 !important; box-shadow: none !important; margin: 0 !important; background: transparent !important; }
-/* у картинок Word размеры заданы в пунктах — и у самой картинки, и у её рамки: снимаем, иначе на телефоне
-   картинка обрезается справа, а под уменьшенной остаётся пустое место прежней высоты */
-.kb-docx div[style*="inline-block"] { width: auto !important; height: auto !important; max-width: 100%; }
-.kb-docx img { width: auto !important; max-width: 100% !important; height: auto !important; }
-.kb-docx .kb-blank { display: none; }
-.kb-docx p { margin: 0 0 6px; }
-@media (max-width: 899px) { .kb-docx { padding: 10px; font-size: 15px; } .kb-file-body { padding: 8px; } }
-
-/* Excel: таблица с прокруткой вбок */
-.kb-sheet-name { font-weight: 700; margin: 12px 0 6px; }
-.kb-sheet-name:first-child { margin-top: 0; }
-.kb-sheet { overflow-x: auto; }
-.kb-sheet table { border-collapse: collapse; font-size: 13px; background: var(--surface); }
-.kb-sheet td, .kb-sheet th { border: 1px solid var(--line-strong); padding: 4px 8px; white-space: nowrap; vertical-align: top; }
 
 /* телефон: список и ячейка — два экрана, как заявки в «Учёте» */
 @media (max-width: 899px) {
@@ -61,9 +36,10 @@ body:not(.kb-admin) #kbFiles img, body:not(.kb-admin) #kbFiles canvas { -webkit-
   body.has-ticket .mod-menu-wrap { display: none; }
   /* название ячейки уже в шапке; строка остаётся только у hleb — ради «+ Файл» */
   .kb-view-title { display: none; }
-  /* на телефоне масштаб — двумя пальцами, кнопки не нужны */
-  .kb-zoom-ctl { display: none; }
   body:not(.kb-admin) .kb-view-head { display: none; }
+  body:not(.kb-admin) .kb-files { margin-top: 10px; }
+  .kb-file-acts .iconbtn { width: 32px; height: 32px; font-size: 14px; }
+  .kb-file-acts { gap: 4px; }
 }
 @media (min-width: 900px) {
   .kb-head-title { display: none; }

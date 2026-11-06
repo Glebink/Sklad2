@@ -13,9 +13,9 @@
 <meta name="apple-mobile-web-app-title" content="Склад">
 <link rel="stylesheet" href="../lib/fonts/fonts.css">
 <!-- оформление — как в «Учёте»: общие стили учёта + немного своих -->
-<link rel="stylesheet" href="../uchet/style.css?v=2611060704">
-<link rel="stylesheet" href="style.css?v=2611060704">
-<link rel="stylesheet" href="../auth.css?v=2611060704">
+<link rel="stylesheet" href="../uchet/style.css?v=2611060744">
+<link rel="stylesheet" href="style.css?v=2611060744">
+<link rel="stylesheet" href="../auth.css?v=2611060744">
 </head>
 <body class="has-list no-ticket">
 
@@ -66,20 +66,17 @@
 </section>
 <div class="ticket-empty" id="kbEmpty">Выберите ячейку слева.</div>
 
-<!-- Выбранная ячейка: файлы друг под другом -->
+<!-- Выбранная ячейка: её файлы строками; нажатие открывает файл (view.html) -->
 <main class="kb-view" id="kbView" hidden>
   <div class="section-head kb-view-head">
     <h2 class="section-title kb-view-title" id="kbViewTitle"></h2>
     <div class="spacer"></div>
-    <div class="kb-zoom-ctl" title="Масштаб: Ctrl + колесо мыши или два пальца">
-      <button class="util" id="kbZoomOut" aria-label="Уменьшить">−</button><button class="util" id="kbZoomReset" aria-label="Масштаб 100 %">100%</button><button class="util" id="kbZoomIn" aria-label="Увеличить">+</button>
-    </div>
     <button class="util primary" id="kbAddFileBtn" hidden>+ Файл</button>
     <input type="file" id="kbFileInput" multiple hidden
       accept=".docx,.xlsx,.pdf,.png,.jpg,.jpeg,.webp,.gif,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf,image/png,image/jpeg,image/webp,image/gif">
   </div>
   <div class="kb-status" id="kbStatus" hidden></div>
-  <div class="kb-viewer" id="kbFiles"></div>
+  <div class="kb-files" id="kbFiles"></div>
 </main>
 
 </div>
@@ -109,8 +106,9 @@
 </div>
 
 <script src="../lib/supabase-2.45.4.js"></script>
-<script src="../auth.js?v=2611060704"></script>
-<script src="app.js?v=2611060704"></script>
+<script src="../auth.js?v=2611060744"></script>
+<script src="common.js?v=2611060744"></script>
+<script src="app.js?v=2611060744"></script>
 
 </body>
 </html>

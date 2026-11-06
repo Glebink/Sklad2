@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover">
+<title>База знаний</title>
+<link rel="manifest" href="../manifest.json">
+<meta name="theme-color" content="#2B4C9B">
+<link rel="icon" href="../icon-192.png">
+<link rel="apple-touch-icon" href="../icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Склад">
+<link rel="stylesheet" href="../lib/fonts/fonts.css">
+<!-- цвета и кнопки — как в «Учёте» -->
+<link rel="stylesheet" href="../uchet/style.css?v=2611060744">
+<link rel="stylesheet" href="view.css?v=2611060744">
+<link rel="stylesheet" href="../auth.css?v=2611060744">
+</head>
+<body class="vw-page">
+
+<!-- Просмотр одного файла базы знаний на весь экран: Excel (листы вкладками внизу), Word, а в приложении
+     на главном экране — ещё PDF и картинки (в браузере они открываются его собственным просмотрщиком). -->
+<header class="vw-bar" id="vwBar">
+  <a class="iconbtn vw-back" id="vwBack" href="./" title="К списку" aria-label="К списку">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+  </a>
+  <span class="vw-title" id="vwTitle">Загрузка…</span>
+  <div class="vw-zoom" id="vwZoom" title="Масштаб: Ctrl + колесо мыши или два пальца">
+    <button class="util" id="vwZoomOut" aria-label="Уменьшить">−</button><button class="util" id="vwZoomReset" aria-label="Масштаб 100 %">100%</button><button class="util" id="vwZoomIn" aria-label="Увеличить">+</button>
+  </div>
+</header>
+
+<main class="vw-viewer" id="vwViewer"><div class="vw-msg">Загрузка…</div></main>
+
+<!-- листы Excel — как вкладки внизу в самом Excel -->
+<nav class="vw-sheets" id="vwSheets" hidden></nav>
+
+<script src="../lib/supabase-2.45.4.js"></script>
+<script src="../auth.js?v=2611060744"></script>
+<script src="common.js?v=2611060744"></script>
+<script src="view.js?v=2611060744"></script>
+
+</body>
+</html>
