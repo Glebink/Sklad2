@@ -50,6 +50,7 @@ function updateLayout() {
   $("kbEmpty").hidden = !!c;
   $("kbView").hidden = !c;
   $("kbHeadTitle").textContent = c ? c.title : "База знаний";
+  if (c) requestAnimationFrame(fitViewer);
 }
 
 /* ---------- список ячеек ---------- */
@@ -340,25 +341,29 @@ function renderView() {
   const box = $("kbFiles");
   const seq = ++renderSeq;
   if (!c) { box.innerHTML = ""; box.dataset.sig = ""; return; }
+  fitViewer();
   $("kbViewTitle").textContent = c.title;
   const files = c.files || [];
   // список и порядок файлов не менялись — не перерисовываем (иначе сбивалась бы прокрутка)
   const sig = c.id + "|" + files.map((f) => f.path).join(",") + "|" + isAdmin();
   if (box.dataset.sig === sig) return;
   box.dataset.sig = sig;
+  zoom = 1;   // другая ячейка или другой набор файлов — снова 100 %
+  updateZoomUI();
   if (!files.length) {
     box.innerHTML = `<div class="kb-empty">${isAdmin() ? "Файлов нет. Добавьте кнопкой «+ Файл»: Word (.docx), Excel (.xlsx), PDF или картинки." : "В этой ячейке пока нет файлов."}</div>`;
     return;
   }
   const admin = isAdmin();
-  box.innerHTML = files.map((f, i) => `<section class="kb-file" data-idx="${i}">`
+  box.innerHTML = `<div class="kb-zoom">` + files.map((f, i) => `<section class="kb-file" data-idx="${i}">`
     + `<div class="kb-file-head"><span class="kb-file-name">${esc(f.name)}</span>`
     + (admin ? `<span class="kb-file-acts">`
       + (i > 0 ? `<button class="iconbtn" data-fact="up" data-idx="${i}" title="Выше">↑</button>` : "")
       + (i < files.length - 1 ? `<button class="iconbtn" data-fact="down" data-idx="${i}" title="Ниже">↓</button>` : "")
       + `<button class="iconbtn" data-fact="dl" data-idx="${i}" title="Скачать">⬇</button>`
       + `<button class="iconbtn danger" data-fact="del" data-idx="${i}" title="Удалить файл">🗑</button></span>` : "")
-    + `</div><div class="kb-file-body"><div class="kb-loading">Загрузка…</div></div></section>`).join("");
+    + `</div><div class="kb-file-body"><div class="kb-loading">Загрузка…</div></div></section>`).join("") + `</div>`;
+  box.scrollTop = 0; box.scrollLeft = 0;
   files.forEach((f, i) => {
     const body = box.querySelector(`.kb-file[data-idx="${i}"] .kb-file-body`);
     showFile(f, body, seq).catch((e) => {
@@ -425,7 +430,8 @@ async function showFile(f, body, seq) {
     wrap.className = "kb-pdf";
     body.replaceChildren(wrap);
     const width = Math.max(280, wrap.clientWidth || body.clientWidth || 600);
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // с запасом на увеличение: при масштабе ×2 страница ещё чёткая
+    const dpr = Math.min((window.devicePixelRatio || 1) * 2, 4);
     for (let p = 1; p <= pdf.numPages; p++) {
       if (seq !== renderSeq) return;
       const page = await pdf.getPage(p);
@@ -444,6 +450,89 @@ async function showFile(f, body, seq) {
 // Не админ: без «Сохранить картинку» по долгому нажатию или правой кнопке
 document.addEventListener("contextmenu", (e) => { if (!isAdmin() && e.target.closest("#kbFiles")) e.preventDefault(); });
 document.addEventListener("dragstart", (e) => { if (!isAdmin() && e.target.closest("#kbFiles")) e.preventDefault(); });
+
+/* ---------- масштаб в окне просмотра ----------
+   Как Ctrl + колесо в браузере, но только внутри окна: Ctrl + колесо (и щипок на тачпаде), два пальца
+   на тачскрине, кнопки − 100 % +. Увеличивается всё вместе — текст и картинки; точка под курсором
+   (между пальцами) остаётся на месте. Когда содержимое шире окна — прокрутка вбок: полоса снизу,
+   Shift + колесо, тачпад, а при увеличении — перетаскивание мышью. */
+const viewer = $("kbFiles");
+const ZMIN = 0.5, ZMAX = 5;
+let zoom = 1;
+// окно просмотра — до низа экрана, со своей прокруткой (иначе полоса вбок была бы в самом конце длинного документа)
+function fitViewer() {
+  if ($("kbView").hidden) return;
+  const top = viewer.getBoundingClientRect().top + window.scrollY;
+  viewer.style.height = Math.max(200, window.innerHeight - top - 12) + "px";
+}
+function zoomInner() { return viewer.querySelector(".kb-zoom"); }
+function updateZoomUI() {
+  $("kbZoomReset").textContent = Math.round(zoom * 100) + "%";
+  viewer.classList.toggle("kb-zoomed", zoom > 1);
+}
+function setZoom(s, px, py) {
+  const inner = zoomInner();
+  s = Math.min(ZMAX, Math.max(ZMIN, Math.round(s * 100) / 100));
+  if (!inner || s === zoom) return;
+  const s0 = zoom;
+  if (px === undefined) { px = viewer.clientWidth / 2; py = viewer.clientHeight / 2; }
+  // ширина содержимого фиксируется по окну (при 100 %), а zoom растягивает его целиком — как щипок на телефоне
+  if (s0 === 1) inner.style.width = inner.clientWidth + "px";
+  const cx = viewer.scrollLeft + px, cy = viewer.scrollTop + py;
+  zoom = s;
+  inner.style.zoom = s;
+  if (s === 1) inner.style.width = "";
+  viewer.scrollLeft = cx * s / s0 - px;
+  viewer.scrollTop = cy * s / s0 - py;
+  updateZoomUI();
+}
+function relPoint(x, y) { const r = viewer.getBoundingClientRect(); return [x - r.left, y - r.top]; }
+viewer.addEventListener("wheel", (e) => {
+  if (!e.ctrlKey && !e.metaKey) return;   // без Ctrl — обычная прокрутка (с Shift — вбок)
+  e.preventDefault();
+  const [px, py] = relPoint(e.clientX, e.clientY);
+  setZoom(zoom * Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0025)), px, py);
+}, { passive: false });
+// два пальца
+let pinch = null, pinchRaf = 0;
+function touchDist(t) { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
+viewer.addEventListener("touchstart", (e) => {
+  if (e.touches.length === 2) { pinch = { d: touchDist(e.touches), s: zoom }; e.preventDefault(); }
+}, { passive: false });
+viewer.addEventListener("touchmove", (e) => {
+  if (!pinch || e.touches.length !== 2) return;
+  e.preventDefault();
+  const t = e.touches, d = touchDist(t);
+  const [px, py] = relPoint((t[0].clientX + t[1].clientX) / 2, (t[0].clientY + t[1].clientY) / 2);
+  cancelAnimationFrame(pinchRaf);
+  pinchRaf = requestAnimationFrame(() => setZoom(pinch ? pinch.s * d / pinch.d : zoom, px, py));
+}, { passive: false });
+viewer.addEventListener("touchend", (e) => { if (e.touches.length < 2) pinch = null; });
+viewer.addEventListener("touchcancel", () => { pinch = null; });
+// Safari: не давать щипку в окне увеличивать всю страницу
+["gesturestart", "gesturechange"].forEach((t) => document.addEventListener(t, (e) => { if (e.target.closest && e.target.closest("#kbFiles")) e.preventDefault(); }, { passive: false }));
+// при увеличении — двигать содержимое мышью
+let drag = null;
+viewer.addEventListener("mousedown", (e) => {
+  if (zoom <= 1 || e.button !== 0 || e.target.closest("button, a, input")) return;
+  drag = { x: e.clientX, y: e.clientY, l: viewer.scrollLeft, t: viewer.scrollTop };
+  viewer.classList.add("kb-dragging");
+  e.preventDefault();
+});
+document.addEventListener("mousemove", (e) => {
+  if (!drag) return;
+  viewer.scrollLeft = drag.l - (e.clientX - drag.x);
+  viewer.scrollTop = drag.t - (e.clientY - drag.y);
+});
+document.addEventListener("mouseup", () => { if (drag) { drag = null; viewer.classList.remove("kb-dragging"); } });
+$("kbZoomIn").addEventListener("click", () => setZoom(zoom * 1.25));
+$("kbZoomOut").addEventListener("click", () => setZoom(zoom / 1.25));
+$("kbZoomReset").addEventListener("click", () => setZoom(1));
+window.addEventListener("resize", () => {
+  fitViewer();
+  const inner = zoomInner();
+  if (inner && zoom !== 1) { const s = zoom; setZoom(1); setZoom(s); }   // новая ширина окна — пересчитать
+});
 
 /* ---------- меню разделов, аккаунт ---------- */
 (function () {

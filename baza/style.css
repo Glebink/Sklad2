@@ -1,5 +1,7 @@
 /* База знаний — поверх стилей «Учёта» (../uchet/style.css): только своё. */
-.page { padding-top: calc(var(--top0) + var(--topbar-h)); padding-bottom: 24px; }
+.page { padding-top: calc(var(--top0) + var(--topbar-h)); padding-bottom: 0; }
+/* страница не прокручивается — прокручивается окно просмотра */
+body.has-ticket { overflow: hidden; }
 .kb-head-title { font-weight: 700; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .kb-card-title { font-weight: 600; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 /* у не-админа в карточке нет меню «⋮» — нижняя строка не нужна */
@@ -12,6 +14,15 @@
 .kb-empty, .kb-loading, .kb-error { padding: 32px 16px; text-align: center; color: var(--muted); }
 .kb-error { color: var(--danger); }
 
+/* окно просмотра: своя прокрутка по обеим осям, высота — до низа экрана (fitViewer в app.js) */
+.kb-viewer { overflow: auto; overscroll-behavior: contain; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; border-radius: 12px; }
+.kb-viewer.kb-zoomed { cursor: grab; }
+.kb-viewer.kb-dragging { cursor: grabbing; user-select: none; -webkit-user-select: none; }
+.kb-zoom-ctl { display: inline-flex; flex: none; }
+.kb-zoom-ctl .util { min-width: 40px; padding: 0 10px; border-radius: 0; margin: 0; }
+.kb-zoom-ctl .util:first-child { border-radius: 8px 0 0 8px; }
+.kb-zoom-ctl .util:last-child { border-radius: 0 8px 8px 0; }
+.kb-zoom-ctl #kbZoomReset { min-width: 62px; font-variant-numeric: tabular-nums; border-left: 0; border-right: 0; }
 .kb-file { margin-bottom: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; }
 .kb-file-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
 .kb-file-name { flex: 1 1 auto; min-width: 0; font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -50,6 +61,8 @@ body:not(.kb-admin) #kbFiles img, body:not(.kb-admin) #kbFiles canvas { -webkit-
   body.has-ticket .mod-menu-wrap { display: none; }
   /* название ячейки уже в шапке; строка остаётся только у hleb — ради «+ Файл» */
   .kb-view-title { display: none; }
+  /* на телефоне масштаб — двумя пальцами, кнопки не нужны */
+  .kb-zoom-ctl { display: none; }
   body:not(.kb-admin) .kb-view-head { display: none; }
 }
 @media (min-width: 900px) {
