@@ -1,11 +1,10 @@
-// Общий service worker сервиса «Склад» (Учёт потребления + Заявки на закупку + База знаний).
-// Версия держится одинаковой с APP_VERSION в uchet/js/core.js, zayavki/app.js и baza/app.js.
+// Общий service worker сервиса «Склад» (Учёт потребления + База знаний).
+// Версия держится одинаковой с APP_VERSION в uchet/js/core.js и baza/common.js.
 const CACHE_NAME = "sklad2-cache-v2.0";
 const SHELL = [
   "./", "index.html", "manifest.json", "auth.js", "auth.css", "icon-192.png", "icon-512.png",
   "uchet/", "uchet/index.html", "uchet/style.css",
   "uchet/js/core.js", "uchet/js/consumption.js", "uchet/js/tickets.js", "uchet/js/warehouse.js", "uchet/js/tabs.js", "uchet/js/stock-import.js", "uchet/js/onec.js", "uchet/js/ui.js", "uchet/js/sync.js", "uchet/js/inventory.js", "uchet/js/start.js",
-  "zayavki/", "zayavki/index.html", "zayavki/style.css", "zayavki/app.js",
   "baza/", "baza/index.html", "baza/style.css", "baza/common.js", "baza/app.js", "baza/view.html", "baza/view.css", "baza/view.js",   // библиотеки просмотра (lib/kb) кэшируются при первом открытии файла
   "lib/supabase-2.45.4.js",  // библиотека и шрифты лежат в репозитории: CDN из РФ бывает недоступен
   "lib/fonts/fonts.css",
@@ -52,6 +51,6 @@ self.addEventListener("fetch", (event) => {
     fetch(req, { cache: "no-cache" }).then((res) => {
       if (res.ok) { const copy = res.clone(); caches.open(CACHE_NAME).then((c) => c.put(req, copy)); }
       return res;
-    }).catch(() => caches.match(req, { ignoreSearch: true }).then((hit) => hit || caches.match(url.pathname.includes("/zayavki/") ? "zayavki/index.html" : url.pathname.includes("/baza/") ? "baza/index.html" : "uchet/index.html")))
+    }).catch(() => caches.match(req, { ignoreSearch: true }).then((hit) => hit || caches.match(url.pathname.includes("/baza/") ? "baza/index.html" : "uchet/index.html")))
   );
 });

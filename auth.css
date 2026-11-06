@@ -1,4 +1,4 @@
-/* Общий экран входа для всех сервисов (Учёт потребления, Заявки на закупку).
+/* Общий экран входа для всех сервисов (Учёт потребления, База знаний).
    Использует переменные палитры модулей: --bg, --surface, --fg, --muted, --line-strong, --accent, --accent-fg. */
 .auth-gate { position: fixed; inset: 0; z-index: 10000; background: var(--bg, #F3F4F6); color: var(--fg, #161A22); overflow: auto; }
 .auth-wrap { min-height: 100vh; box-sizing: border-box; display: flex; align-items: center; justify-content: center; padding: 24px; font-family: var(--font, 'IBM Plex Sans', system-ui, sans-serif); }

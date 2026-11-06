@@ -1,13 +1,13 @@
 'use strict';
-/* Общий вход для всех сервисов «Склада» (Учёт потребления, Заявки на закупку).
-   Один клиент Supabase и одна сессия на оба сервиса: вошли в одном — открыт и другой.
-   Подключается после библиотеки supabase-js и до кода модуля (uchet/js/*, zayavki/app.js). */
+/* Общий вход для всех сервисов «Склада» (Учёт потребления, База знаний).
+   Один клиент Supabase и одна сессия на все сервисы: вошли в одном — открыты и другие.
+   Подключается после библиотеки supabase-js и до кода модуля (uchet/js/*, baza/*.js). */
 (function () {
   if (!window.supabase) return;   // библиотека не загрузилась: приложение работает локально
   var SUPABASE_URL = 'https://okgzagezzeeglkyrwbzv.supabase.co';
   // Публичный (anon) ключ: его безопасно хранить в коде, доступ ограничивают правила RLS на сервере.
   var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rZ3phZ2V6emVlZ2xreXJ3Ynp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3MzkyNjksImV4cCI6MjEwNzMxNTI2OX0.aVPwcJI4dtXEDhfy9pLXKH_nVVcsNgg69vC9mRqrPGU';
-  var LOGIN_DOMAIN = 'zayavki.app';
+  var LOGIN_DOMAIN = 'zayavki.app';   // домен почты аккаунтов (исторический, от убранных «Заявок на закупку») — не менять
   var ROLE_KEY = 'sklad2_role_v1';   // кэш роли для работы без связи: { uid, login, role }
 
   // Хранилище сессии: «только это окно» (sessionStorage) или «запомнить на устройстве» (localStorage).
@@ -57,7 +57,7 @@
     return '<div class="auth-wrap"><form class="auth-card" id="authform" autocomplete="on">'
       + '<div class="auth-mark">' + MARK + '</div>'
       + '<h1>Склад</h1>'
-      + '<p class="auth-sub">Учёт потребления · Заявки на закупку</p>'
+      + '<p class="auth-sub">Учёт потребления · База знаний</p>'
       + (msg ? '<p class="auth-msg">' + esc(msg) + '</p>' : '')
       + '<label class="auth-field"><span>Логин</span><input class="auth-input" name="login" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" required></label>'
       + '<label class="auth-field"><span>Пароль</span><input class="auth-input" name="password" type="password" autocomplete="current-password" required></label>'

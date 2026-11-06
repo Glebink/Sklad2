@@ -1,7 +1,7 @@
 {
   "name": "Склад",
   "short_name": "Склад",
-  "description": "Учёт потребления деталей и заявки на закупку",
+  "description": "Учёт потребления деталей и база знаний",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
