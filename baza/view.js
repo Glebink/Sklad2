@@ -5,6 +5,7 @@
    час); в приложении на главном экране (там нет кнопки «назад» браузера) — здесь же.
    Масштаб как Ctrl + колесо в браузере, но только содержимого: Ctrl + колесо (щипок на тачпаде),
    два пальца на тачскрине, кнопки − 100 % +. Вбок — полоса прокрутки, Shift + колесо, перетаскивание мышью. */
+const LIB = "../lib/kb/";   // библиотеки просмотра, грузятся по требованию
 const params = new URLSearchParams(location.search);
 const CELL_ID = params.get("cell") || "", PATH = params.get("path") || "";
 const viewer = $("vwViewer");
@@ -80,7 +81,7 @@ function setContent(node) {
    - в ячейке (новый Excel: «Поместить в ячейку», ИЗОБРАЖЕНИЕ): xl/metadata.xml + xl/richData;
    - в ячейке из WPS Office (формула DISPIMG): xl/cellimages.xml.
    На листе с картинками ширина столбцов и высота строк — как в Excel, иначе картинкам негде поместиться. */
-let wb = null, sheetIdx = 0, pics = null;
+let wb = null, pics = null;
 async function showXlsx(blob) {
   await loadScript("xlsx-0.18.5.mini.min.js");
   const buf = await blob.arrayBuffer();
@@ -253,7 +254,6 @@ async function readXlsxPictures(buf) {
 
 const MAX_ROWS = 20000;
 function showSheet(i) {
-  sheetIdx = i;
   document.querySelectorAll(".vw-sheet-tab").forEach((b) => b.classList.toggle("on", +b.dataset.i === i));
   const X = window.XLSX, ws = wb.Sheets[wb.SheetNames[i]];
   const sp = pics && pics.sheets[i];

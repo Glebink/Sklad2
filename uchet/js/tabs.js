@@ -154,11 +154,8 @@ document.querySelectorAll(".sortable").forEach((th) => {
 });
 
 /* ==================== Поиск: панель активной вкладки видна всегда ====================
-   Раньше applyCaSearch/applyWhSearch/applyOcSearch были тремя отдельными
-   функциями-обёртками над runSearch(), каждая со своей подпиской на
-   ввод текста. Теперь один конфиг на все три вкладки; сами функции
-   applyCaSearch/applyWhSearch/applyOcSearch оставлены (их вызывают из
-   других мест файла), но внутри — тонкие обёртки. */
+   Один конфиг на все вкладки; applyCaSearch / applyWhSearch / applyOcSearch — короткие имена
+   для вызова из других файлов. */
 const SEARCH_TABS = [
   { key: "ca", bodyPrefix: "body-",    getStore: () => sections },
   { key: "wh", bodyPrefix: "wh-body-", getStore: () => warehouse },

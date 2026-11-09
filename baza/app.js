@@ -5,6 +5,21 @@
    hleb — админ: создаёт, переименовывает, двигает и удаляет ячейки, добавляет, двигает, удаляет
    и скачивает файлы. Остальные (boss, sklad) — только смотрят.
    Общее со страницей просмотра — common.js. */
+const APP_VERSION = "v2.0";   // меняется вместе с uchet/js/core.js и CACHE_NAME в sw.js
+function plural(n, a, b, c) { const m = n % 10, h = n % 100; return n + " " + (m === 1 && h !== 11 ? a : (m >= 2 && m <= 4 && (h < 10 || h >= 20) ? b : c)); }
+function saveCellsLocal(cells) { try { localStorage.setItem(CELLS_CACHE_KEY, JSON.stringify(cells)); } catch (e) {} }
+const KIND_LABEL = { docx: "W", xlsx: "X", pdf: "PDF", image: "IMG" };
+function fmtSize(n) {
+  if (!n) return "";
+  if (n < 1024 * 1024) return Math.max(1, Math.round(n / 1024)) + " КБ";
+  return (n / 1024 / 1024).toFixed(1).replace(".", ",") + " МБ";
+}
+function viewUrl(cellId, path) { return "view.html?cell=" + encodeURIComponent(cellId) + "&path=" + encodeURIComponent(path); }
+function uncacheFile(path) {
+  blobMem.delete(path);
+  try { caches.open(FILE_CACHE).then((c) => c.delete(cacheKey(path))); } catch (e) {}
+}
+
 let cells = loadCellsLocal();
 let currentId = null;
 let MY_LOGIN = "", ROLE = null;

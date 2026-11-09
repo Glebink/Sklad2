@@ -1,10 +1,8 @@
 /* Учёт потребления — Общее: ключи хранения, утилиты, модель данных (заявки, склад), роль, отмена/повтор, подсветка строк.
    Файлы — обычные скрипты с общей областью видимости, подключаются по порядку (см. index.html). */
-/* ==================== Ключи хранения ==================== */
-/* ==================== Панели поиска (Учёт/Склад/1С) ====================
-   Разметка одинаковая для всех трёх вкладок — генерируем один раз вместо
-   трёх копий в HTML. Должно выполниться раньше, чем что-либо ниже
-   обратится к whSearchInput/caSearchClear и т.п. через getElementById. */
+/* ==================== Панели поиска (Учёт / Склад / 1С / Инвентаризация) ====================
+   Разметка у всех одинаковая — создаётся здесь. Должно выполниться до того, как код ниже
+   обратится к whSearchInput, caSearchClear и т.п. через getElementById. */
 function searchBarHTML(prefix) {
   return `
     <span class="search-icon">🔍</span>
@@ -20,10 +18,9 @@ function searchBarHTML(prefix) {
   if (bar) bar.innerHTML = searchBarHTML(prefix);
 });
 
-/* ==================== Страховка: переключение вкладок ====================
-   Регистрируется в самом начале скрипта. Даже если ниже произойдёт ошибка
-   загрузки, вкладки продолжат переключаться (функция switchTab всплывает
-   благодаря hoisting объявлений функций). */
+/* ==================== Переключение вкладок, клик мимо подсказок ====================
+   Обработчик вкладок ставится в самом начале: даже если ниже при загрузке что-то упадёт,
+   вкладки продолжат переключаться. */
 const suggestZones = [];               // { box, inputs[] } — закрываются кликом мимо
 function registerSuggestZone(box, inputs) { if (box) suggestZones.push({ box, inputs }); }
 
@@ -51,10 +48,8 @@ document.addEventListener("click", function (e) {
 });
 document.addEventListener("pointerup", handleTabPress);   // страховка для тачскрина
 
-// Номер версии файлов — держим руками синхронно с CACHE_NAME в ../sw.js (общий для всего сервиса)
-// (при каждом поднятии кэша меняем и тут). Просто отображается в углу
-// шапки — чтобы проверить, долетело ли обновление до устройства.
-// Версия только показывается и пишется в копию, как число не сравнивается.
+// Версия: меняется вместе с CACHE_NAME в ../sw.js и APP_VERSION в ../baza/app.js.
+// Только показывается в шапке и пишется в резервную копию, как число не сравнивается.
 const APP_VERSION = "v2.0";
 {
   const el = document.getElementById("appVersionBadge");
@@ -63,9 +58,7 @@ const APP_VERSION = "v2.0";
 
 const DATA_BY_DATE_KEY = "sklad2_data_by_date_v3";
 const WAREHOUSE_KEY = "sklad2_warehouse_v1";
-// Остатки второго склада («Бестужевская») — храним отдельно, в основной
-// список 1С они не подмешиваются. Нужны для будущего сравнения остатков
-// между складами.
+// Остатки второго склада («Бестужевская») — отдельно от списка 1С; нужны для сравнения остатков.
 const BEST_STOCK_KEY = "sklad2_best_stock_v1";
 function loadBestStock() {
   try {
@@ -133,11 +126,7 @@ function formatCodeDisplay(code) {
   return `<span class="code-split">${parts.map((p) => `<span class="code-line">${p}</span>`).join("")}</span>`;
 }
 
-/* ==================== Модалки: открыть/закрыть ====================
-   Раньше каждая из 17 модалок открывалась/закрывалась своей парой
-   document.getElementById(id).classList.add/remove("open") — один и тот же
-   код почти 50 раз. Принимает и id (строку), и уже найденный элемент —
-   в паре мест элемент был закэширован в константу заранее. */
+/* ==================== Модалки: открыть/закрыть (по id или по элементу) ==================== */
 function openModal(idOrEl) {
   const el = typeof idOrEl === "string" ? document.getElementById(idOrEl) : idOrEl;
   if (el) el.classList.add("open");
@@ -203,8 +192,13 @@ function loadDataByDate() {
     return (parsed && typeof parsed === "object") ? foldDays(parsed) : {};
   } catch (e) { return {}; }
 }
-function saveDataByDate() {
+// «LocalOnly» здесь и ниже — записать на устройство, не считая это правкой для отправки на сервер
+// (сортировка, смена выбранной заявки и т.п.).
+function saveDataByDateLocalOnly() {
   try { localStorage.setItem(DATA_BY_DATE_KEY, JSON.stringify(dataByDate)); } catch (e) {}
+}
+function saveDataByDate() {
+  saveDataByDateLocalOnly();
   scheduleSync();
 }
 /* ==================== Роль (сменщик) ====================
@@ -218,14 +212,14 @@ let ROLE = null, MY_LOGIN = "";
   try { const c = window.Auth && Auth.cachedRole(); if (c) { ROLE = c.role; MY_LOGIN = c.login || ""; } } catch (e) {}
 })();
 function isShift() { return ROLE === "shift"; }
-// Сменщик: сервер отдаёт данные только сессии, начатой входом по паролю (sklad_session_ok).
-// Старые сессии входа по QR (QR убран 30.10) выходят. Проверка при входе, при возврате на вкладку и раз в минуту.
+// Сменщик: сервер отдаёт данные только сессии, начатой входом по паролю (sklad_session_ok); иная — выходит.
+// Проверка при входе, при возврате на вкладку и раз в минуту.
 async function shiftSessionAlive() {
   if (!isShift() || !window.Auth) return true;
   let r;
   try { r = await Auth.sb.rpc("sklad_session_ok"); } catch (e) { return true; }   // нет связи — не выкидываем
   if (r.error || r.data !== false) return true;
-  Auth.logout("Вход по QR-коду больше не действует — войдите по логину и паролю.");
+  Auth.logout("Этот вход больше не действует — войдите по логину и паролю.");
   return false;
 }
 if (isShift()) {
@@ -272,22 +266,18 @@ function loadWarehouse() {
   } catch (e) {}
   return emptySections();
 }
+function saveWarehouseLocalOnly() {
+  if (isShift()) return;   // у сменщика склад — каталог с сервера, не сохраняется
+  try { localStorage.setItem(WAREHOUSE_KEY, JSON.stringify(warehouse)); } catch (e) {}
+}
 function saveWarehouse() {
   if (isShift()) return;
-  try { localStorage.setItem(WAREHOUSE_KEY, JSON.stringify(warehouse)); } catch (e) {}
+  saveWarehouseLocalOnly();
   scheduleSync();
-}
-// Локально, без синхронизации — для чисто визуальных действий (сортировка),
-// которые не должны считаться правкой данных и уходить на сервер.
-function saveWarehouseLocalOnly() {
-  if (isShift()) return;
-  try { localStorage.setItem(WAREHOUSE_KEY, JSON.stringify(warehouse)); } catch (e) {}
 }
 
 let dataByDate = loadDataByDate();
 let warehouse = loadWarehouse(); // { parts: [{code,name,qty,model}], consumables: [] }
-// Дата при каждом открытии приложения — всегда сегодняшняя (а не та, на которой
-// остановились в прошлый раз): открыли на следующий день — календарь сам на нём.
 /* Учёт ведётся ЗАЯВКАМИ: каждая — запись в dataByDate с ключом «ГГГГ-ММ-ДД» (первая за день)
    или «ГГГГ-ММ-ДД#2», «#3»… (следующие). Номер заявки не хранится: это порядковый номер среди
    всех заявок в порядке создания (поле created; у старых заявок без него — по дате), поэтому
@@ -309,7 +299,6 @@ function ticketNumberMap() { const m = {}; ticketKeys().forEach((k, i) => { m[k]
 function entryItemCount(e) {
   return ((e && e.sections && e.sections.parts) || []).length;
 }
-// Пустые заявки за прошедшие дни (создали и забыли) убираем, чтобы не копились номера.
 /* Пустые заявки удаляются сами на любом устройстве: через час после создания, если
    в них ничего не добавили (поле created ставится при создании). У старых заявок без
    created — если они за прошедший день. Сервер разрешает любому аккаунту удалять только
@@ -327,8 +316,7 @@ function cleanupEmptyTickets(sync) {
     if (emptyTicketExpired(k, dataByDate[k])) { delete dataByDate[k]; changed = true; }
   });
   if (!changed) return false;
-  if (sync) saveDataByDate();
-  else { try { localStorage.setItem(DATA_BY_DATE_KEY, JSON.stringify(dataByDate)); } catch (e) {} }
+  if (sync) saveDataByDate(); else saveDataByDateLocalOnly();
   return true;
 }
 cleanupEmptyTickets(false);
@@ -381,30 +369,20 @@ function canEditCurrent() {
   const day = currentDate.slice(0, 10);
   return day === todayStr() || (day === mskDateStr(-1) && mskParts(0).h < SHIFT_GRACE_HOUR);
 }
-function persistCurrent() {
-  if (!currentDate) return;
+// Записывает рабочие переменные обратно в выбранную заявку. false — записывать нечего или нельзя.
+function storeCurrent() {
+  if (!currentDate) return false;
   persistChecks();
-  if (!canEditCurrent()) return;
+  if (!canEditCurrent()) return false;
   dataByDate[currentDate] = Object.assign({}, dataByDate[currentDate], { sections, counts, checked: {} });
-  saveDataByDate();
+  return true;
 }
-// Локально, без синхронизации — используется при переключении даты
-// (сохраняем то, что уже было введено, но само переключение — не правка).
-function persistCurrentLocalOnly() {
-  if (!currentDate) return;
-  persistChecks();
-  if (!canEditCurrent()) return;
-  dataByDate[currentDate] = Object.assign({}, dataByDate[currentDate], { sections, counts, checked: {} });
-  try { localStorage.setItem(DATA_BY_DATE_KEY, JSON.stringify(dataByDate)); } catch (e) {}
-}
+function persistCurrent() { if (storeCurrent()) saveDataByDate(); }
+// При смене выбранной заявки: введённое сохраняется, но само переключение — не правка.
+function persistCurrentLocalOnly() { if (storeCurrent()) saveDataByDateLocalOnly(); }
 
-/* ==================== Общий механизм отмены/повтора (для всех 3 вкладок) ====================
-   Раньше у «Учёта», «Склада» и «1С» было по три копии одного и того же:
-   свой стек отмены, свой стек повтора, своя функция снимка состояния,
-   своя привязка кнопок ↶/↷. Теперь это один универсальный конструктор —
-   каждая вкладка просто передаёт «как снять снимок» и «как восстановить
-   состояние из снимка» (там разная логика: разные глобальные переменные,
-   разный рендер, разная подсветка изменившейся строки). */
+/* ==================== Отмена/повтор — общий механизм для «Учёта», «Склада» и «1С» ====================
+   Вкладка передаёт, как снять снимок состояния и как восстановить его из снимка, и id кнопок ↶/↷. */
 function makeUndoRedo({ snapshotFn, restoreFn, undoBtnId, redoBtnId, limit }) {
   const undoStack = [];
   const redoStack = [];
@@ -477,14 +455,8 @@ function findChange(beforeLists, afterLists, beforeMap, afterMap, keyFn) {
   return null;
 }
 
-/* Находит строку таблицы по её индексу в МАССИВЕ данных.
-   Раньше по всему файлу писали tbody.querySelectorAll("tr")[index], то есть
-   индекс в данных использовали как номер строки на экране. Пока фильтров не
-   было, это совпадало. Но «Склад» фильтруется по модели, а «1С» — по
-   разделу/остатку, и тогда на экране остаётся лишь подмножество строк:
-   обращение по номеру попадало в чужую позицию — отсюда переходы «на
-   случайную строку». Теперь у строк этих таблиц есть data-index с настоящим
-   индексом, и ищем именно по нему.
+/* Находит строку таблицы по индексу позиции в МАССИВЕ данных (data-index), а не по номеру строки
+   на экране: таблицы фильтруются и группируются, и номер строки с индексом не совпадает.
    Возвращает null, если строка сейчас скрыта фильтром. */
 function rowByDataIndex(tbodyId, index) {
   const tbody = document.getElementById(tbodyId);

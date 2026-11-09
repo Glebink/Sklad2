@@ -1,5 +1,5 @@
 // Общий service worker сервиса «Склад» (Учёт потребления + База знаний).
-// Версия держится одинаковой с APP_VERSION в uchet/js/core.js и baza/common.js.
+// Версия держится одинаковой с APP_VERSION в uchet/js/core.js и baza/app.js.
 const CACHE_NAME = "sklad2-cache-v2.0";
 const SHELL = [
   "./", "index.html", "manifest.json", "auth.js", "auth.css", "icon-192.png", "icon-512.png",

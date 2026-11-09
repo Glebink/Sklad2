@@ -15,13 +15,12 @@ function loadOneC() {
   } catch (e) {}
   return emptySections();
 }
-function saveOneC() {
-  try { localStorage.setItem(ONEC_KEY, JSON.stringify(onec)); } catch (e) {}
-  scheduleSync();
-}
-// Локально, без синхронизации — та же логика, что у saveWarehouseLocalOnly.
 function saveOneCLocalOnly() {
   try { localStorage.setItem(ONEC_KEY, JSON.stringify(onec)); } catch (e) {}
+}
+function saveOneC() {
+  saveOneCLocalOnly();
+  scheduleSync();
 }
 let onec = loadOneC();
 
@@ -34,7 +33,7 @@ let onec = loadOneC();
    (в т.ч. при импорте остатков из Excel).
    У деталей Ninebot (коды AB.…) «(25)», «(23)», «22-25» — год, а не модель YGW: для них по названию
    определяется только явная метка 9Bot, а метка года из названия на «Складе» не вырезается. */
-const MODEL_TAG_RE = /[\(\[]\s*25\s*[\)\]]|[\(\[]?\s*(?:wind|ygw)\s*(25|[45][.,]0)\s*[\)\]]?/i;
+const MODEL_TAG_RE = /[([]\s*25\s*[)\]]|[([]?\s*(?:wind|ygw)\s*(25|[45][.,]0)\s*[)\]]?/i;
 const BOT_TAG_RE = /\b9\s*[-]?\s*bot\b|ninebot|найнбот/i;
 function isNinebotCode(code) { return /^\s*ab\./i.test(code || ""); }
 function detectModelFromName(name, code) {
@@ -688,14 +687,13 @@ document.getElementById("ocToWhSave").addEventListener("click", () => {
   const item = onec[section][index];
   if (!item) { closeOcToWh(); return; }
   const name = document.getElementById("ocToWhName").value.trim();
-  const qty = 0;   // количество склада больше не ведётся
   if (!name) { alert("Укажите наименование для склада."); return; }
   const code = item.code || "";
   if (code && warehouseInfoFor(code, item.name)) { alert("Эта позиция уже есть на складе."); closeOcToWh(); return; }
 
   const [model = "", model2 = ""] = getModelsSwitch(document.getElementById("ocToWhModel"));
   pushWhHistory();
-  const newWh = { code, name, qty, model };
+  const newWh = { code, name, qty: 0, model };   // количество склада не ведётся
   if (name !== item.name) newWh.ocName = item.name;   // по нему ищется пара в 1С, если склад переименован
   if (model2) newWh.model2 = model2;
   const cat = getModelSwitch(document.getElementById("ocToWhCat"));

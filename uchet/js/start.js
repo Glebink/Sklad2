@@ -64,7 +64,7 @@ if (window.Auth) {
       updateDirtyIndicator();
       setSyncStatus("idle", manualModeStatusText());
       refreshAccountLine();
-      if (!isAutoSyncOff()) syncNow("safe", { auto: true });
+      if (!isAutoSyncOff()) syncNow("safe");
       startRealtime();
     },
     onLogout: () => {

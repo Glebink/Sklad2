@@ -935,8 +935,7 @@ async function runSync(policy) {
 }
 
 let syncBusy = false;
-async function syncNow(policy, opts) {
-  opts = opts || {};
+async function syncNow(policy) {
   if (!isSyncConfigured() || !window.Auth) return { ok: false, text: "Нужен вход в аккаунт" };
   if (syncBusy) {
     syncQueued = true;   // правка пришла во время обмена — повторим сразу после него
@@ -988,7 +987,7 @@ async function syncNow(policy, opts) {
     syncBusy = false;
     if (syncQueued) {
       syncQueued = false;
-      if (isAutoSyncActive()) setTimeout(() => syncNow("safe", { auto: true }), 300);
+      if (isAutoSyncActive()) setTimeout(() => syncNow("safe"), 300);
     }
   }
   return out;
@@ -1000,7 +999,7 @@ function scheduleSync() {
   markLocalChange();                   // запоминаем: на этом устройстве есть свежая правка
   if (!isAutoSyncActive()) return;     // ручной режим — отправляем только по кнопке
   if (syncTimer) clearTimeout(syncTimer);
-  syncTimer = setTimeout(() => { syncTimer = null; syncNow("safe", { auto: true }); }, SYNC_DEBOUNCE_MS);
+  syncTimer = setTimeout(() => { syncTimer = null; syncNow("safe"); }, SYNC_DEBOUNCE_MS);
 }
 
 // Немедленно (без ожидания debounce) пытается отправить несохранённые правки.
@@ -1008,7 +1007,7 @@ function scheduleSync() {
 function flushSyncNow() {
   if (!isAutoSyncActive() || !isDirty()) return;
   if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; }
-  if (!syncBusy) syncNow("safe", { auto: true });
+  if (!syncBusy) syncNow("safe");
 }
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") {
@@ -1016,13 +1015,13 @@ document.addEventListener("visibilitychange", () => {
   } else if (document.visibilityState === "visible") {
     // Возврат в приложение: тихо сверяемся с сервером (только если не открыта модалка).
     const modalOpen = document.querySelector(".modal-overlay.open");
-    if (isAutoSyncActive() && !syncBusy && !modalOpen) syncNow("safe", { auto: true });
+    if (isAutoSyncActive() && !syncBusy && !modalOpen) syncNow("safe");
   }
 });
 window.addEventListener("pagehide", flushSyncNow);
 // Связь восстановилась — если остались неотправленные правки, пробуем сразу.
 window.addEventListener("online", () => {
-  if (isAutoSyncActive() && isDirty() && !syncBusy) syncNow("safe", { auto: true });
+  if (isAutoSyncActive() && isDirty() && !syncBusy) syncNow("safe");
 });
 
 /* ==================== Живое обновление (Supabase Realtime) ====================
@@ -1037,7 +1036,7 @@ function scheduleRemoteSync() {
     rtTimer = null;
     if (!isAutoSyncActive()) return;
     if (document.querySelector(".modal-overlay.open") || isTypingNow() || syncBusy) { rtTimer = setTimeout(tick, 3000); return; }
-    syncNow("safe", { auto: true });
+    syncNow("safe");
   }, 1500);
 }
 function startRealtime() {
@@ -1067,10 +1066,10 @@ function stopRealtime() {
 
 /* ==================== Несколько вкладок на одном устройстве ====================
    Память браузера (localStorage) у вкладок общая, а рабочая копия данных у каждой своя.
-   Раньше вкладка не знала, что другая записала свежие данные (например, забрала с сервера
-   правку с телефона), и при своей следующей правке записывала и отправляла старую копию —
-   чужая правка терялась. Теперь браузер сообщает об изменении (событие storage), и вкладка
-   сразу берёт новые данные. Пока идёт ввод в таблице — ждём, чтобы не сбить поле. */
+   Когда другая вкладка записала свежие данные (например, забрала с сервера правку с телефона),
+   браузер сообщает об этом событием storage — и вкладка сразу их берёт. Иначе при своей
+   следующей правке она записала бы и отправила старую копию, и чужая правка потерялась бы.
+   Пока идёт ввод в таблице — ждём, чтобы не сбить поле. */
 const tabSyncPending = new Set();
 let tabSyncTimer = null;
 function applyFromOtherTab() {
@@ -1140,7 +1139,7 @@ document.getElementById("syncAutoToggle").addEventListener("change", (e) => {
   setAutoSyncOff(!e.target.checked);
   updateDirtyIndicator();
   setSyncStatus(isSyncConfigured() ? "idle" : "off", isSyncConfigured() ? manualModeStatusText() : "Нужен вход в аккаунт.");
-  if (e.target.checked && isSyncConfigured()) syncNow("safe", { auto: true });
+  if (e.target.checked && isSyncConfigured()) syncNow("safe");
 });
 document.getElementById("syncLogoutBtn").addEventListener("click", () => {
   if (!confirm("Выйти из аккаунта? Данные на этом устройстве останутся, но обмен с сервером остановится до нового входа.")) return;

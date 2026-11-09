@@ -116,7 +116,7 @@
      Если сессия есть — сразу пропускает. Если нет связи и сессия сохранена на устройстве —
      тоже пропускает (работа офлайн), синхронизация сама скажет, что связи нет.
      Если сессия закончилась или вышли в другом окне — показывает вход снова. */
-  var gateEl = null, gateReady = false, gateOpts = null;
+  var gateEl = null, gateOpts = null;
   function showGate(msg) {
     if (!gateEl) {
       gateEl = document.createElement('div');
@@ -145,7 +145,6 @@
         if (!c) { if (gateOpts.onLogout) gateOpts.onLogout(); showGate('Сессия закончилась. Войдите снова.'); }
       }, 0);
     });
-    gateReady = true;
   }
   function logout(msg) { clearSession(); if (gateOpts) { if (gateOpts.onLogout) gateOpts.onLogout(); showGate(msg); } }
 
