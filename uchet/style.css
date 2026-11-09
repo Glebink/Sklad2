@@ -1065,7 +1065,8 @@
   /* ==================== Шапка: одинаковые кнопки-иконки ==================== */
 
 /* ==================== Макет как в заявках: верхняя панель + левый столбец заявок ==================== */
-:root { --topbar-h: 60px; --list-w-old: clamp(300px, 24vw, 440px); --list-w: clamp(210px, 16.8vw, 308px); --edge: 16px; --top0: max(6px, env(safe-area-inset-top)); }
+/* --list-w — левый столбец (заявки, инвентаризации, база знаний); 09.11 шире на 30 %, чтобы влезал комментарий */
+:root { --topbar-h: 60px; --list-w-old: clamp(300px, 24vw, 440px); --list-w: clamp(273px, 21.84vw, 400px); --edge: 16px; --top0: max(6px, env(safe-area-inset-top)); }
 .topbar {
   position: fixed; top: var(--top0); left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right));
   z-index: 160; height: var(--topbar-h); padding-bottom: 8px; box-sizing: border-box;
@@ -1414,7 +1415,10 @@ body.shift-ro .count-tier-pm { display: none !important; }
 #viewWarehouse .wh-oc-sort, #viewOneC .wh-oc-sort { margin-right: 38px; }
 @media (max-width: 899px) { #viewWarehouse .wh-oc-sort, #viewOneC .wh-oc-sort { margin-right: 30px; } }
 /* Комментарий заявки (hleb) — сразу после номера, длинный обрезается */
-.t-row .t-note { flex: 1 1 auto; min-width: 0; margin: 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 14px; font-weight: 600; }
+/* комментарий заявки — в нижней строке после «⋮», во всю ширину; длинный переносится (до двух строк) */
+.t-foot .t-note { flex: 1 1 auto; min-width: 0; margin: 0; color: var(--muted); font-size: 14px; font-weight: 600; line-height: 1.25;
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.t-row.t-sub .t-author { flex: none; margin-top: 0; }
 #newTicketNote, #ticketNoteInput { margin: 4px 0 12px; padding: 10px; font-size: 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--fg); box-sizing: border-box; }
 /* Меню заявки «⋮» (hleb): комментарий и удаление */
 .t-menu-wrap { position: relative; display: inline-block; }

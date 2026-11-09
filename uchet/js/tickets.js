@@ -64,13 +64,14 @@ function renderTicketList() {
     }).join("");
     const more = found.length > 6 ? `<div class="t-hit-more">и ещё ${found.length - 6}</div>` : "";
     out.push(`<button class="t-card${k === currentDate ? " sel" : ""}" data-key="${escapeHtml(k)}">`
-      + `<div class="t-row"><span class="t-num"><span class="mono">№ ${nums[k]}</span>${checkDot(ticketCheckState(k, e))}</span>${e.note ? `<span class="t-note">${escapeHtml(e.note)}</span>` : ""}<span class="t-date">${ticketDateLong(k)}</span></div>`
-      + `<div class="t-sub">${pluralRu(cnt, "позиция", "позиции", "позиций")}</div>`
-      + ((canDeleteTickets() || e.by) ? `<div class="t-foot">`
+      + `<div class="t-row"><span class="t-num"><span class="mono">№ ${nums[k]}</span>${checkDot(ticketCheckState(k, e))}</span><span class="t-date">${ticketDateLong(k)}</span></div>`
+      // автор — в строке с числом позиций; внизу «⋮» и комментарий во всю ширину
+      + `<div class="t-row t-sub"><span>${pluralRu(cnt, "позиция", "позиции", "позиций")}</span>${e.by ? `<span class="t-author">${escapeHtml(authorLabel(e.by))}</span>` : ""}</div>`
+      + ((canDeleteTickets() || e.note) ? `<div class="t-foot">`
           + (canDeleteTickets() ? `<span class="t-menu-wrap"><span class="t-menu-btn" role="button" tabindex="0" title="Действия">⋮</span>`
               + `<span class="t-menu"><span class="t-act" role="button" data-act="note" data-key="${escapeHtml(k)}">✎ Комментарий</span>`
-              + `<span class="t-act danger" role="button" data-act="del" data-key="${escapeHtml(k)}">🗑 Удалить</span></span></span>` : "<span></span>")
-          + (e.by ? `<span class="t-author">${escapeHtml(authorLabel(e.by))}</span>` : "")
+              + `<span class="t-act danger" role="button" data-act="del" data-key="${escapeHtml(k)}">🗑 Удалить</span></span></span>` : "")
+          + (e.note ? `<span class="t-note" title="${escapeHtml(e.note)}">${escapeHtml(e.note)}</span>` : "")
           + `</div>` : "")
       + `${shown}${more}`
       + `</button>`);
