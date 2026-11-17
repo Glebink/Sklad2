@@ -231,6 +231,21 @@ const tests = {
     eq(d.errors, [], "ошибки страницы"); await d.close();
   },
 
+  async "подсказки: совпадение по коду выше совпадений по названию"() {
+    const s = seededServer();
+    // много деталей 9Bot с годами «21-25» в названии — запрос «25.21» совпадает с ними по словам
+    const wh = s.db.sklad_kv.find((r) => r.key === "potreblenie_warehouse_v1").value.parts;
+    for (let i = 1; i <= 15; i++) wh.push({ code: "AB.16.02.00.39" + String(i).padStart(2, "0"), name: `Деталь ${i} 21-25`, model: "9Bot", qty: 0 });
+    wh.push({ code: "AB.50.0025.21", name: "Втулка-коннектор тормоза(22)", model: "9Bot", qty: 0 });
+    const d = await device(s), p = await d.open("/uchet/"); await sync(p);
+    await p.click("#ticketNewBtn"); await p.click("#newTicketYes"); await p.waitForTimeout(200);
+    const first = async (q) => { await p.fill("#newItemName", q); await p.waitForTimeout(100); return p.$eval("#addSuggestBox .suggest-item .code", (e) => e.textContent); };
+    eq(await first("25.21"), "AB.50.0025.21", "часть кода");
+    eq(await first("AB.50.0025.21"), "AB.50.0025.21", "код целиком");
+    eq(await first("втулка"), "AB.50.0025.21", "по названию по-прежнему находится");
+    eq(d.errors, [], "ошибки страницы"); await d.close();
+  },
+
   async "шапка помещается на телефоне и ПК"() {
     const s = seededServer();
     for (const width of [360, 390, 1280]) {
