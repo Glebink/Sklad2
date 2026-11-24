@@ -39,7 +39,11 @@
     if (!String(login || '').trim() || !password) return 'Введите логин и пароль.';
     if (remember) { authStore.mode = 'local'; clearTabSession(); } else authStore.mode = 'session';
     try {
-      var r = await sb.auth.signInWithPassword({ email: emailOf(login), password: password });
+      // Регистр не важен: пароли на сервере — строчными буквами (логин приводится к строчным в emailOf).
+      // Старый пароль с заглавными, заданный раньше, — второй попыткой как набран.
+      var email = emailOf(login), low = String(password).toLowerCase();
+      var r = await sb.auth.signInWithPassword({ email: email, password: low });
+      if (r.error && /invalid/i.test(r.error.message) && low !== password) r = await sb.auth.signInWithPassword({ email: email, password: password });
       if (r.error) return /invalid/i.test(r.error.message) ? false : errText(r.error);
       return true;
     } catch (e) { return errText(e); }
