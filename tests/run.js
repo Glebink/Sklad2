@@ -12,10 +12,11 @@ const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.s
 function makeServer() {
   let tick = 0;
   const stamp = () => new Date(Date.UTC(2026, 0, 1) + ++tick * 1000).toISOString();
-  const db = { sklad_kv: [], kb_cells: [], parts_orders: [], files: {} };
+  const db = { sklad_kv: [], kb_cells: [], parts_orders: [], user_avatars: [], files: {},
+    profiles: [{ login: "hleb", name: "Заявитель", role: "requester" }, { login: "ivan", name: "Иван", role: "repair" }, { login: "petr", name: "Пётр", role: "repair" }] };
   const match = (row, filters) => filters.every(([k, op, v]) => (op === "in" ? v.includes(row[k]) : row[k] === v));
   // parts_orders — права как в RLS и триггере на сервере
-  const ROLES = { hleb: "requester", sklad: "shift" }, NAMES = { ivan: "Иван", petr: "Пётр" };
+  const ROLES = { hleb: "requester", sklad: "shift" };
   const roleOf = (l) => ROLES[l] || "repair";
   const ordSee = (r, login) => r.author === login || (login === "hleb" && !!r.sent_at);
   const ordEdit = (r, login) => roleOf(login) === "repair" ? r.author === login && r.status === "new" && !r.accounted_at : login === "hleb" && !!r.sent_at;
@@ -23,7 +24,7 @@ function makeServer() {
     const rows = db.parts_orders, copy = (x) => JSON.parse(JSON.stringify(x));
     if (q.op === "insert") {
       if (roleOf(login) !== "repair") return { error: { message: "RLS: создаёт только ремонтник" } };
-      const row = { id: "ord" + ++tick, author: login, author_name: NAMES[login] || null, items: [], status: "new", created_at: stamp(), sent_at: null, accounted_at: null, ...q.payload, updated_at: stamp() };
+      const row = { id: "ord" + ++tick, author: login, items: [], status: "new", created_at: stamp(), sent_at: null, accounted_at: null, ...q.payload, updated_at: stamp() };
       rows.push(row);
       return { data: q.single ? copy(row) : [copy(row)] };
     }
@@ -41,8 +42,23 @@ function makeServer() {
     if (q.op === "delete") { const del = hit.filter((r) => r.author === login && !r.sent_at); db.parts_orders = rows.filter((r) => !del.includes(r)); return { data: null }; }
     return { data: copy(hit) };
   }
+  // user_avatars — читает свою и hleb все, пишет только ремонтник свою
+  function avatarsQuery(q, login) {
+    const mine = (r) => r.login === login && roleOf(login) === "repair";
+    if (q.op === "upsert") {
+      if (q.payload.login !== login || roleOf(login) !== "repair") return { error: { message: "RLS user_avatars" } };
+      const r = db.user_avatars.find((x) => x.login === login);
+      if (r) r.data = q.payload.data; else db.user_avatars.push({ login, data: q.payload.data });
+      return { data: null };
+    }
+    if (q.op === "delete") { db.user_avatars = db.user_avatars.filter((r) => !(match(r, q.filters) && mine(r))); return { data: null }; }
+    const out = db.user_avatars.filter((r) => match(r, q.filters) && (r.login === login || login === "hleb"));
+    return { data: q.single ? out[0] || null : JSON.parse(JSON.stringify(out)) };
+  }
   function query(q, login) {
     if (q.table === "parts_orders") return ordersQuery(q, login);
+    if (q.table === "user_avatars") return avatarsQuery(q, login);
+    if (q.table === "profiles" && q.op !== "select") return { error: { message: "RLS profiles" } };
     const rows = db[q.table];
     if (!rows) return { error: { message: "нет таблицы " + q.table } };
     if (q.table === "kb_cells" && q.op !== "select" && login !== "hleb") return { error: { message: "RLS: менять может только hleb" } };
@@ -346,11 +362,20 @@ const tests = {
     // после отправки, пока нет статуса, ещё можно поправить
     await p.fill("#zkBody tr[data-i=\"2\"] .zk-qty", "4"); await p.press("#zkBody tr[data-i=\"2\"] .zk-qty", "Tab"); await p.waitForTimeout(800);
     eq(s.db.parts_orders[0].items[2].qty, 4, "правка после отправки");
+    // профиль: логин, имя (задаёт hleb), своё фото
+    await p.tap("#profileBtn");
+    eq([await p.textContent("#zkMeLogin"), await p.textContent("#zkMeName")], ["ivan", "Иван"], "логин и имя в профиле");
+    await p.setInputFiles("#zkAvatarFile", { name: "я.png", mimeType: "image/png", buffer: fs.readFileSync(path.join(ROOT, "icon-512.png")) });
+    await p.waitForTimeout(400);
+    assert(/^data:image\/jpeg/.test((s.db.user_avatars[0] || {}).data || ""), "фото сохранено на сервере");
+    eq(await p.isVisible("#profileAvatar"), true, "фото на кнопке профиля");
+    await p.tap("#zkAccountClose");
 
     const h = await device(s), q = await h.open("/uchet/"); await sync(q); await q.waitForTimeout(200);
     eq(await q.textContent("#ordBadge"), "1", "у hleb — 1 новый заказ");
     await q.click("#tabOrdersBtn"); await q.waitForTimeout(150);
     eq(await q.textContent("#ordCards .ord-author"), "Иван", "автор — имя ремонтника");
+    eq(await q.$$eval("#ordCards img.ord-ava", (a) => a.length), 1, "фото ремонтника на карточке");
     await q.click("#ordCards .t-card"); await q.waitForTimeout(150);
     eq(await q.isDisabled("#ordToTicketBtn"), true, "без статуса в учёт не переносится");
     const iss = q.locator('#ordBody tr[data-i="0"] .ord-iss-input');

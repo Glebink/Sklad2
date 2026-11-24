@@ -18,7 +18,28 @@ const ORD_STATUS = {
 };
 // Сколько выдано: число у детали; не поставлено — выдано всё, что просили (при отмене — ничего)
 function ordIssued(o, it) { return it.issued != null ? it.issued : o.status === "cancel" ? 0 : it.qty; }
-function ordAuthor(o) { return o.author_name || o.author; }
+// Имя и фото ремонтника: имя — profiles.name (задаёт hleb), фото — user_avatars (ставит сам ремонтник)
+let ordPeople = {};
+try { ordPeople = JSON.parse(localStorage.getItem("sklad2_order_people_v1") || "{}") || {}; } catch (e) {}
+function ordAuthor(o) { return (ordPeople[o.author] && ordPeople[o.author].name) || o.author; }
+function ordAva(o) {
+  const p = ordPeople[o.author], name = ordAuthor(o);
+  return p && p.avatar ? `<img class="ord-ava" src="${escapeHtml(p.avatar)}" alt="">`
+    : `<span class="ord-ava ord-ava-none" aria-hidden="true">${escapeHtml(name.trim().charAt(0).toUpperCase())}</span>`;
+}
+async function loadPeople() {
+  const [p, a] = await Promise.all([
+    Auth.withTimeout(Auth.sb.from("profiles").select("login, name").eq("role", "repair"), 15000),
+    Auth.withTimeout(Auth.sb.from("user_avatars").select("login, data"), 15000)
+  ]);
+  if (p.error || a.error) return;
+  const next = {};
+  (p.data || []).forEach((r) => { if (r.login) next[r.login] = { name: r.name || "", avatar: "" }; });
+  (a.data || []).forEach((r) => { (next[r.login] = next[r.login] || { name: "", avatar: "" }).avatar = r.data; });
+  ordPeople = next;
+  try { localStorage.setItem("sklad2_order_people_v1", JSON.stringify(ordPeople)); } catch (e) {}
+  if (ordModeOn()) ordRender();
+}
 function ordWhen(iso) {
   if (!iso) return "";
   const d = new Date(iso), p = (n) => String(n).padStart(2, "0");
@@ -28,6 +49,7 @@ function ordWhen(iso) {
 /* ---------- загрузка ---------- */
 async function loadOrders() {
   if (!canOrders() || !window.Auth) return;
+  if (!orders.length || !Object.keys(ordPeople).length) loadPeople().catch(() => {});
   const r = await Auth.withTimeout(Auth.sb.from("parts_orders").select("*").order("sent_at"), 15000);
   if (r.error) throw r.error;
   orders = (r.data || []).filter((o) => o.sent_at).map((o) => ({ ...o, items: Array.isArray(o.items) ? o.items : [] }));
@@ -40,10 +62,13 @@ function startOrdersRealtime() {   // новый заказ или правка 
   try {
     ordChannel = Auth.sb.channel("parts_orders_all")
       .on("postgres_changes", { event: "*", schema: "public", table: "parts_orders" }, () => { loadOrders().catch(() => {}); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_avatars" }, () => { loadPeople().catch(() => {}); })
       .subscribe();
   } catch (e) { ordChannel = null; }
 }
-document.addEventListener("visibilitychange", () => { if (!document.hidden && syncUserOk) loadOrders().catch(() => {}); });
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && syncUserOk && canOrders()) { loadPeople().catch(() => {}); loadOrders().catch(() => {}); }
+});
 
 /* ---------- отрисовка ---------- */
 function renderOrdersBadge() {
@@ -71,7 +96,7 @@ function renderOrdersList() {
   document.getElementById("ordCards").innerHTML = list.length ? list.map((o) => {
     const st = ORD_STATUS[o.status], acc = o.status === "ready" || o.status === "partial";
     return `<button class="t-card${o.id === ordCurrent ? " sel" : ""}" data-id="${escapeHtml(o.id)}">`
-      + `<div class="t-row"><span class="ord-author">${escapeHtml(ordAuthor(o))}</span><span class="ord-badge ${st.cls}" title="${st.text}">${st.icon}</span><span class="t-date">${ordWhen(o.sent_at)}</span></div>`
+      + `<div class="t-row">${ordAva(o)}<span class="ord-author">${escapeHtml(ordAuthor(o))}</span><span class="ord-badge ${st.cls}" title="${st.text}">${st.icon}</span><span class="t-date">${ordWhen(o.sent_at)}</span></div>`
       + `<div class="t-row t-sub"><span>${pluralRu(o.items.length, "позиция", "позиции", "позиций")}</span>`
       + (acc ? `<span class="${o.accounted_at ? "ord-acc" : "ord-noacc"}">${o.accounted_at ? "Учтено" : "Не учтено"}</span>` : `<span class="${st.cls}">${st.text}</span>`)
       + `</div></button>`;
@@ -81,7 +106,7 @@ function renderOrderView() {
   const o = ordSelected();
   if (!o) return;
   const locked = !!o.accounted_at;   // перенесённый в учёт заказ больше не правится
-  document.getElementById("ordTitle").textContent = ordAuthor(o) + " · " + ordWhen(o.sent_at);
+  document.getElementById("ordTitle").innerHTML = ordAva(o) + `<span>${escapeHtml(ordAuthor(o) + " · " + ordWhen(o.sent_at))}</span>`;
   document.querySelectorAll("#ordStatusBtns [data-st]").forEach((b) => {
     b.classList.toggle("on", b.dataset.st === o.status);
     b.disabled = locked;

@@ -13,9 +13,9 @@
 <meta name="apple-mobile-web-app-title" content="Склад">
 <link rel="stylesheet" href="../lib/fonts/fonts.css">
 <!-- оформление — как в «Учёте»: общие стили учёта + немного своих -->
-<link rel="stylesheet" href="../uchet/style.css?v=2611240913">
-<link rel="stylesheet" href="style.css?v=2611240913">
-<link rel="stylesheet" href="../auth.css?v=2611240913">
+<link rel="stylesheet" href="../uchet/style.css?v=2611240918">
+<link rel="stylesheet" href="style.css?v=2611240918">
+<link rel="stylesheet" href="../auth.css?v=2611240918">
 </head>
 <body class="has-list no-ticket">
 
@@ -35,7 +35,8 @@
   <div class="topbar-right">
     <span id="appVersionBadge" title="Версия"></span>
     <button class="iconbtn profile-btn" id="profileBtn" title="Аккаунт" aria-label="Аккаунт">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+      <svg id="profileIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+      <img class="zk-avatar zk-avatar-btn" id="profileAvatar" alt="" hidden>
       <span class="sync-dot" id="syncDot"></span>
     </button>
   </div>
@@ -85,6 +86,19 @@
 <div class="modal-overlay" id="zkAccountOverlay">
   <div class="modal-box">
     <p class="modal-title">Аккаунт</p>
+    <!-- фото: нажатие — выбрать новое (сжимается на телефоне до 256 px) -->
+    <button type="button" class="zk-ava-pick" id="zkAvatarPick" title="Сменить фото" aria-label="Сменить фото">
+      <img class="zk-avatar" id="zkAvatarBig" alt="" hidden>
+      <svg id="zkAvatarNone" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+      <span class="zk-ava-cam" aria-hidden="true">📷</span>
+    </button>
+    <input type="file" id="zkAvatarFile" accept="image/*" hidden>
+    <button type="button" class="zk-ava-del" id="zkAvatarDel" hidden>Убрать фото</button>
+    <dl class="zk-me">
+      <dt>Логин</dt><dd class="mono" id="zkMeLogin"></dd>
+      <dt>Имя</dt><dd id="zkMeName"></dd>
+    </dl>
+    <p class="zk-note" id="zkMeHint">Имя видит кладовщик в ваших заказах. Сменить имя — через кладовщика.</p>
     <p class="sync-status-line" id="zkAccountLine"></p>
     <div class="modal-actions">
       <button class="confirm-no" id="zkAccountClose">Закрыть</button>
@@ -94,9 +108,9 @@
 </div>
 
 <script src="../lib/supabase-2.45.4.js"></script>
-<script src="../auth.js?v=2611240913"></script>
-<script src="../uchet/js/search.js?v=2611240913"></script>
-<script src="app.js?v=2611240913"></script>
+<script src="../auth.js?v=2611240918"></script>
+<script src="../uchet/js/search.js?v=2611240918"></script>
+<script src="app.js?v=2611240918"></script>
 
 </body>
 </html>

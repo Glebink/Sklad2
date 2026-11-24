@@ -58,3 +58,18 @@ body:not(.zk-editable) .zk-del-col { display: none; }
 @media (min-width: 900px) {
   .zk-head-title { display: none; }
 }
+
+/* профиль: логин, имя (задаёт hleb), фото */
+.zk-avatar { display: block; border-radius: 50%; object-fit: cover; }
+.zk-avatar-btn { width: 100%; height: 100%; border-radius: 9px; }
+button.iconbtn.profile-btn:has(#profileAvatar:not([hidden])) { padding: 0; overflow: hidden; }
+.zk-ava-pick { position: relative; display: flex; align-items: center; justify-content: center; width: 96px; height: 96px; margin: 4px auto 6px;
+  border-radius: 50%; border: 1px solid var(--line-strong); background: var(--accent-soft); color: var(--muted); cursor: pointer; padding: 0; }
+.zk-ava-pick .zk-avatar { width: 100%; height: 100%; }
+.zk-ava-cam { position: absolute; right: -2px; bottom: -2px; width: 30px; height: 30px; border-radius: 50%; background: var(--surface);
+  border: 1px solid var(--line-strong); font-size: 15px; line-height: 28px; }
+.zk-ava-del { display: block; margin: 0 auto 8px; border: 0; background: none; color: var(--bad-ink); font: inherit; font-size: 13px; cursor: pointer; }
+.zk-me { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 10px 0; text-align: left; font-size: 15px; }
+.zk-me dt { color: var(--muted); }
+.zk-me dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+#zkMeHint { font-size: 12.5px; margin-bottom: 8px; }

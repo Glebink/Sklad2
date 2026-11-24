@@ -280,7 +280,7 @@ async function loadCatalog() {
   saveLocal(CATALOG_KEY, catalog);
 }
 async function refresh() {
-  try { await Promise.all([loadOrders(), loadCatalog()]); setDot("ok"); }
+  try { await Promise.all([loadOrders(), loadCatalog(), loadMe()]); setDot("ok"); }
   catch (e) { setDot("err", "Нет связи с сервером — показаны сохранённые на устройстве заявки."); }
 }
 let channel = null;
@@ -293,9 +293,67 @@ function startRealtime() {   // статус от hleb приходит сраз
   } catch (e) { channel = null; }
 }
 
-/* ---------- аккаунт ---------- */
+/* ---------- аккаунт: логин, имя (задаёт hleb в profiles.name), фото (user_avatars) ---------- */
+const ME_KEY = "sklad2_zakaz_me_v1";   // имя и фото — на устройстве, чтобы показывались сразу
+let me = loadLocal(ME_KEY + "_" + LOGIN, { name: "", avatar: "" });
+function renderMe() {
+  const a = me.avatar || "";
+  $("profileAvatar").hidden = !a; $("profileIcon").style.display = a ? "none" : "";
+  if (a) $("profileAvatar").src = a;
+  $("zkAvatarBig").hidden = !a; $("zkAvatarNone").style.display = a ? "none" : "";
+  if (a) $("zkAvatarBig").src = a;
+  $("zkAvatarDel").hidden = !a;
+  $("zkMeLogin").textContent = LOGIN || "—";
+  $("zkMeName").textContent = me.name || "—";
+}
+async function loadMe() {
+  const [p, a] = await Promise.all([
+    Auth.withTimeout(sb().from("profiles").select("name").eq("login", LOGIN).maybeSingle(), 15000),
+    Auth.withTimeout(sb().from("user_avatars").select("data").eq("login", LOGIN).maybeSingle(), 15000)
+  ]);
+  if (p.error || a.error) return;
+  me = { name: (p.data && p.data.name) || "", avatar: (a.data && a.data.data) || "" };
+  saveLocal(ME_KEY + "_" + LOGIN, me);
+  renderMe();
+}
+// Фото: обрезка по центру в квадрат 256 px, JPEG — около 20–40 КБ
+function shrinkImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const n = 256, s = Math.min(img.naturalWidth, img.naturalHeight), c = document.createElement("canvas");
+      c.width = c.height = n;
+      c.getContext("2d").drawImage(img, (img.naturalWidth - s) / 2, (img.naturalHeight - s) / 2, s, s, 0, 0, n, n);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("не удалось прочитать картинку")); };
+    img.src = url;
+  });
+}
+$("zkAvatarPick").addEventListener("click", () => $("zkAvatarFile").click());
+$("zkAvatarFile").addEventListener("change", async (e) => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  try {
+    const data = await shrinkImage(f);
+    const r = await Auth.withTimeout(sb().from("user_avatars").upsert({ login: LOGIN, data }), 15000);
+    if (r.error) throw r.error;
+    me.avatar = data; saveLocal(ME_KEY + "_" + LOGIN, me); renderMe();
+  } catch (err) { alert("Не удалось сохранить фото (нет связи?): " + errText(err)); }
+});
+$("zkAvatarDel").addEventListener("click", async () => {
+  if (!confirm("Убрать фото?")) return;
+  try {
+    const r = await Auth.withTimeout(sb().from("user_avatars").delete().eq("login", LOGIN), 15000);
+    if (r.error) throw r.error;
+    me.avatar = ""; saveLocal(ME_KEY + "_" + LOGIN, me); renderMe();
+  } catch (err) { alert("Не удалось убрать фото: " + errText(err)); }
+});
 $("profileBtn").addEventListener("click", () => {
-  $("zkAccountLine").textContent = LOGIN ? "Вы вошли как " + LOGIN + "." : "Вход не выполнен.";
+  $("zkAccountLine").textContent = LOGIN ? "" : "Вход не выполнен.";
+  renderMe();
   openModal("zkAccountOverlay");
 });
 $("zkAccountClose").addEventListener("click", () => closeModal("zkAccountOverlay"));
@@ -305,6 +363,7 @@ $("zkLogoutBtn").addEventListener("click", () => { closeModal("zkAccountOverlay"
 /* ---------- старт ---------- */
 if (currentId && !current()) currentId = null;
 render();
+renderMe();
 if (window.Auth) {
   Auth.gate({
     onLogin: async () => {
@@ -312,6 +371,7 @@ if (window.Auth) {
         const r = await Auth.loadRole();
         if (r) { ROLE = r.role; LOGIN = r.login; if (leaveIfNotRepair()) return; }
         if (!orders.length) { orders = loadLocal(ordersKey(), []); render(); }
+        me = loadLocal(ME_KEY + "_" + LOGIN, me); renderMe();
       } catch (e) {}
       await refresh();
       startRealtime();

@@ -1565,3 +1565,8 @@ body.ord-mode.ord-none #viewOrders { display: none !important; }
   .ord-table .ord-num { width: 58px; }
   .ord-table td.code { font-size: 11.5px; }
 }
+.ord-ava { flex: none; width: 26px; height: 26px; border-radius: 50%; object-fit: cover; margin-right: 8px; }
+.ord-ava-none { display: inline-flex; align-items: center; justify-content: center; background: var(--accent-soft); color: var(--accent); font-size: 13px; font-weight: 700; }
+#ordTitle { display: flex; align-items: center; min-width: 0; }
+#ordTitle > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#ordTitle .ord-ava { width: 30px; height: 30px; }

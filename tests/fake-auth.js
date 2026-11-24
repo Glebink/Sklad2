@@ -16,6 +16,7 @@
       in(k, v) { q.filters.push([k, "in", v]); return api; },
       insert(p) { q.op = "insert"; q.payload = p; return api; },
       update(p) { q.op = "update"; q.payload = p; return api; },
+      upsert(p) { q.op = "upsert"; q.payload = p; return api; },
       delete() { q.op = "delete"; return api; },
       single() { q.single = true; return api; }, maybeSingle() { q.single = true; return api; },
       then(res, rej) { srv("query", q).then(res, rej); }
