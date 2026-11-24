@@ -12,8 +12,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Склад">
 <link rel="stylesheet" href="../lib/fonts/fonts.css">
-<link rel="stylesheet" href="style.css?v=2611240949">
-<link rel="stylesheet" href="../auth.css?v=2611240949">
+<link rel="stylesheet" href="style.css?v=2611241016">
+<link rel="stylesheet" href="../auth.css?v=2611241016">
 </head>
 <body>
 
@@ -252,6 +252,7 @@
     <h2 class="section-title" id="ordTitle"></h2>
   </div>
   <div class="ord-status-btns" id="ordStatusBtns">
+    <button class="util ord-st-picking" data-st="picking"><svg class="st-ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> Сборка</button>
     <button class="util ord-st-ready" data-st="ready">✓ Готово</button>
     <button class="util ord-st-partial" data-st="partial">~ Частично</button>
     <button class="util ord-st-cancel" data-st="cancel">✕ Отмена</button>
@@ -264,6 +265,7 @@
   </div>
   <div class="ord-foot">
     <button class="util primary" id="ordToTicketBtn">Перенести в учёт</button>
+    <button class="util ord-refresh" id="ordRefreshBtn" title="Обновить; «!» — ремонтник изменил список" aria-label="Обновить"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
     <span class="ord-acc-state" id="ordAccState"></span>
   </div>
 </div>
@@ -648,6 +650,19 @@
   </div>
 </div>
 
+<!-- Модалка: правки ремонтника во время сборки (вкладка «Заказы») -->
+<div class="modal-overlay" id="ordChangesOverlay">
+  <div class="modal-box wide">
+    <p class="modal-title" id="ordChTitle"></p>
+    <ul class="ord-ch-list" id="ordChList"></ul>
+    <div class="modal-actions">
+      <button class="confirm-no bg-danger-soft" id="ordChReject">Отказать</button>
+      <button class="confirm-yes accent" id="ordChAccept">Принять</button>
+    </div>
+    <div class="modal-actions mt-6"><button class="confirm-no" id="ordChClose">Позже</button></div>
+  </div>
+</div>
+
 <!-- Модалка: аккаунты (только hleb). Ремонтников можно создать, сменить имя и пароль, отключить. -->
 <div class="modal-overlay" id="accountsOverlay">
   <div class="modal-box wide">
@@ -684,22 +699,22 @@
 </div>
 
 <script src="../lib/supabase-2.45.4.js"></script>
-<script src="../auth.js?v=2611240949"></script>
+<script src="../auth.js?v=2611241016"></script>
 <!-- Учёт: обычные скрипты с общей областью видимости, порядок важен -->
-<script src="js/core.js?v=2611240949"></script>
-<script src="js/search.js?v=2611240949"></script>
-<script src="js/consumption.js?v=2611240949"></script>
-<script src="js/tickets.js?v=2611240949"></script>
-<script src="js/warehouse.js?v=2611240949"></script>
-<script src="js/tabs.js?v=2611240949"></script>
-<script src="js/stock-import.js?v=2611240949"></script>
-<script src="js/onec.js?v=2611240949"></script>
-<script src="js/ui.js?v=2611240949"></script>
-<script src="js/sync.js?v=2611240949"></script>
-<script src="js/inventory.js?v=2611240949"></script>
-<script src="js/orders.js?v=2611240949"></script>
-<script src="js/accounts.js?v=2611240949"></script>
-<script src="js/start.js?v=2611240949"></script>
+<script src="js/core.js?v=2611241016"></script>
+<script src="js/search.js?v=2611241016"></script>
+<script src="js/consumption.js?v=2611241016"></script>
+<script src="js/tickets.js?v=2611241016"></script>
+<script src="js/warehouse.js?v=2611241016"></script>
+<script src="js/tabs.js?v=2611241016"></script>
+<script src="js/stock-import.js?v=2611241016"></script>
+<script src="js/onec.js?v=2611241016"></script>
+<script src="js/ui.js?v=2611241016"></script>
+<script src="js/sync.js?v=2611241016"></script>
+<script src="js/inventory.js?v=2611241016"></script>
+<script src="js/orders.js?v=2611241016"></script>
+<script src="js/accounts.js?v=2611241016"></script>
+<script src="js/start.js?v=2611241016"></script>
 
 </body>
 </html>

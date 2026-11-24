@@ -1,11 +1,12 @@
 'use strict';
 /* Заявки ремонтника на детали (роль repair).
    Ремонтник создаёт заявку, набирает детали с подсказками (поиск и остаток 1С — как в «Учёте»)
-   и нажимает «Отправить». Дописывать и править можно, пока hleb не поставил статус.
-   Статусы ставит hleb во вкладке «Заказы» учёта: ✓ готово, ~ собрано частично, ✕ отмена;
+   и нажимает «Отправить». Дописывать и править можно, пока заявка новая или собирается: во время сборки
+   правку принимает hleb (или отказывает — тогда список возвращается к принятому, base_items).
+   Статусы ставит hleb во вкладке «Заказы» учёта: ◷ сборка, ✓ готово, ~ собрано частично, ✕ отмена;
    у каждой детали он отмечает «выдано» — ремонтник видит, чего не хватило.
    Данные — таблица parts_orders (items: [{ code, name, qty, issued? }]); права проверяет сервер (RLS):
-   ремонтник видит и меняет только свои заявки, и только пока у них нет статуса.
+   ремонтник видит и меняет только свои заявки, и только пока они новые или собираются.
    Детали для подсказок — каталог potreblenie_catalog_v1 из sklad_kv (названия, коды, модели, остаток 1С). */
 const APP_VERSION = "v2.0";   // меняется вместе с uchet/js/core.js, baza/app.js и CACHE_NAME в sw.js
 const CATALOG_KEY = "sklad2_zakaz_catalog_v1";   // каталог и свои заявки — на устройстве, чтобы открывалось без связи
@@ -46,17 +47,21 @@ let currentId = null;
 try { currentId = sessionStorage.getItem("sklad2_zakaz_sel"); } catch (e) {}
 function current() { return orders.find((o) => o.id === currentId) || null; }
 function orderNumber(o) { return orders.indexOf(o) + 1; }
-// Править можно, пока hleb не поставил статус (то же правило на сервере)
-function editable(o) { return !!o && o.status === "new"; }
+// Править можно, пока заявка новая или собирается (то же правило на сервере)
+function editable(o) { return !!o && (o.status === "new" || o.status === "picking"); }
+// Во время сборки: правки после начала сборки ждут, пока hleb примет или откажет
+const bare = (list) => JSON.stringify((list || []).map((it) => [it.code || "", it.name, it.qty]));
+function waitsApproval(o) { return o.status === "picking" && bare(o.items) !== bare(o.base_items); }
 
 const STATUS = {
   draft:   { icon: "", text: "Черновик", cls: "zk-st-draft" },
   sent:    { icon: "●", text: "Отправлена", cls: "zk-st-sent" },
+  picking: { icon: `<svg class="st-ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`, text: "Собирается", cls: "zk-st-picking" },
   ready:   { icon: "✓", text: "Готово", cls: "zk-st-ready" },
   partial: { icon: "~", text: "Собрано частично", cls: "zk-st-partial" },
   cancel:  { icon: "✕", text: "Отмена", cls: "zk-st-cancel" }
 };
-function statusOf(o) { return o.status !== "new" ? STATUS[o.status] : o.sent_at ? STATUS.sent : STATUS.draft; }
+function statusOf(o) { return o.status !== "new" ? STATUS[o.status] || STATUS.sent : o.sent_at ? STATUS.sent : STATUS.draft; }
 
 /* ---------- раскладка: список / заявка ---------- */
 function updateLayout() {
@@ -96,10 +101,10 @@ $("zkCards").addEventListener("click", (e) => {
 function renderView() {
   const o = current();
   if (!o) return;
-  const st = statusOf(o), can = editable(o), done = o.status !== "new";
+  const st = statusOf(o), can = editable(o), done = o.status !== "new" && o.status !== "picking";
   $("zkViewTitle").textContent = "Заявка № " + orderNumber(o) + " · " + fmtWhen(o.created_at);
   $("zkStatus").className = "zk-status " + st.cls;
-  $("zkStatus").textContent = (st.icon ? st.icon + " " : "") + st.text;
+  $("zkStatus").innerHTML = (st.icon ? st.icon + " " : "") + esc(st.text);
   $("zkAddPanel").hidden = !can;
   document.body.classList.toggle("zk-done", done);
   document.body.classList.toggle("zk-editable", can);
@@ -122,6 +127,10 @@ function renderFoot(o) {
       + `<button class="util zk-drop" id="zkDropBtn">Удалить черновик</button>`;
   } else if (o.status === "new") {
     foot.innerHTML = `<p class="zk-note">Отправлена ${fmtWhen(o.sent_at)}. Пока заявку не начали собирать, её можно дописать или поправить.</p>`;
+  } else if (o.status === "picking") {
+    foot.innerHTML = `<p class="zk-note${waitsApproval(o) ? " zk-wait" : ""}">${waitsApproval(o)
+      ? "Изменения отправлены — ждут подтверждения кладовщика. Если он откажет, список вернётся к прежнему."
+      : "Заявку собирают. Поправить ещё можно — изменения подтвердит кладовщик."}</p>`;
   } else {
     const short = o.items.filter((it) => issuedOf(o, it) < it.qty).length;
     foot.innerHTML = `<p class="zk-note">${o.status === "cancel" ? "Заявка отменена." : short ? "Выдано не всё: жёлтые строки — выдано частично, красные — не выдано." : "Всё выдано."}</p>`;
@@ -142,7 +151,7 @@ async function saveItems(o) {
     const r = await Auth.withTimeout(sb().from("parts_orders").update({ items: o.items }).eq("id", o.id).select("id"), 15000);
     if (r.error) throw r.error;
     if (!r.data || !r.data.length) {   // заявку уже собирают (стоит статус) — сервер правку не принял
-      alert("Заявку уже начали собирать — изменить её нельзя. Если нужно что-то ещё, создайте новую заявку.");
+      alert("Заявку уже собрали — изменить её нельзя. Если нужно что-то ещё, создайте новую заявку.");
       await loadOrders();
       return;
     }
@@ -221,6 +230,7 @@ $("zkBody").addEventListener("change", (e) => {
   const q = parseInt(inp.value, 10);
   if (q > 0) it.qty = q; else inp.value = it.qty;
   scheduleSave(o);
+  renderFoot(o);
 });
 $("zkBody").addEventListener("input", (e) => {
   const inp = e.target.closest(".zk-qty");
@@ -263,7 +273,7 @@ $("zkFoot").addEventListener("click", async (e) => {
 /* ---------- загрузка с сервера ---------- */
 function normalize(o) { return { ...o, items: Array.isArray(o.items) ? o.items : [] }; }
 async function loadOrders() {
-  const r = await Auth.withTimeout(sb().from("parts_orders").select("id, items, status, created_at, sent_at, updated_at").order("created_at"), 15000);
+  const r = await Auth.withTimeout(sb().from("parts_orders").select("id, items, base_items, status, created_at, sent_at, updated_at").order("created_at"), 15000);
   if (r.error) throw r.error;
   const fresh = (r.data || []).map(normalize);
   // несохранённая правка на устройстве важнее того, что пришло

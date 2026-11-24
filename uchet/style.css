@@ -1585,3 +1585,28 @@ body.ord-mode.ord-none #viewOrders { display: none !important; }
 .acc-btns { display: flex; gap: 6px; margin-top: 8px; }
 .acc-btns .util { flex: 1 1 0; min-height: 34px; font-size: 13px; }
 .acc-btns .acc-off { color: var(--bad-ink); }
+
+/* заказы: сборка, правки ремонтника, удаление */
+.ord-badge.ord-st-picking { background: var(--accent); }
+.t-sub .ord-st-picking { color: var(--accent); font-weight: 600; }
+.ord-status-btns .util.on.ord-st-picking { background: var(--accent); border-color: var(--accent); color: #fff; }
+.ord-status-btns { flex-wrap: nowrap; gap: 6px; }
+.ord-status-btns .util { padding: 0 6px; white-space: nowrap; }
+@media (max-width: 420px) { .ord-status-btns .util { font-size: 13px; } }
+#ordCards .t-sub { justify-content: flex-start; align-items: center; }
+#ordCards .t-sub > span:first-child { margin-right: auto; }
+.ord-changed { color: var(--warn); font-weight: 700; margin-right: 8px; }
+.t-card .ord-del { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 26px; margin: -4px -6px -4px 6px;
+  border-radius: 7px; color: var(--muted); cursor: pointer; }
+.t-card .ord-del:hover, .t-card .ord-del:active { color: var(--bad); background: var(--s-rejected-bg); }
+.ord-refresh { position: relative; min-width: 44px; font-size: 20px; padding: 0 12px !important; }
+.ord-refresh.pending::after { content: "!"; position: absolute; top: -8px; right: -8px; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--warn); color: #1a1a1a; font-size: 13px; font-weight: 800; line-height: 20px; text-align: center; }
+.ord-ch-list { list-style: none; margin: 0 0 12px; padding: 0; text-align: left; display: grid; gap: 6px; font-size: 14px; }
+.ord-ch-list li { padding: 8px 10px; border-radius: 8px; overflow-wrap: anywhere; }
+.ord-ch-add { background: var(--s-ordered-bg); }
+.ord-ch-del { background: var(--s-rejected-bg); }
+.ord-ch-qty { background: var(--s-accepted-bg); }
+.st-ico { display: inline-block; vertical-align: -2px; }
+.ord-badge .st-ico, .zk-badge .st-ico { vertical-align: 0; }
+.ord-refresh { display: inline-flex; align-items: center; justify-content: center; }

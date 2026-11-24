@@ -17,6 +17,9 @@
 .zk-badge.zk-st-ready { background: var(--ok); color: #fff; }
 .zk-badge.zk-st-partial { background: var(--warn); color: #fff; }
 .zk-badge.zk-st-cancel { background: var(--bad); color: #fff; }
+.zk-badge.zk-st-picking { background: var(--accent); color: #fff; }
+.zk-st-picking { color: var(--accent); }
+.zk-note.zk-wait { color: var(--warn); font-weight: 600; }
 .zk-badge.zk-st-sent { background: transparent; color: var(--accent); font-size: 12px; }
 .zk-st-draft { color: var(--muted); }
 .zk-st-sent { color: var(--accent); }

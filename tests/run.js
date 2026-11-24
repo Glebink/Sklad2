@@ -19,7 +19,7 @@ function makeServer() {
   const ROLES = { hleb: "requester", sklad: "shift" };
   const roleOf = (l) => ROLES[l] || "repair";
   const ordSee = (r, login) => r.author === login || (login === "hleb" && !!r.sent_at);
-  const ordEdit = (r, login) => roleOf(login) === "repair" ? r.author === login && r.status === "new" && !r.accounted_at : login === "hleb" && !!r.sent_at;
+  const ordEdit = (r, login) => roleOf(login) === "repair" ? r.author === login && (r.status === "new" || r.status === "picking") && !r.accounted_at : login === "hleb" && !!r.sent_at;
   function ordersQuery(q, login) {
     const rows = db.parts_orders, copy = (x) => JSON.parse(JSON.stringify(x));
     if (q.op === "insert") {
@@ -30,6 +30,7 @@ function makeServer() {
     }
     const hit = rows.filter((r) => match(r, q.filters) && ordSee(r, login));
     if (q.op === "update") {
+      if (login !== "hleb" && ["status", "hleb_items", "base_items"].some((k) => k in q.payload)) return { error: { message: "Статус и сборку заказа меняет кладовщик." } };
       const ok = hit.filter((r) => ordEdit(r, login));
       ok.forEach((r) => {
         const p = copy(q.payload);
@@ -39,7 +40,7 @@ function makeServer() {
       });
       return { data: copy(ok) };
     }
-    if (q.op === "delete") { const del = hit.filter((r) => r.author === login && !r.sent_at); db.parts_orders = rows.filter((r) => !del.includes(r)); return { data: null }; }
+    if (q.op === "delete") { const del = hit.filter((r) => (r.author === login && !r.sent_at) || (login === "hleb" && r.sent_at)); db.parts_orders = rows.filter((r) => !del.includes(r)); return { data: null }; }
     return { data: copy(hit) };
   }
   // user_avatars — читает свою и hleb все, пишет только ремонтник свою
@@ -424,6 +425,29 @@ const tests = {
     eq(await q.isDisabled("#ordToTicketBtn"), true, "без статуса в учёт не переносится");
     const iss = q.locator('#ordBody tr[data-i="0"] .ord-iss-input');
     await iss.fill("2"); await iss.press("Tab"); await q.waitForTimeout(150);
+    eq(s.db.parts_orders[0].status, "picking", "«выдано» у нового заказа — началась сборка");
+    // ремонтник правит во время сборки: у hleb список не меняется сам, у ⟳ — «!»
+    await p.evaluate(() => loadOrders()); await p.waitForTimeout(100);   // на устройстве статус приходит через Realtime
+    eq((await p.textContent("#zkStatus")).trim(), "Собирается", "ремонтник видит сборку");
+    const zq = '#zkBody tr[data-i="2"] .zk-qty';
+    await p.fill(zq, "5"); await p.press(zq, "Tab"); await p.waitForTimeout(800);
+    eq(s.db.parts_orders[0].items[2].qty, 5, "правка во время сборки ушла");
+    assert((await p.textContent("#zkFoot")).includes("ждут подтверждения"), "ремонтник видит, что правка ждёт");
+    await q.evaluate(() => loadOrders()); await q.waitForTimeout(100);
+    eq(await q.textContent('#ordBody tr[data-i="2"] .ord-num'), "4", "список сборки сам не обновился");
+    eq(await q.$eval("#ordRefreshBtn", (b) => b.classList.contains("pending")), true, "«!» у кнопки обновления");
+    await q.click("#ordRefreshBtn"); await q.waitForTimeout(100);
+    eq(await q.$$eval("#ordChList li", (a) => a.map((x) => x.textContent)), ["~ Шайба 8 — было 4, стало 5"], "окно с изменениями");
+    await q.click("#ordChAccept"); await q.waitForTimeout(150);
+    eq(s.db.parts_orders[0].hleb_items.map((it) => [it.qty, it.issued]), [[3, 2], [1, undefined], [5, undefined]], "принято, «выдано» сохранилось");
+    // убрал деталь — hleb отказывает: список ремонтника возвращается
+    await p.tap('#zkBody tr[data-i="1"] .zk-del'); await p.waitForTimeout(800);
+    await q.evaluate(() => loadOrders()); await q.click("#ordRefreshBtn"); await q.waitForTimeout(100);
+    eq(await q.$$eval("#ordChList li", (a) => a.map((x) => x.textContent)), ["− Мотор-колесо 333 — убрал"], "удаление в окне");
+    await q.click("#ordChReject"); await q.waitForTimeout(150);
+    eq(s.db.parts_orders[0].items.length, 3, "отказ — список ремонтника вернулся");
+    await p.evaluate(() => loadOrders()); await p.waitForTimeout(100);
+    eq(await p.$$eval("#zkBody tr[data-i]", (a) => a.length), 3, "ремонтник видит вернувшийся список");
     await q.click('#ordStatusBtns [data-st="partial"]'); await q.waitForTimeout(150);
     eq(s.db.parts_orders[0].status, "partial", "статус на сервере");
     eq(await q.textContent("#ordAccState"), "Не учтено", "ещё не учтено");
@@ -439,7 +463,7 @@ const tests = {
     await q.click("#ordToTicketBtn"); await q.waitForTimeout(300);
     const key = await q.evaluate(() => ticketKeys().pop());
     eq(key, TODAY(), "заявка на сегодня создана");
-    eq(await q.evaluate((k) => dataByDate[k].counts, key), { "code::111": 2, "code::333": 1, "parts::Шайба 8": 4 }, "выданное — в учёте");
+    eq(await q.evaluate((k) => dataByDate[k].counts, key), { "code::111": 2, "code::333": 1, "parts::Шайба 8": 5 }, "выданное — в учёте");
     assert(s.db.parts_orders[0].accounted_at, "отметка «Учтено» на сервере");
     assert((await q.textContent("#ordToTicketBtn")).startsWith("✓ Учтено"), "кнопка показывает «Учтено»");
     eq(await q.isDisabled('#ordStatusBtns [data-st="ready"]'), true, "учтённый заказ не правится");
@@ -450,6 +474,9 @@ const tests = {
     eq(await q.evaluate((k) => dataByDate[k].counts["code::111"], key), 3, "прибавилось в сегодняшнюю");
     await sync(q);
     eq(s.kv("potreblenie_data_by_date_v3")[key].counts["code::111"], 3, "учёт ушёл на сервер");
+    await q.click('#ordCards .t-card[data-id="ord2"] .ord-del'); await q.waitForTimeout(150);
+    eq(s.db.parts_orders.map((o) => o.id).includes("ord2"), false, "корзина удаляет заказ");
+    eq(await q.$$eval("#ordCards .t-card", (a) => a.length), 1, "и из списка");
     eq(r.errors.concat(h.errors), [], "ошибки страницы"); await r.close(); await h.close();
   },
 
