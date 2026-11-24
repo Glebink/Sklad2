@@ -87,7 +87,7 @@ function goToMatch(k, delta) {
 });
 
 const nameOrCode = (item, q) =>
-  nameMatchesQuery(item.name, q) || (item.code && item.code.toLowerCase().includes(q));
+  nameMatchesQuery(item.name, q) || (item.code && item.code.toLowerCase().includes(q)) || keysMatchQuery(item, q);
 
 /* ==================== Закрепление общей шапки (дата/вкладки/⋮ + поиск) ====================
    Шапка ВСЕГДА position:fixed (см. .sticky-top в style.css) — без

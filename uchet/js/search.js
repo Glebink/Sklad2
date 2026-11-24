@@ -15,13 +15,29 @@ function nameMatchesQuery(name, query) {
   const nWords = splitWords(name);
   return qWords.every((qw) => nWords.some((nw) => nw.startsWith(qw)));
 }
-// Насколько позиция подходит: 0 — код совпал целиком, 1 — набранное есть в коде, 2 — совпало название, -1 — нет.
+// Ключевые слова позиции склада (поле `keys`, через запятую: «шина, покрышка, резина передняя»).
+// Позиция находится, если все слова запроса есть в названии вместе с одной из фраз:
+// «шина 10» найдёт «Покрышка 10"» с ключевым словом «шина». В учёте у позиций 1С, инвентаризации
+// и заявок своих слов нет — берутся у связанной позиции склада (keysFor в onec.js).
+function itemKeys(item) {
+  if (item.keys) return item.keys;
+  return typeof keysFor === "function" ? keysFor(item) : "";
+}
+function keysMatchQuery(item, q) {
+  const keys = itemKeys(item);
+  if (!keys) return false;
+  const name = item.name || "";
+  return keys.split(",").some((k) => k.trim() && nameMatchesQuery(name + " " + k, q));
+}
+// Насколько позиция подходит: 0 — код совпал целиком, 1 — набранное есть в коде, 2 — совпало название,
+// 3 — нашлась по ключевым словам, -1 — нет.
 // Код всегда выше названия: «25.21» ищет AB.50.0025.21, а не десятки деталей 9Bot с годами «21-25» в названии.
 function matchRank(item, q) {
   const code = (item.code || "").toLowerCase();
   if (code && code === q) return 0;
   if (code.includes(q)) return 1;
   if (nameMatchesQuery((item.name || "").toLowerCase(), q) || (item.alt && nameMatchesQuery(item.alt.toLowerCase(), q))) return 2;
+  if (keysMatchQuery(item, q)) return 3;
   return -1;
 }
 function searchStore(store, query) {
@@ -38,7 +54,7 @@ function searchStore(store, query) {
       results.push(r);
     }
   });
-  // Порядок в подсказках: сначала совпадения по коду, потом по названию; внутри — YGW 4.0 → YGW 5.0 → 9Bot →
+  // Порядок в подсказках: сначала совпадения по коду, потом по названию, потом по ключевым словам; внутри — YGW 4.0 → YGW 5.0 → 9Bot →
   // остальные (без серии), дальше — как в списке. Показываются первые 12.
   const rank = (m) => { const i = SUGGEST_MODEL_ORDER.indexOf(String(m || "").trim()); return i === -1 ? SUGGEST_MODEL_ORDER.length : i; };
   return results.map((r, i) => ({ r, i }))

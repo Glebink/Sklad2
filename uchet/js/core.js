@@ -255,6 +255,7 @@ function warehouseFromCatalog() {
     const o = { code: it.code || "", name: it.name || "", model: it.model || "", model2: it.model2 || "", qty: 0 };
     if (it.ocqty !== undefined) o.ocqty = it.ocqty;   // остаток 1С — считает сервер при сборке каталога
     if (it.ocName) o.ocName = it.ocName;
+    if (it.keys) o.keys = it.keys;   // ключевые слова для поиска
     return o;
   });
   return { parts: conv(c.parts), consumables: [] };

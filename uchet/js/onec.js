@@ -120,7 +120,7 @@ function buildWarehouseIndex() {
   const map = {};
   warehouse.parts.forEach((it, index) => {
     codeVariants(it.code).forEach((c) => {
-      (map[c] = map[c] || []).push({ name: it.name, ocName: it.ocName || "", qty: it.qty || 0, code: it.code, model: it.model || "", model2: it.model2 || "", section: "parts", index });
+      (map[c] = map[c] || []).push({ name: it.name, ocName: it.ocName || "", qty: it.qty || 0, code: it.code, model: it.model || "", model2: it.model2 || "", keys: it.keys || "", section: "parts", index });
     });
   });
   return map;
@@ -217,6 +217,14 @@ function warehouseInfoFor(code, name) {
     }
   }
   return null;
+}
+
+/* Ключевые слова для поиска (js/search.js) у позиции не со «Склада» (1С, инвентаризация, заявка) —
+   у связанной позиции склада. */
+function keysFor(item) {
+  if (!item || !item.code) return "";
+  const w = warehouseInfoFor(item.code, item.alt || item.name);
+  return (w && w.keys) || "";
 }
 
 /* Первая позиция 1C, связанная с данным кодом склада */

@@ -274,6 +274,41 @@ const tests = {
     eq(d.errors, [], "ошибки страницы"); await d.close();
   },
 
+  async "ключевые слова позиции склада: правка hleb, поиск везде"() {
+    const s = seededServer(), d = await device(s), p = await d.open("/uchet/"); await sync(p);
+    await p.click("#ticketNewBtn"); await p.click("#newTicketYes"); await p.waitForTimeout(200);
+    await p.click("#tabWarehouseBtn"); await p.waitForTimeout(150);
+    await p.evaluate(() => openWhEdit("parts", warehouse.parts.findIndex((x) => x.code === "333")));
+    eq(await p.isVisible("#whEditKeys"), true, "поле видно hleb");
+    await p.fill("#whEditKeys", " шина,покрышка ,, резина  передняя, Шина"); await p.click("#whEditSave"); await p.waitForTimeout(150);
+    eq(await p.evaluate(() => warehouse.parts.find((x) => x.code === "333").keys), "шина, покрышка, резина передняя", "слова сохранены без повторов");
+    const first = async (input, box, q) => { await p.fill(input, q); await p.waitForTimeout(100); return p.$$eval(box + " .suggest-item .code", (a) => a.map((e) => e.textContent)); };
+    await sync(p); await p.waitForTimeout(300);
+    await p.click("#tabConsumptionBtn"); await p.waitForSelector("#newItemName", { state: "visible", timeout: 3000 });
+    eq(await first("#newItemName", "#addSuggestBox", "покрыш"), ["333"], "подсказка «Учёта» по слову");
+    eq(await first("#newItemName", "#addSuggestBox", "резина пер"), ["333"], "по фразе");
+    eq(await first("#newItemName", "#addSuggestBox", "шина колесо"), ["333"], "слово + название");
+    eq(await first("#newItemName", "#addSuggestBox", "резина болт"), [], "слова из разных позиций не смешиваются");
+    await p.fill("#newItemName", "");
+    await p.click("#tabOneCBtn"); await p.waitForTimeout(150);
+    const ocHits = await p.evaluate(() => { const i = document.getElementById("ocSearchInput"); i.value = "шина"; i.dispatchEvent(new Event("input"));
+      return Array.from(document.querySelectorAll("#oc-body-parts tr.row-match")).map((t) => onec.parts[+t.dataset.index].code); });
+    eq(ocHits, ["333"], "поиск по «1С» — через позицию склада");
+    await sync(p);
+    eq(s.kv("potreblenie_warehouse_v1").parts.find((x) => x.code === "333").keys, "шина, покрышка, резина передняя", "на сервере");
+    // каталог для сменщика и ремонтников собирает сервер — здесь подкладываем как он
+    s.seed("potreblenie_catalog_v1", { parts: STOCK.map((x) => ({ code: x.code, name: x.name, ocqty: x.qty, ...(x.code === "333" ? { keys: "шина, покрышка" } : {}) })), consumables: [] });
+    const r = await device(s, { login: "ivan", role: "repair" }), z = await r.open("/zakaz/"); await z.waitForTimeout(200);
+    await z.click("#zkNewBtn"); await z.waitForTimeout(200);
+    await z.fill("#newItemName", "шина"); await z.waitForTimeout(100);
+    eq(await z.$$eval("#addSuggestBox .suggest-item .code", (a) => a.map((e) => e.textContent)), ["333"], "подсказка ремонтника");
+    const sh = await device(s, { login: "sklad", role: "shift" }), q = await sh.open("/uchet/"); await sync(q);
+    await q.click("#ticketNewBtn"); await q.click("#newTicketYes"); await q.waitForTimeout(200);
+    await q.fill("#newItemName", "покрышка"); await q.waitForTimeout(100);
+    eq(await q.$$eval("#addSuggestBox .suggest-item .code", (a) => a.map((e) => e.textContent)), ["333"], "подсказка сменщика");
+    eq(d.errors.concat(r.errors, sh.errors), [], "ошибки страницы"); await d.close(); await r.close(); await sh.close();
+  },
+
   async "шапка помещается на телефоне и ПК"() {
     const s = seededServer();
     for (const width of [360, 390, 1280]) {
@@ -385,7 +420,7 @@ const tests = {
   for (const [name, fn] of Object.entries(tests)) {
     if (only && !name.includes(only)) continue;
     try { await fn(); console.log("✓ " + name); }
-    catch (e) { failed++; console.log("✗ " + name + "\n    " + String(e.message).split("\n")[0]); }
+    catch (e) { failed++; console.log("✗ " + name + "\n    " + String(e.message).split("\n")[0] + (process.env.DBG ? "\n" + e.stack : "")); }
   }
   await browser.close(); srv.close();
   console.log(failed ? `\nНе прошло: ${failed}` : "\nВсе тесты прошли");

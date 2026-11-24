@@ -276,7 +276,7 @@ async function loadOrders() {
 async function loadCatalog() {
   const r = await Auth.withTimeout(sb().from("sklad_kv").select("value").eq("key", "potreblenie_catalog_v1").maybeSingle(), 15000);
   if (r.error || !r.data || !r.data.value || !Array.isArray(r.data.value.parts)) return;
-  catalog = { parts: r.data.value.parts.map((it) => ({ code: it.code || "", name: it.name || "", model: it.model || "", model2: it.model2 || "", ocqty: it.ocqty })) };
+  catalog = { parts: r.data.value.parts.map((it) => ({ code: it.code || "", name: it.name || "", model: it.model || "", model2: it.model2 || "", ocqty: it.ocqty, keys: it.keys || "" })) };
   saveLocal(CATALOG_KEY, catalog);
 }
 async function refresh() {

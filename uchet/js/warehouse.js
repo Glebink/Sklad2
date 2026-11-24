@@ -354,7 +354,14 @@ document.querySelectorAll(".model-switch").forEach((el) => {
   if (el.dataset.multi) setModelsSwitch(el, []); else setModelSwitch(el, "");
 });
 
-/* --- Редактирование позиции склада (код/название/кол-во) --- */
+/* --- Редактирование позиции склада (код/название/кол-во, ключевые слова) --- */
+function canEditKeys() { return MY_LOGIN === "hleb"; }   // ключевые слова для поиска вписывает только hleb
+// «шина,покрышка ,, резина  передняя» → «шина, покрышка, резина передняя»
+function normKeys(s) {
+  const seen = new Set();
+  return String(s || "").split(",").map((k) => k.replace(/\s+/g, " ").trim())
+    .filter((k) => k && !seen.has(k.toLowerCase()) && seen.add(k.toLowerCase())).join(", ");
+}
 let whEditingTarget = null;
 function openWhEdit(section, index) {
   whEditingTarget = { section, index };
@@ -364,6 +371,8 @@ function openWhEdit(section, index) {
   document.getElementById("whEditQty").value = item.qty || 0;
   setModelsSwitch(document.getElementById("whEditModel"), modelsOf(item));
   setModelSwitch(document.getElementById("whEditCat"), whCatOf(item));
+  document.getElementById("whEditKeys").value = item.keys || "";
+  document.getElementById("whEditKeysWrap").hidden = !canEditKeys();
   const box = document.getElementById("whEditSuggestBox");
   if (box) { box.classList.remove("open"); box.innerHTML = ""; }
   openModal("whEditOverlay");
@@ -402,6 +411,10 @@ document.getElementById("whEditSave").addEventListener("click", () => {
   const oldKey = countKey(section, oldItem);
   const newItem = Object.assign({}, oldItem, { code, name, qty, model });
   if (model2) newItem.model2 = model2; else delete newItem.model2;
+  if (canEditKeys()) {
+    const keys = normKeys(document.getElementById("whEditKeys").value);
+    if (keys) newItem.keys = keys; else delete newItem.keys;
+  }
   // Код-заглушка: при переименовании запоминаем название 1С, иначе пара потеряется
   if (!newItem.ocName && name !== oldItem.name && code === oldItem.code && isAmbiguousCode(code)) {
     rebuildCrossIndexes();
