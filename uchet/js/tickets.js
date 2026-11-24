@@ -15,7 +15,10 @@ function updateLayoutClasses() {
   const inv = typeof invModeOn === "function" && invModeOn();   // раздел «Инвентаризация» (в виде «1С»)
   document.body.classList.toggle("inv-mode", inv);
   document.body.classList.toggle("inv-none", inv && !invSelected());
-  document.body.classList.toggle("has-list", cons || inv);
+  const ord = typeof ordModeOn === "function" && ordModeOn();   // вкладка «Заказы»
+  document.body.classList.toggle("ord-mode", ord);
+  document.body.classList.toggle("ord-none", ord && !ordSelected());
+  document.body.classList.toggle("has-list", cons || inv || ord);
   document.body.classList.toggle("no-ticket", cons && !currentDate);
   document.body.classList.toggle("has-ticket", cons && !!currentDate);
 }

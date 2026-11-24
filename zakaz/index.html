@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Заявки на детали</title>
+<link rel="manifest" href="../manifest.json">
+<meta name="theme-color" content="#2B4C9B">
+<link rel="icon" href="../icon-192.png">
+<link rel="apple-touch-icon" href="../icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Склад">
+<link rel="stylesheet" href="../lib/fonts/fonts.css">
+<!-- оформление — как в «Учёте»: общие стили учёта + немного своих -->
+<link rel="stylesheet" href="../uchet/style.css?v=2611240834">
+<link rel="stylesheet" href="style.css?v=2611240834">
+<link rel="stylesheet" href="../auth.css?v=2611240834">
+</head>
+<body class="has-list no-ticket">
+
+<!-- Заявки ремонтника на детали: слева свои заявки, справа выбранная (на телефоне — два экрана) -->
+<header class="topbar" id="topbar">
+  <div class="topbar-left">
+  <span class="brand-btn zk-brand" aria-hidden="true">
+    <span class="brand-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg></span>
+  </span>
+  <div class="app-header">
+    <button class="iconbtn ticket-back" id="zkBackBtn" title="К списку заявок" aria-label="К списку заявок">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+    </button>
+    <span class="zk-head-title" id="zkHeadTitle">Заявки на детали</span>
+  </div>
+  </div>
+  <div class="topbar-right">
+    <span id="appVersionBadge" title="Версия"></span>
+    <button class="iconbtn profile-btn" id="profileBtn" title="Аккаунт" aria-label="Аккаунт">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+      <span class="sync-dot" id="syncDot"></span>
+    </button>
+  </div>
+</header>
+
+<div class="page">
+
+<section class="u-list" id="zkList">
+  <div class="t-tools">
+    <span></span>
+    <button class="tool-btn" id="zkNewBtn" aria-label="Новая заявка" title="Новая заявка">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+  </div>
+  <div class="t-cards" id="zkCards"><div class="t-empty">Загрузка…</div></div>
+</section>
+<div class="ticket-empty" id="zkEmpty">Выберите заявку слева или создайте новую кнопкой «+».</div>
+
+<main class="zk-view" id="zkView" hidden>
+  <!-- строка добавления — как в «Учёте»: деталь с подсказками, количество, «+» -->
+  <div class="add-panel one-row" id="zkAddPanel">
+    <div class="add-name-wrap">
+      <input type="text" id="newItemName" placeholder="Деталь" autocomplete="off">
+      <button type="button" class="add-clear" id="newItemClear" title="Очистить">✕</button>
+    </div>
+    <input type="text" id="newItemQty" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="1" title="Количество (если пусто — 1)">
+    <button class="util primary" id="addItemBtn" title="Добавить">+</button>
+    <div class="suggest-box" id="addSuggestBox"></div>
+  </div>
+
+  <div class="section-head zk-view-head">
+    <h2 class="section-title" id="zkViewTitle"></h2>
+    <span class="zk-status" id="zkStatus"></span>
+  </div>
+  <div class="table-scroll">
+  <table class="zk-table">
+    <thead><tr><th class="zk-n">№</th><th>Код</th><th>Наименование</th><th class="zk-num">Шт</th><th class="zk-num zk-issued-col">Выдано</th><th class="zk-del-col"></th></tr></thead>
+    <tbody id="zkBody"></tbody>
+  </table>
+  </div>
+  <div class="zk-foot" id="zkFoot"></div>
+</main>
+
+</div>
+
+<!-- Аккаунт -->
+<div class="modal-overlay" id="zkAccountOverlay">
+  <div class="modal-box">
+    <p class="modal-title">Аккаунт</p>
+    <p class="sync-status-line" id="zkAccountLine"></p>
+    <div class="modal-actions">
+      <button class="confirm-no" id="zkAccountClose">Закрыть</button>
+      <button class="confirm-yes" id="zkLogoutBtn">Выйти</button>
+    </div>
+  </div>
+</div>
+
+<script src="../lib/supabase-2.45.4.js"></script>
+<script src="../auth.js?v=2611240834"></script>
+<script src="../uchet/js/search.js?v=2611240834"></script>
+<script src="app.js?v=2611240834"></script>
+
+</body>
+</html>

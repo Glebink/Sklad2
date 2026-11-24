@@ -23,14 +23,15 @@ renderAll();
 renderTicketList();
 updateAddPanelVisibility();
 renderWarehouseAll();
-// Вкладка из адреса (#warehouse / #onec / #inv) — открыта колесом мыши или после обновления страницы.
+// Вкладка из адреса (#warehouse / #onec / #inv / #orders) — открыта колесом мыши или после обновления страницы.
 // Сменщику «Склад» и «1С» недоступны.
-// Вкладка только для hleb — сразу по роли, сохранённой на устройстве (core.js: Auth.cachedRole),
+// Вкладки только для hleb — сразу по роли, сохранённой на устройстве (core.js: Auth.cachedRole),
 // а не после ответа сервера при входе: иначе она появлялась с задержкой в несколько секунд.
 document.getElementById("tabInvBtn").hidden = !canInventory();
+document.getElementById("tabOrdersBtn").hidden = !canOrders();
 (function () {
   const h = (location.hash || "").replace("#", "");
-  if ((h === "warehouse" || h === "onec" || h === "inv") && !isShift()) switchTab(h);
+  if ((h === "warehouse" || h === "onec" || h === "inv" || h === "orders") && !isShift()) switchTab(h);
   else if (h) { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} }
 })();
 renderOneCAll();
@@ -56,8 +57,10 @@ if (window.Auth) {
         const r = await Auth.loadRole();
         if (r && r.role !== ROLE) { location.reload(); return; }
         if (r) MY_LOGIN = r.login;
-        document.getElementById("tabInvBtn").hidden = !canInventory();   // инвентаризация — только hleb
+        document.getElementById("tabInvBtn").hidden = !canInventory();   // инвентаризация и заказы — только hleb
+        document.getElementById("tabOrdersBtn").hidden = !canOrders();
         if (invOpen && !canInventory()) switchTab("onec");
+        if (currentTab === "orders" && !canOrders()) switchTab("consumption");
       } catch (e) {}
       if (isShift()) { if (!(await shiftSessionAlive())) return; await loadCatalogFromServer(); }
       syncUserOk = true;
@@ -66,6 +69,7 @@ if (window.Auth) {
       refreshAccountLine();
       if (!isAutoSyncOff()) syncNow("safe");
       startRealtime();
+      if (canOrders()) { loadOrders().catch(() => {}); startOrdersRealtime(); }
     },
     onLogout: () => {
       syncUserOk = false;

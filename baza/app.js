@@ -26,6 +26,7 @@ let MY_LOGIN = "", ROLE = null;
 let query = "";
 try { localStorage.setItem("sklad2_last_module", "baza"); } catch (e) {}
 try { const c = window.Auth && Auth.cachedRole(); if (c) { ROLE = c.role; MY_LOGIN = c.login || ""; } } catch (e) {}
+if (ROLE === "repair") location.replace("../zakaz/");   // ремонтнику доступны только свои заявки
 try { currentId = sessionStorage.getItem("sklad2_kb_sel") || null; } catch (e) {}
 
 function isAdmin() { return MY_LOGIN === "hleb"; }

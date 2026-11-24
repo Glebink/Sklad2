@@ -10,7 +10,9 @@ function switchTab(target) {
     consumption: ["tabConsumptionBtn", "viewConsumption"],
     warehouse:   ["tabWarehouseBtn",   "viewWarehouse"],
     onec:        ["tabOneCBtn",        "viewOneC"],
+    orders:      ["tabOrdersBtn",      "viewOrders"],
   };
+  if (target === "orders" && !(typeof canOrders === "function" && canOrders())) target = "consumption";
   if (!map[target]) target = "consumption";
   Object.keys(map).forEach((k) => {
     const [btnId, viewId] = map[k];
@@ -29,6 +31,7 @@ function switchTab(target) {
     if (backTarget && target !== backTarget.dest) hideBackBtn();
     if (target === "warehouse") renderWarehouseAll();
     if (target === "onec") { renderOneCAll(); setInvOpen(inv); }
+    if (target === "orders") ordRender();
     // Вкладка — в адресе (#warehouse), чтобы её можно было открыть в новой вкладке и обновить страницу на ней
     try { history.replaceState(null, "", target === "consumption" ? location.pathname + location.search : "#" + (inv ? "inv" : target)); } catch (e) {}
     // Возврат в «Учёт» — всегда с начала списка (а не с места прокрутки «Склада»/«1С»)
@@ -45,6 +48,7 @@ function tabTargetFromId(id) {
   if (id === "tabWarehouseBtn") return "warehouse";
   if (id === "tabOneCBtn") return "onec";
   if (id === "tabInvBtn") return "inv";
+  if (id === "tabOrdersBtn") return "orders";
   return "consumption";
 }
 /* ==================== Сортировка по клику на заголовок столбца ====================

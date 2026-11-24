@@ -12,7 +12,7 @@
 // Открываем последний использованный раздел (учёт или база знаний); по умолчанию — Учёт потребления.
 (function () {
   var m = 'uchet';
-  try { var v = localStorage.getItem('sklad2_last_module'); if (v === 'baza') m = v; } catch (e) {}
+  try { var v = localStorage.getItem('sklad2_last_module'); if (v === 'baza' || v === 'zakaz') m = v; } catch (e) {}
   location.replace('./' + m + '/' + location.hash);
 })();
 </script>

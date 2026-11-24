@@ -1221,15 +1221,25 @@ button.mod-item.active { background: var(--accent-soft); color: var(--accent-ink
   /* на телефоне «Учёт» — шириной с половинку «Склад | 1С» */
   .tabs-strip #tabConsumptionBtn { width: var(--tab-half); }
   /* на телефоне «Инвентаризация» — значком, чтобы «Учёт» и «Склад | 1С» поместились одинаковой ширины */
-  #tabInvBtn { width: 44px; padding: 0; }
-  #tabInvBtn .tab-short { display: none; }
-  #tabInvBtn .tab-icon { display: block; }
+  #tabInvBtn, #tabOrdersBtn { width: 44px; padding: 0; }
+  #tabInvBtn .tab-short, #tabOrdersBtn .tab-short { display: none; }
+  #tabInvBtn .tab-icon, #tabOrdersBtn .tab-icon { display: block; }
   body.has-ticket .tabs-strip { display: none; }
 }
 body.role-shift .tabs-strip { display: none !important; }
 /* совсем узкий телефон: версия прячется (видна на ПК), кнопки чуть уже */
 @media (max-width: 400px) { .tabs-strip .tab-btn { font-size: 13px; } .tabs-strip { --tab-half: 54px; } }
 @media (max-width: 370px) { .topbar #appVersionBadge { display: none; } .tabs-strip { --tab-half: 50px; } }
+/* у hleb на телефоне ещё вкладка «Заказы»: значки уже, версия прячется */
+@media (max-width: 430px) {
+  #tabInvBtn, #tabOrdersBtn { width: 40px; }
+  .topbar:has(#tabOrdersBtn:not([hidden])) #appVersionBadge { display: none; }
+}
+@media (max-width: 370px) { .tabs-strip:has(#tabOrdersBtn:not([hidden])) { --tab-half: 44px; } }
+/* число новых заказов — кружком в углу вкладки */
+.tabs-strip .tab-btn { position: relative; }
+.tab-badge { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: 9px;
+  background: var(--bad); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
 
 #viewConsumption td.code, #viewConsumption td.code .code-text { font-weight: 700; }
 @media (max-width: 899px) {
@@ -1499,3 +1509,59 @@ body.inv-mode.inv-search-collapsed #invSearchToggle { display: inline-flex !impo
 .t-check-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
 .t-check-dot.ok { background: var(--ok); }
 .t-check-dot.todo { background: var(--bad); }
+
+/* ==================== Заказы ремонтников (только hleb) ====================
+   Раскладка как у инвентаризации: слева список заказов, справа выбранный; на телефоне — два экрана. */
+#ordList, #ordEmpty { display: none; }
+body.ord-mode #ticketList, body.ord-mode #ticketEmpty { display: none !important; }
+body.ord-mode.ord-none #viewOrders { display: none !important; }
+@media (min-width: 900px) {
+  body.ord-mode #ordList { display: block; }
+  body.ord-mode.ord-none #ordEmpty { display: block; }
+  #viewOrders { width: min(100%, max(calc(0.72 * (100vw - var(--list-w-old) - 48px)), 680px)); margin: 0 auto; }
+  #ordBackBtn { display: none; }
+}
+@media (max-width: 899px) {
+  body.ord-mode.ord-none #ordList { display: block; }
+}
+.ord-head { gap: 8px; }
+.ord-head .section-title { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.ord-author { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.ord-badge { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 22px; height: 22px; margin-right: auto;
+  border-radius: 50%; font-size: 14px; font-weight: 800; line-height: 1; color: #fff; }
+.ord-badge.ord-st-new { background: transparent; color: var(--accent); font-size: 12px; }
+.ord-badge.ord-st-ready { background: var(--ok); }
+.ord-badge.ord-st-partial { background: var(--warn); }
+.ord-badge.ord-st-cancel { background: var(--bad); }
+.t-sub .ord-st-new { color: var(--accent); font-weight: 600; }
+.t-sub .ord-st-cancel { color: var(--bad-ink); font-weight: 600; }
+.ord-acc { color: var(--ok-ink); font-weight: 600; }
+.ord-noacc { color: var(--warn); font-weight: 600; }
+
+.ord-status-btns { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
+.ord-status-btns .util { flex: 1 1 0; min-height: 44px; font-weight: 700; }
+.ord-status-btns .util.on.ord-st-ready { background: var(--ok); border-color: var(--ok); color: #fff; }
+.ord-status-btns .util.on.ord-st-partial { background: var(--warn); border-color: var(--warn); color: #1a1a1a; }
+.ord-status-btns .util.on.ord-st-cancel { background: var(--bad); border-color: var(--bad); color: #fff; }
+.ord-status-btns .util:disabled { opacity: .55; }
+
+.ord-table { width: 100%; table-layout: fixed; }
+.ord-table thead th:first-child { width: 30%; }
+.ord-table .ord-num { width: 72px; text-align: center; font-weight: 700; }
+.ord-table td.code { font-weight: 700; overflow-wrap: anywhere; }
+.ord-table td.name { position: relative; padding-right: 40px; overflow-wrap: anywhere; }
+.ord-table .ord-oc { position: absolute; top: 4px; right: 6px; font-size: 11px; color: var(--muted); }
+.ord-table td.ord-iss { position: relative; padding: 0; }
+.ord-iss-input { position: absolute; inset: 0; width: 100%; height: 100%; box-sizing: border-box; margin: 0; border: 0; text-align: center;
+  font: inherit; font-size: 16px; font-weight: 700; background: transparent; color: var(--fg); }
+.ord-iss-input:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+.ord-iss-input:disabled { color: var(--muted); }
+.ord-table tr.ord-short td { background: var(--s-rejected-bg); }
+.ord-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+.ord-foot .util { min-height: 44px; padding: 0 18px; font-weight: 700; }
+.ord-acc-state { color: var(--muted); font-size: 14px; }
+@media (max-width: 899px) {
+  .ord-table thead th:first-child { width: 26%; }
+  .ord-table .ord-num { width: 58px; }
+  .ord-table td.code { font-size: 11.5px; }
+}

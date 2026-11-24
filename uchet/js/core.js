@@ -212,6 +212,8 @@ let ROLE = null, MY_LOGIN = "";
   try { const c = window.Auth && Auth.cachedRole(); if (c) { ROLE = c.role; MY_LOGIN = c.login || ""; } } catch (e) {}
 })();
 function isShift() { return ROLE === "shift"; }
+// Ремонтнику учёт не нужен — у него свои заявки на детали
+if (ROLE === "repair") location.replace("../zakaz/");
 // Сменщик: сервер отдаёт данные только сессии, начатой входом по паролю (sklad_session_ok); иная — выходит.
 // Проверка при входе, при возврате на вкладку и раз в минуту.
 async function shiftSessionAlive() {

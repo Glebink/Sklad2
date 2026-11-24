@@ -1,0 +1,60 @@
+/* Заявки ремонтника на детали — поверх стилей «Учёта» (../uchet/style.css): только своё. */
+[hidden] { display: none !important; }   /* hidden сильнее display у общих стилей учёта */
+.page { padding-top: calc(var(--top0) + var(--topbar-h)); padding-bottom: 24px; }
+.zk-brand { cursor: default; }
+.zk-brand:active { background: var(--accent-soft); }
+.zk-head-title { font-weight: 700; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+
+.zk-view { min-width: 0; max-width: 900px; }
+.zk-view .add-panel.one-row { margin: 10px 0 0; }
+.zk-view-head { display: flex; align-items: center; gap: 10px; margin: 14px 0 8px; flex-wrap: wrap; }
+.zk-view-head .section-title { margin: 0; }
+
+/* статусы: ✓ готово, ~ частично, ✕ отмена; черновик и отправленная — без цвета статуса */
+.zk-status { font-weight: 700; font-size: 14px; }
+.zk-badge { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; margin-right: auto; margin-left: 6px;
+  border-radius: 50%; font-size: 14px; font-weight: 800; line-height: 1; color: #fff; }
+.zk-badge.zk-st-ready { background: var(--ok); color: #fff; }
+.zk-badge.zk-st-partial { background: var(--warn); color: #fff; }
+.zk-badge.zk-st-cancel { background: var(--bad); color: #fff; }
+.zk-badge.zk-st-sent { background: transparent; color: var(--accent); font-size: 12px; }
+.zk-st-draft { color: var(--muted); }
+.zk-st-sent { color: var(--accent); }
+.zk-st-ready { color: var(--ok-ink); }
+.zk-st-partial { color: var(--warn); }
+.zk-st-cancel { color: var(--bad-ink); }
+.t-card .t-row.t-sub span:last-child { font-weight: 600; }
+
+/* таблица заявки */
+.zk-table { width: 100%; table-layout: fixed; }
+.zk-table th.zk-n, .zk-table td.zk-n { width: 34px; text-align: center; color: var(--muted); }
+.zk-table thead th:nth-child(2) { width: 30%; }
+.zk-table td.code { font-weight: 700; font-size: 13px; overflow-wrap: anywhere; }
+.zk-table td.name { overflow-wrap: anywhere; }
+.zk-table .zk-num { width: 64px; text-align: center; font-weight: 700; }
+.zk-table .zk-del-col { width: 40px; text-align: center; }
+.zk-qty { width: 100%; box-sizing: border-box; text-align: center; font: inherit; font-weight: 700; font-size: 16px; padding: 6px 2px;
+  border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--fg); }
+.zk-del { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--bad); font-size: 13px; cursor: pointer; }
+body:not(.zk-done) .zk-issued-col { display: none; }
+body:not(.zk-editable) .zk-del-col { display: none; }
+.zk-table tr.zk-short td { background: var(--s-rejected-bg); }
+
+.zk-foot { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+.zk-foot .util { min-height: 44px; padding: 0 18px; font-weight: 700; }
+.zk-foot .zk-send { flex: 1 1 auto; font-size: 16px; }
+.zk-foot .zk-drop { color: var(--bad-ink); }
+.zk-note { margin: 0; color: var(--muted); font-size: 14px; }
+
+/* телефон: список и заявка — два экрана, как заявки в «Учёте» */
+@media (max-width: 899px) {
+  body.has-ticket .u-list, body.has-ticket #zkEmpty { display: none !important; }
+  body.no-ticket .zk-head-title { display: none; }
+  body.has-ticket .zk-brand { display: none; }
+  .zk-table thead th:nth-child(2) { width: 26%; }
+  .zk-table .zk-num { width: 52px; }
+  .zk-table td.code { font-size: 11.5px; }
+}
+@media (min-width: 900px) {
+  .zk-head-title { display: none; }
+}

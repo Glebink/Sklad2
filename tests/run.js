@@ -12,9 +12,37 @@ const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.s
 function makeServer() {
   let tick = 0;
   const stamp = () => new Date(Date.UTC(2026, 0, 1) + ++tick * 1000).toISOString();
-  const db = { sklad_kv: [], kb_cells: [], files: {} };
+  const db = { sklad_kv: [], kb_cells: [], parts_orders: [], files: {} };
   const match = (row, filters) => filters.every(([k, op, v]) => (op === "in" ? v.includes(row[k]) : row[k] === v));
+  // parts_orders — права как в RLS и триггере на сервере
+  const ROLES = { hleb: "requester", sklad: "shift" }, NAMES = { ivan: "Иван", petr: "Пётр" };
+  const roleOf = (l) => ROLES[l] || "repair";
+  const ordSee = (r, login) => r.author === login || (login === "hleb" && !!r.sent_at);
+  const ordEdit = (r, login) => roleOf(login) === "repair" ? r.author === login && r.status === "new" && !r.accounted_at : login === "hleb" && !!r.sent_at;
+  function ordersQuery(q, login) {
+    const rows = db.parts_orders, copy = (x) => JSON.parse(JSON.stringify(x));
+    if (q.op === "insert") {
+      if (roleOf(login) !== "repair") return { error: { message: "RLS: создаёт только ремонтник" } };
+      const row = { id: "ord" + ++tick, author: login, author_name: NAMES[login] || null, items: [], status: "new", created_at: stamp(), sent_at: null, accounted_at: null, ...q.payload, updated_at: stamp() };
+      rows.push(row);
+      return { data: q.single ? copy(row) : [copy(row)] };
+    }
+    const hit = rows.filter((r) => match(r, q.filters) && ordSee(r, login));
+    if (q.op === "update") {
+      const ok = hit.filter((r) => ordEdit(r, login));
+      ok.forEach((r) => {
+        const p = copy(q.payload);
+        if (p.sent_at) p.sent_at = r.sent_at || stamp();
+        if (p.accounted_at) p.accounted_at = r.accounted_at || stamp();
+        Object.assign(r, p, { updated_at: stamp() });
+      });
+      return { data: copy(ok) };
+    }
+    if (q.op === "delete") { const del = hit.filter((r) => r.author === login && !r.sent_at); db.parts_orders = rows.filter((r) => !del.includes(r)); return { data: null }; }
+    return { data: copy(hit) };
+  }
   function query(q, login) {
+    if (q.table === "parts_orders") return ordersQuery(q, login);
     const rows = db[q.table];
     if (!rows) return { error: { message: "нет таблицы " + q.table } };
     if (q.table === "kb_cells" && q.op !== "select" && login !== "hleb") return { error: { message: "RLS: менять может только hleb" } };
@@ -252,13 +280,73 @@ const tests = {
       const d = await device(s, { width, height: 700 }), p = await d.open("/uchet/");
       const r = await p.evaluate(() => {
         const box = (id) => document.getElementById(id).getBoundingClientRect();
-        return { over: document.documentElement.scrollWidth - innerWidth, gap: box("profileBtn").left - box("tabInvBtn").right, half: box("tabWarehouseBtn").width === box("tabOneCBtn").width };
+        return { over: document.documentElement.scrollWidth - innerWidth, gap: box("profileBtn").left - box("tabOrdersBtn").right, ordShown: !document.getElementById("tabOrdersBtn").hidden, half: box("tabWarehouseBtn").width === box("tabOneCBtn").width };
       });
       assert(r.over <= 0, `ширина ${width}: страница шире экрана на ${r.over}`);
       assert(r.gap >= 0, `ширина ${width}: вкладки наезжают на профиль (${r.gap})`);
       assert(r.half, `ширина ${width}: половинки «Склад | 1С» разной ширины`);
+      assert(r.ordShown, `ширина ${width}: у hleb нет вкладки «Заказы»`);
       await d.close();
     }
+  },
+
+  async "заказы ремонтника: набор, отправка, сборка у hleb, перенос в учёт"() {
+    const s = seededServer();
+    s.seed("potreblenie_catalog_v1", { parts: STOCK.map((x) => ({ code: x.code, name: x.name, model: x.model || "", ocqty: x.qty })), consumables: [] });
+    const r = await device(s, { login: "ivan", role: "repair", width: 390, touch: true });
+    const u = await r.open("/uchet/"); await u.waitForTimeout(300);
+    assert(u.url().includes("/zakaz/"), "ремонтника из учёта уводит в его заявки");
+    const p = await r.open("/zakaz/"); await p.waitForTimeout(200);
+    await p.tap("#zkNewBtn"); await p.waitForTimeout(200);
+    await p.fill("#newItemName", "болт"); await p.waitForTimeout(100);
+    eq(await p.$eval("#addSuggestBox .suggest-item .suggest-oc-qty", (e) => e.textContent), "5", "в подсказке остаток 1С");
+    await p.tap("#addSuggestBox .suggest-item"); await p.fill("#newItemQty", "3"); await p.tap("#addItemBtn");
+    await p.fill("#newItemName", "колесо"); await p.waitForTimeout(100); await p.tap("#addSuggestBox .suggest-item"); await p.tap("#addItemBtn");
+    await p.fill("#newItemName", "Шайба 8"); await p.fill("#newItemQty", "2"); await p.tap("#addItemBtn");
+    await p.waitForTimeout(800);
+    eq(s.db.parts_orders[0].items, [{ code: "111", name: "Болт М6", qty: 3 }, { code: "333", name: "Мотор-колесо", qty: 1 }, { code: "", name: "Шайба 8", qty: 2 }], "черновик на сервере");
+    eq(s.db.parts_orders[0].sent_at, null, "до «Отправить» hleb заявку не видит");
+    await p.tap("#zkSendBtn"); await p.waitForTimeout(200);
+    assert(s.db.parts_orders[0].sent_at, "отправлена");
+    // после отправки, пока нет статуса, ещё можно поправить
+    await p.fill("#zkBody tr[data-i=\"2\"] .zk-qty", "4"); await p.press("#zkBody tr[data-i=\"2\"] .zk-qty", "Tab"); await p.waitForTimeout(800);
+    eq(s.db.parts_orders[0].items[2].qty, 4, "правка после отправки");
+
+    const h = await device(s), q = await h.open("/uchet/"); await sync(q); await q.waitForTimeout(200);
+    eq(await q.textContent("#ordBadge"), "1", "у hleb — 1 новый заказ");
+    await q.click("#tabOrdersBtn"); await q.waitForTimeout(150);
+    eq(await q.textContent("#ordCards .ord-author"), "Иван", "автор — имя ремонтника");
+    await q.click("#ordCards .t-card"); await q.waitForTimeout(150);
+    eq(await q.isDisabled("#ordToTicketBtn"), true, "без статуса в учёт не переносится");
+    const iss = q.locator('#ordBody tr[data-i="0"] .ord-iss-input');
+    await iss.fill("2"); await iss.press("Tab"); await q.waitForTimeout(150);
+    await q.click('#ordStatusBtns [data-st="partial"]'); await q.waitForTimeout(150);
+    eq(s.db.parts_orders[0].status, "partial", "статус на сервере");
+    eq(await q.textContent("#ordAccState"), "Не учтено", "ещё не учтено");
+    // ремонтник больше не может править
+    await p.evaluate(() => { const o = orders[0]; o.status = "new"; o.items[0].qty = 9; saveItems(o); });
+    await p.waitForTimeout(300);
+    eq(s.db.parts_orders[0].items[0].qty, 3, "сервер не принял правку после статуса");
+    await p.waitForTimeout(200);
+    eq(await p.textContent("#zkStatus"), "~ Собрано частично", "ремонтник видит статус");
+    eq(await p.isVisible("#zkAddPanel"), false, "строки добавления нет");
+    eq(await p.$$eval("#zkBody tr.zk-short", (a) => a.length), 1, "недовыданная деталь выделена");
+
+    await q.click("#ordToTicketBtn"); await q.waitForTimeout(300);
+    const key = await q.evaluate(() => ticketKeys().pop());
+    eq(key, TODAY(), "заявка на сегодня создана");
+    eq(await q.evaluate((k) => dataByDate[k].counts, key), { "code::111": 2, "code::333": 1, "parts::Шайба 8": 4 }, "выданное — в учёте");
+    assert(s.db.parts_orders[0].accounted_at, "отметка «Учтено» на сервере");
+    assert((await q.textContent("#ordToTicketBtn")).startsWith("✓ Учтено"), "кнопка показывает «Учтено»");
+    eq(await q.isDisabled('#ordStatusBtns [data-st="ready"]'), true, "учтённый заказ не правится");
+    // второй заказ за день идёт в ту же (последнюю сегодняшнюю) заявку
+    s.db.parts_orders.push({ id: "ord2", author: "petr", author_name: "Пётр", items: [{ code: "111", name: "Болт М6", qty: 1 }], status: "ready", created_at: "2026-01-01T00:00:00Z", sent_at: "2026-01-01T00:00:01Z", accounted_at: null, updated_at: "2026-01-01T00:00:01Z" });
+    await q.evaluate(() => loadOrders()); await q.click('#ordCards .t-card[data-id="ord2"]'); await q.click("#ordToTicketBtn"); await q.waitForTimeout(300);
+    eq(await q.evaluate(() => ticketKeys().length), 1, "новая заявка не создаётся");
+    eq(await q.evaluate((k) => dataByDate[k].counts["code::111"], key), 3, "прибавилось в сегодняшнюю");
+    await sync(q);
+    eq(s.kv("potreblenie_data_by_date_v3")[key].counts["code::111"], 3, "учёт ушёл на сервер");
+    eq(r.errors.concat(h.errors), [], "ошибки страницы"); await r.close(); await h.close();
   },
 
   async "база знаний: ячейки, файлы, просмотр Excel с картинками, роли"() {
