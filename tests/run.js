@@ -376,12 +376,14 @@ const tests = {
       const d = await device(s, { width, height: 700 }), p = await d.open("/uchet/");
       const r = await p.evaluate(() => {
         const box = (id) => document.getElementById(id).getBoundingClientRect();
-        return { over: document.documentElement.scrollWidth - innerWidth, gap: box("profileBtn").left - box("tabOrdersBtn").right, ordShown: !document.getElementById("tabOrdersBtn").hidden, half: box("tabWarehouseBtn").width === box("tabOneCBtn").width };
+        return { over: document.documentElement.scrollWidth - innerWidth, gap: box("profileBtn").left - box("tabsStrip").right, ordShown: !document.getElementById("tabOrdersBtn").hidden,
+          pairs: [box("tabConsumptionBtn").width + box("tabOrdersBtn").width, box("tabWarehouseBtn").width + box("tabOneCBtn").width], half: box("tabWarehouseBtn").width === box("tabOneCBtn").width };
       });
       assert(r.over <= 0, `ширина ${width}: страница шире экрана на ${r.over}`);
       assert(r.gap >= 0, `ширина ${width}: вкладки наезжают на профиль (${r.gap})`);
       assert(r.half, `ширина ${width}: половинки «Склад | 1С» разной ширины`);
       assert(r.ordShown, `ширина ${width}: у hleb нет вкладки «Заказы»`);
+      assert(r.pairs[0] === r.pairs[1], `ширина ${width}: «Учёт | Заказы» и «Склад | 1С» разной ширины (${r.pairs})`);
       await d.close();
     }
   },

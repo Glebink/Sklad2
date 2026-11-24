@@ -1205,10 +1205,11 @@ button.mod-item.active { background: var(--accent-soft); color: var(--accent-ink
 .tabs-strip .tab-btn:active { background: var(--accent-soft); }
 .tabs-strip .tab-btn.active { background: var(--accent); color: var(--solid-fg); border-color: var(--accent); }
 .tabs-strip [hidden] { display: none !important; }
-/* «Учёт» — той же ширины, что «Склад | 1С»; половинки «Склад» и «1С» равные */
+/* «Учёт | Заказы» — той же ширины, что «Склад | 1С»; все половинки равные.
+   Без «Заказов» (не hleb) «Учёт» — на всю кнопку. */
 .tabs-strip { --tab-half: 78px; }
-.tabs-strip #tabConsumptionBtn { width: calc(2 * var(--tab-half)); padding: 0; }
 .tab-pair .tab-btn { width: var(--tab-half); padding: 0; }
+.tab-pair:not(:has(#tabOrdersBtn:not([hidden]))) #tabConsumptionBtn { width: calc(2 * var(--tab-half)); border-radius: 10px; border-right-width: 1px; }
 .tab-pair { display: inline-flex; }
 .tab-pair .tab-btn:first-child { border-radius: 10px 0 0 10px; border-right-width: 0; }
 .tab-pair .tab-btn:last-child { border-radius: 0 10px 10px 0; border-left: 1px solid var(--line-strong); }
@@ -1218,10 +1219,8 @@ button.mod-item.active { background: var(--accent-soft); color: var(--accent-ink
   .tabs-strip { gap: 4px; }
   .tabs-strip .tab-btn { padding: 0 9px; font-size: 14px; }
   .tabs-strip { --tab-half: 58px; }
-  /* на телефоне «Учёт» — шириной с половинку «Склад | 1С» */
-  .tabs-strip #tabConsumptionBtn { width: var(--tab-half); }
-  /* на телефоне «Инвентаризация» — значком, чтобы «Учёт» и «Склад | 1С» поместились одинаковой ширины */
-  #tabInvBtn, #tabOrdersBtn { width: 44px; padding: 0; }
+  /* на телефоне «Инвентаризация» и «Заказы» — значками, чтобы обе пары кнопок поместились одинаковой ширины */
+  #tabInvBtn { width: 44px; padding: 0; }
   #tabInvBtn .tab-short, #tabOrdersBtn .tab-short { display: none; }
   #tabInvBtn .tab-icon, #tabOrdersBtn .tab-icon { display: block; }
   body.has-ticket .tabs-strip { display: none; }
@@ -1232,10 +1231,11 @@ body.role-shift .tabs-strip { display: none !important; }
 @media (max-width: 370px) { .topbar #appVersionBadge { display: none; } .tabs-strip { --tab-half: 50px; } }
 /* у hleb на телефоне ещё вкладка «Заказы»: значки уже, версия прячется */
 @media (max-width: 430px) {
-  #tabInvBtn, #tabOrdersBtn { width: 40px; }
+  #tabInvBtn { width: 40px; }
   .topbar:has(#tabOrdersBtn:not([hidden])) #appVersionBadge { display: none; }
 }
-@media (max-width: 370px) { .tabs-strip:has(#tabOrdersBtn:not([hidden])) { --tab-half: 44px; } }
+@media (max-width: 430px) { .tabs-strip:has(#tabOrdersBtn:not([hidden])) { --tab-half: 50px; } }
+@media (max-width: 370px) { .tabs-strip:has(#tabOrdersBtn:not([hidden])) { --tab-half: 46px; } }
 /* число новых заказов — кружком в углу вкладки */
 .tabs-strip .tab-btn { position: relative; }
 .tab-badge { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: 9px;

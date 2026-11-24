@@ -12,8 +12,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Склад">
 <link rel="stylesheet" href="../lib/fonts/fonts.css">
-<link rel="stylesheet" href="style.css?v=2611241016">
-<link rel="stylesheet" href="../auth.css?v=2611241016">
+<link rel="stylesheet" href="style.css?v=2611241048">
+<link rel="stylesheet" href="../auth.css?v=2611241048">
 </head>
 <body>
 
@@ -32,14 +32,16 @@
       <a class="mod-item" href="../baza/">База знаний</a>
     </div>
   </div>
-  <!-- Вкладки — строкой в шапке. «Склад | 1С» — одна кнопка, разделённая пополам. -->
+  <!-- Вкладки — строкой в шапке. «Учёт | Заказы» и «Склад | 1С» — по одной кнопке, разделённой пополам
+       (у кого нет «Заказов», «Учёт» — на всю кнопку). -->
   <nav class="tabs-strip" id="tabsStrip" aria-label="Вкладки">
-    <a class="tab-btn active" id="tabConsumptionBtn" href="#consumption">Учёт</a>
+    <span class="tab-pair">
+      <a class="tab-btn active" id="tabConsumptionBtn" href="#consumption">Учёт</a><a class="tab-btn" id="tabOrdersBtn" href="#orders" title="Заказы ремонтников" aria-label="Заказы" hidden><span class="tab-long">Заказы</span><span class="tab-short">Заказы</span><svg class="tab-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg><span class="tab-badge" id="ordBadge" hidden></span></a>
+    </span>
     <span class="tab-pair">
       <a class="tab-btn" id="tabWarehouseBtn" href="#warehouse">Склад</a><a class="tab-btn" id="tabOneCBtn" href="#onec">1С</a>
     </span>
     <a class="tab-btn" id="tabInvBtn" href="#inv" title="Инвентаризация" aria-label="Инвентаризация" hidden><span class="tab-long">Инвентаризация</span><span class="tab-short">Инвент.</span><svg class="tab-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 13l2 2 4-4"/></svg></a>
-    <a class="tab-btn" id="tabOrdersBtn" href="#orders" title="Заказы ремонтников" aria-label="Заказы" hidden><span class="tab-long">Заказы</span><span class="tab-short">Заказы</span><svg class="tab-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg><span class="tab-badge" id="ordBadge" hidden></span></a>
   </nav>
   <div class="app-header">
     <button class="iconbtn ticket-back" id="ticketBackBtn" title="К списку заявок" aria-label="К списку заявок">
@@ -699,22 +701,22 @@
 </div>
 
 <script src="../lib/supabase-2.45.4.js"></script>
-<script src="../auth.js?v=2611241016"></script>
+<script src="../auth.js?v=2611241048"></script>
 <!-- Учёт: обычные скрипты с общей областью видимости, порядок важен -->
-<script src="js/core.js?v=2611241016"></script>
-<script src="js/search.js?v=2611241016"></script>
-<script src="js/consumption.js?v=2611241016"></script>
-<script src="js/tickets.js?v=2611241016"></script>
-<script src="js/warehouse.js?v=2611241016"></script>
-<script src="js/tabs.js?v=2611241016"></script>
-<script src="js/stock-import.js?v=2611241016"></script>
-<script src="js/onec.js?v=2611241016"></script>
-<script src="js/ui.js?v=2611241016"></script>
-<script src="js/sync.js?v=2611241016"></script>
-<script src="js/inventory.js?v=2611241016"></script>
-<script src="js/orders.js?v=2611241016"></script>
-<script src="js/accounts.js?v=2611241016"></script>
-<script src="js/start.js?v=2611241016"></script>
+<script src="js/core.js?v=2611241048"></script>
+<script src="js/search.js?v=2611241048"></script>
+<script src="js/consumption.js?v=2611241048"></script>
+<script src="js/tickets.js?v=2611241048"></script>
+<script src="js/warehouse.js?v=2611241048"></script>
+<script src="js/tabs.js?v=2611241048"></script>
+<script src="js/stock-import.js?v=2611241048"></script>
+<script src="js/onec.js?v=2611241048"></script>
+<script src="js/ui.js?v=2611241048"></script>
+<script src="js/sync.js?v=2611241048"></script>
+<script src="js/inventory.js?v=2611241048"></script>
+<script src="js/orders.js?v=2611241048"></script>
+<script src="js/accounts.js?v=2611241048"></script>
+<script src="js/start.js?v=2611241048"></script>
 
 </body>
 </html>
