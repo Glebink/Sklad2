@@ -104,8 +104,8 @@ function renderView() {
   document.body.classList.toggle("zk-done", done);
   document.body.classList.toggle("zk-editable", can);
   $("zkBody").innerHTML = o.items.length ? o.items.map((it, i) => {
-    const issued = issuedOf(o, it), short = done && issued < it.qty;
-    return `<tr data-i="${i}"${short ? ` class="zk-short"` : ""}><td class="zk-n">${i + 1}</td>`
+    const issued = issuedOf(o, it), cls = !done || issued >= it.qty ? "" : issued <= 0 ? "zk-short" : "zk-part";
+    return `<tr data-i="${i}"${cls ? ` class="${cls}"` : ""}><td class="zk-n">${i + 1}</td>`
       + `<td class="code">${it.code ? esc(it.code) : "—"}</td><td class="name">${esc(it.name)}</td>`
       + `<td class="zk-num">${can ? `<input type="text" class="zk-qty" inputmode="numeric" pattern="[0-9]*" maxlength="4" value="${it.qty}" aria-label="Количество">` : it.qty}</td>`
       + `<td class="zk-num zk-issued-col">${done ? issued : ""}</td>`
@@ -124,7 +124,7 @@ function renderFoot(o) {
     foot.innerHTML = `<p class="zk-note">Отправлена ${fmtWhen(o.sent_at)}. Пока заявку не начали собирать, её можно дописать или поправить.</p>`;
   } else {
     const short = o.items.filter((it) => issuedOf(o, it) < it.qty).length;
-    foot.innerHTML = `<p class="zk-note">${o.status === "cancel" ? "Заявка отменена." : short ? "Выдано не всё: строки, где выдано меньше, выделены." : "Всё выдано."}</p>`;
+    foot.innerHTML = `<p class="zk-note">${o.status === "cancel" ? "Заявка отменена." : short ? "Выдано не всё: жёлтые строки — выдано частично, красные — не выдано." : "Всё выдано."}</p>`;
   }
 }
 

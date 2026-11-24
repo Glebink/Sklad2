@@ -390,7 +390,7 @@ const tests = {
     await p.waitForTimeout(200);
     eq(await p.textContent("#zkStatus"), "~ Собрано частично", "ремонтник видит статус");
     eq(await p.isVisible("#zkAddPanel"), false, "строки добавления нет");
-    eq(await p.$$eval("#zkBody tr.zk-short", (a) => a.length), 1, "недовыданная деталь выделена");
+    eq(await p.$$eval("#zkBody tr.zk-part", (a) => a.length), 1, "частично выданная деталь — жёлтая");
 
     await q.click("#ordToTicketBtn"); await q.waitForTimeout(300);
     const key = await q.evaluate(() => ticketKeys().pop());

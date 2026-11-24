@@ -113,7 +113,7 @@ function renderOrderView() {
   });
   document.getElementById("ordBody").innerHTML = o.items.length ? o.items.map((it, i) => {
     const w = it.code ? oneCInfoFor(it.code, it) : null, iss = ordIssued(o, it);
-    return `<tr data-i="${i}"${iss < it.qty ? ` class="ord-short"` : ""}>`
+    return `<tr data-i="${i}"${iss <= 0 ? ` class="ord-short"` : iss < it.qty ? ` class="ord-part"` : ""}>`
       + `<td class="code">${it.code ? `<span class="code-text" data-code="${escapeHtml(it.code)}">${formatCodeDisplay(it.code)}</span>` : "—"}</td>`
       + `<td class="name"><div class="main-name">${escapeHtml(it.name)}</div>${w && w.qty != null ? `<span class="ord-oc" title="Остаток 1С">${w.qty}</span>` : ""}</td>`
       + `<td class="ord-num">${it.qty}</td>`

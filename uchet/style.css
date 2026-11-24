@@ -1556,7 +1556,8 @@ body.ord-mode.ord-none #viewOrders { display: none !important; }
   font: inherit; font-size: 16px; font-weight: 700; background: transparent; color: var(--fg); }
 .ord-iss-input:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
 .ord-iss-input:disabled { color: var(--muted); }
-.ord-table tr.ord-short td { background: var(--s-rejected-bg); }
+.ord-table tr.ord-short td { background: var(--s-rejected-bg); }   /* не выдано */
+.ord-table tr.ord-part td { background: var(--s-accepted-bg); }     /* выдано частично */
 .ord-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
 .ord-foot .util { min-height: 44px; padding: 0 18px; font-weight: 700; }
 .ord-acc-state { color: var(--muted); font-size: 14px; }

@@ -38,7 +38,8 @@
 .zk-del { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--bad); font-size: 13px; cursor: pointer; }
 body:not(.zk-done) .zk-issued-col { display: none; }
 body:not(.zk-editable) .zk-del-col { display: none; }
-.zk-table tr.zk-short td { background: var(--s-rejected-bg); }
+.zk-table tr.zk-short td { background: var(--s-rejected-bg); }   /* не выдано */
+.zk-table tr.zk-part td { background: var(--s-accepted-bg); }     /* выдано частично */
 
 .zk-foot { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
 .zk-foot .util { min-height: 44px; padding: 0 18px; font-weight: 700; }
