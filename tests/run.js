@@ -79,7 +79,29 @@ function makeServer() {
     out = JSON.parse(JSON.stringify(out));
     return { data: q.single ? out[0] || null : out };
   }
+  // функции сервера: «Аккаунты» (только hleb); остальные — «да»
+  const passwords = { ivan: "ivan123", petr: "petr123" }, disabled = new Set();
+  function rpc({ fn, args }, login) {
+    if (!/^account/.test(fn)) return { data: true };
+    if (login !== "hleb") return { error: { message: "Только hleb управляет аккаунтами" } };
+    const prof = (l) => db.profiles.find((p) => p.login === l && p.role === "repair");
+    if (fn === "accounts_list") return { data: db.profiles.map((p) => ({ login: p.login, name: p.name, role: p.role, disabled: disabled.has(p.login), password: passwords[p.login] || null })) };
+    if (fn === "account_create") {
+      const l = args.p_login.toLowerCase();
+      if (db.profiles.some((p) => p.login === l)) return { error: { message: "Логин " + l + " уже занят" } };
+      if (args.p_password.length < 6) return { error: { message: "Пароль — не меньше 6 символов" } };
+      db.profiles.push({ login: l, name: args.p_name || args.p_login, role: "repair" }); passwords[l] = args.p_password.toLowerCase();
+      return { data: null };
+    }
+    const p = prof(args.p_login);
+    if (!p) return { error: { message: "Нет аккаунта ремонтника" } };
+    if (fn === "account_set_password") passwords[p.login] = args.p_password.toLowerCase();
+    if (fn === "account_set_name") p.name = args.p_name;
+    if (fn === "account_set_disabled") { if (args.p_disabled) disabled.add(p.login); else disabled.delete(p.login); }
+    return { data: null };
+  }
   function handle({ op, login, args }) {
+    if (op === "rpc") return rpc(args, login);
     if (op === "query") return query(args, login);
     if (op === "upload") { if (login !== "hleb") return { error: { message: "denied" } }; db.files[args.path] = args.data; return { data: {} }; }
     if (op === "download") return db.files[args.path] ? { data: db.files[args.path] } : { error: { message: "not found" } };
@@ -323,6 +345,28 @@ const tests = {
     await q.fill("#newItemName", "покрышка"); await q.waitForTimeout(100);
     eq(await q.$$eval("#addSuggestBox .suggest-item .code", (a) => a.map((e) => e.textContent)), ["333"], "подсказка сменщика");
     eq(d.errors.concat(r.errors, sh.errors), [], "ошибки страницы"); await d.close(); await r.close(); await sh.close();
+  },
+
+  async "аккаунты: hleb создаёт ремонтника, меняет имя и пароль, отключает"() {
+    const s = seededServer(), d = await device(s, { width: 390, touch: true }), p = await d.open("/uchet/"); await sync(p);
+    await p.tap("#profileBtn"); await p.waitForTimeout(100);
+    await p.tap("#accountsOpenBtn"); await p.waitForTimeout(200);
+    const creds = () => p.$$eval("#accList .acc-cred", (a) => a.map((x) => x.textContent));
+    eq((await creds()).includes("ivan / ivan123"), true, "логин / пароль в списке");
+    await p.fill('#accNewForm [name="login"]', "Lev"); await p.fill('#accNewForm [name="password"]', "Lev123"); await p.fill('#accNewForm [name="name"]', "Лев");
+    await p.tap('#accNewForm [type="submit"]'); await p.waitForTimeout(200);
+    eq((await creds()).includes("lev / lev123"), true, "создан, пароль строчными");
+    eq(await p.inputValue('#accNewForm [name="login"]'), "", "форма очищена");
+    p.removeAllListeners("dialog");
+    const row = '#accList .acc-row[data-login="lev"]';
+    p.once("dialog", (dl) => dl.accept("Лев Толстой")); await p.tap(row + ' [data-act="name"]'); await p.waitForTimeout(200);
+    p.once("dialog", (dl) => dl.accept("Новый1")); await p.tap(row + ' [data-act="pass"]'); await p.waitForTimeout(200);
+    p.once("dialog", (dl) => dl.accept()); await p.tap(row + ' [data-act="toggle"]'); await p.waitForTimeout(200);
+    eq([await p.textContent(row + " b"), await p.textContent(row + " .acc-cred"), await p.textContent(row + " .acc-role")], ["Лев Толстой", "lev / новый1", "отключён"], "имя, пароль, отключение");
+    eq(await p.$$eval('#accList .acc-row[data-login="hleb"] [data-act]', (a) => a.length), 0, "свой и не ремонтников аккаунт не меняется");
+    const b = await device(s, { login: "boss", role: "boss" }), q = await b.open("/uchet/"); await q.click("#profileBtn");
+    eq(await q.isVisible("#accountsOpenBtn"), false, "у других нет «Аккаунтов»");
+    eq(d.errors.concat(b.errors), [], "ошибки страницы"); await d.close(); await b.close();
   },
 
   async "шапка помещается на телефоне и ПК"() {

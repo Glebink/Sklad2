@@ -1125,6 +1125,7 @@ function openSyncModal() {
   }
   manualSyncBusy(false);
   refreshAccountLine();
+  document.getElementById("accountsOpenBtn").hidden = MY_LOGIN !== "hleb";   // «Аккаунты» — js/accounts.js
   openModal("syncOverlay");
 }
 function closeSyncModal() {

@@ -44,6 +44,7 @@
       var email = emailOf(login), low = String(password).toLowerCase();
       var r = await sb.auth.signInWithPassword({ email: email, password: low });
       if (r.error && /invalid/i.test(r.error.message) && low !== password) r = await sb.auth.signInWithPassword({ email: email, password: password });
+      if (r.error && /banned/i.test(r.error.message || r.error.code || '')) return 'Аккаунт отключён.';
       if (r.error) return /invalid/i.test(r.error.message) ? false : errText(r.error);
       return true;
     } catch (e) { return errText(e); }

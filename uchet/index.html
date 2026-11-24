@@ -12,8 +12,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Склад">
 <link rel="stylesheet" href="../lib/fonts/fonts.css">
-<link rel="stylesheet" href="style.css?v=2611240939">
-<link rel="stylesheet" href="../auth.css?v=2611240939">
+<link rel="stylesheet" href="style.css?v=2611240949">
+<link rel="stylesheet" href="../auth.css?v=2611240949">
 </head>
 <body>
 
@@ -630,6 +630,7 @@
     <div class="sync-help" id="manualSyncHint">Обычно ничего нажимать не нужно: правки уходят на сервер сами и появляются на других устройствах сразу.</div>
     <div class="field-label">Аккаунт</div>
     <div class="sync-status-line" id="syncAccountLine">—</div>
+    <button class="util full-w acc-open" id="accountsOpenBtn" hidden>Аккаунты</button>
     <label class="role-toggle">
       <input type="checkbox" id="syncAutoToggle">
       <span>Автоматическая синхронизация</span>
@@ -643,6 +644,25 @@
     <div class="modal-actions mt-6">
       <button class="confirm-no bg-danger-soft" id="syncLogoutBtn">Выйти из аккаунта</button>
       <button class="confirm-no" id="syncClose">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка: аккаунты (только hleb). Ремонтников можно создать, сменить имя и пароль, отключить. -->
+<div class="modal-overlay" id="accountsOverlay">
+  <div class="modal-box wide">
+    <p class="modal-title">Аккаунты</p>
+    <form class="acc-new" id="accNewForm" autocomplete="off">
+      <div class="field-label">Новый ремонтник</div>
+      <input type="text" name="login" placeholder="Логин (латиницей)" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+      <input type="text" name="password" placeholder="Пароль (от 6 символов)" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+      <input type="text" name="name" placeholder="Имя (видно в заказах)">
+      <div class="modal-actions stack"><button class="confirm-yes accent full-w" type="submit">Создать</button></div>
+    </form>
+    <div class="sync-status-line" id="accMsg"></div>
+    <div class="acc-list" id="accList"><div class="t-empty">Загрузка…</div></div>
+    <div class="modal-actions mt-10">
+      <button class="confirm-no" id="accClose">Закрыть</button>
     </div>
   </div>
 </div>
@@ -664,21 +684,22 @@
 </div>
 
 <script src="../lib/supabase-2.45.4.js"></script>
-<script src="../auth.js?v=2611240939"></script>
+<script src="../auth.js?v=2611240949"></script>
 <!-- Учёт: обычные скрипты с общей областью видимости, порядок важен -->
-<script src="js/core.js?v=2611240939"></script>
-<script src="js/search.js?v=2611240939"></script>
-<script src="js/consumption.js?v=2611240939"></script>
-<script src="js/tickets.js?v=2611240939"></script>
-<script src="js/warehouse.js?v=2611240939"></script>
-<script src="js/tabs.js?v=2611240939"></script>
-<script src="js/stock-import.js?v=2611240939"></script>
-<script src="js/onec.js?v=2611240939"></script>
-<script src="js/ui.js?v=2611240939"></script>
-<script src="js/sync.js?v=2611240939"></script>
-<script src="js/inventory.js?v=2611240939"></script>
-<script src="js/orders.js?v=2611240939"></script>
-<script src="js/start.js?v=2611240939"></script>
+<script src="js/core.js?v=2611240949"></script>
+<script src="js/search.js?v=2611240949"></script>
+<script src="js/consumption.js?v=2611240949"></script>
+<script src="js/tickets.js?v=2611240949"></script>
+<script src="js/warehouse.js?v=2611240949"></script>
+<script src="js/tabs.js?v=2611240949"></script>
+<script src="js/stock-import.js?v=2611240949"></script>
+<script src="js/onec.js?v=2611240949"></script>
+<script src="js/ui.js?v=2611240949"></script>
+<script src="js/sync.js?v=2611240949"></script>
+<script src="js/inventory.js?v=2611240949"></script>
+<script src="js/orders.js?v=2611240949"></script>
+<script src="js/accounts.js?v=2611240949"></script>
+<script src="js/start.js?v=2611240949"></script>
 
 </body>
 </html>

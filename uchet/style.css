@@ -1571,3 +1571,17 @@ body.ord-mode.ord-none #viewOrders { display: none !important; }
 #ordTitle { display: flex; align-items: center; min-width: 0; }
 #ordTitle > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #ordTitle .ord-ava { width: 30px; height: 30px; }
+
+/* «Аккаунты» (только hleb) */
+.acc-open { margin: -4px 0 12px; min-height: 40px; font-weight: 700; }
+.acc-new { display: grid; gap: 8px; margin-bottom: 4px; text-align: left; }
+.acc-new input { width: 100%; box-sizing: border-box; }
+.acc-list { display: grid; gap: 8px; text-align: left; }
+.acc-row { border: 1px solid var(--line-strong); border-radius: 10px; padding: 10px 12px; background: var(--surface); }
+.acc-row.off { opacity: .6; }
+.acc-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.acc-role { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.acc-cred { margin-top: 2px; font-size: 14px; overflow-wrap: anywhere; user-select: text; -webkit-user-select: text; }
+.acc-btns { display: flex; gap: 6px; margin-top: 8px; }
+.acc-btns .util { flex: 1 1 0; min-height: 34px; font-size: 13px; }
+.acc-btns .acc-off { color: var(--bad-ink); }

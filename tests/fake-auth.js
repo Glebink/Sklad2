@@ -38,6 +38,6 @@
     async gate(o) { setTimeout(() => o.onLogin(), 20); },
     withTimeout(p) { return p; },
     logout(msg) { window.__loggedOut = msg || true; },
-    sb: { from, storage, rpc: async () => ({ data: true }), channel: () => channel, removeChannel() {} }
+    sb: { from, storage, rpc: (fn, args) => srv("rpc", { fn, args }), channel: () => channel, removeChannel() {} }
   };
 })();
