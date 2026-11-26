@@ -107,6 +107,7 @@ function renderView() {
   // у черновика в заголовке статус не пишем (в списке — «Черновик»)
   $("zkStatus").innerHTML = st === STATUS.draft ? "" : (st.icon ? st.icon + " " : "") + esc(st.text);
   $("zkAddPanel").hidden = !can;
+  $("zkModel").hidden = !can;
   document.body.classList.toggle("zk-done", done);
   document.body.classList.toggle("zk-editable", can);
   $("zkBody").innerHTML = o.items.length ? o.items.map((it, i) => {

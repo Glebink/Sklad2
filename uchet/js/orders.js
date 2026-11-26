@@ -142,9 +142,11 @@ function renderOrderView() {
     return `<tr data-i="${i}"${iss <= 0 ? ` class="ord-short"` : iss < it.qty ? ` class="ord-part"` : ""}>`
       + `<td class="code">${it.code ? `<span class="code-text" data-code="${escapeHtml(it.code)}">${formatCodeDisplay(it.code)}</span>` : "—"}</td>`
       + `<td class="name"><div class="main-name">${escapeHtml(it.name)}</div>${w && w.qty != null ? `<span class="ord-oc" title="Остаток 1С">${w.qty}</span>` : ""}</td>`
-      + `<td class="ord-num">${it.qty}</td>`
-      + `<td class="ord-num ord-iss"><input type="text" class="ord-iss-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" value="${iss}"${locked ? " disabled" : ""} aria-label="Выдано"></td></tr>`;
-  }).join("") : `<tr><td colspan="4" class="wh-empty">Позиций нет.</td></tr>`;
+      // «Шт» — сколько выдаём: сначала сколько просили, нет столько — вписываем, сколько есть (в углу — сколько просили)
+      + `<td class="ord-num ord-iss"><input type="text" class="ord-iss-input${iss !== it.qty ? " has-ask" : ""}" inputmode="numeric" pattern="[0-9]*" maxlength="4" value="${iss}"${locked ? " disabled" : ""} aria-label="Шт, выдаём">`
+      + (iss !== it.qty ? `<span class="ord-ask" title="Просили">из ${it.qty}</span>` : "") + `</td>`
+      + `<td class="check"><button class="chk-toggle${it.done ? " on" : ""}" title="Собрано"${locked ? " disabled" : ""}>${it.done ? "✓" : ""}</button></td></tr>`;
+  }).join("") : `<tr><td colspan="4" class="wh-empty">Позиций нет.</td></tr>`;   // Код, Наименование, Шт, ✓
   const canMove = (o.status === "ready" || o.status === "partial") && !locked && o.items.some((it) => ordIssued(o, it) > 0);
   document.getElementById("ordRefreshBtn").classList.toggle("pending", ordPending(o));
   const btn = document.getElementById("ordToTicketBtn");
@@ -190,12 +192,21 @@ document.getElementById("ordBody").addEventListener("input", (e) => {
 document.getElementById("ordBody").addEventListener("change", (e) => {
   const inp = e.target.closest(".ord-iss-input"), o = ordSelected();
   if (!inp || !o || o.accounted_at) return;
-  const v = parseInt(inp.value, 10), i = +inp.closest("tr").dataset.i;
-  const set = (list) => { const it = list[i]; it.issued = isNaN(v) ? it.qty : Math.max(0, v); return list; };
-  // «выдано» у нового заказа — значит, сборка началась
+  const v = parseInt(inp.value, 10);
+  ordEditItem(o, +inp.closest("tr").dataset.i, (it) => { it.issued = isNaN(v) ? it.qty : Math.max(0, v); });
+});
+// Правка строки у hleb (сколько выдаём, галочка «собрано»): у нового заказа — значит, сборка началась
+function ordEditItem(o, i, change) {
+  const set = (list) => { change(list[i]); return list; };
   if (o.status === "new") ordSave(o, { status: "picking", hleb_items: set(ordCopy(o.items)), base_items: ordBare(o.items) });
   else if (o.status === "picking") ordSave(o, { hleb_items: set(ordCopy(ordItems(o))) });
   else ordSave(o, { items: set(o.items) });
+}
+document.getElementById("ordBody").addEventListener("click", (e) => {
+  const b = e.target.closest(".chk-toggle"), o = ordSelected();
+  if (!b || !o || o.accounted_at) return;
+  b.classList.toggle("on"); b.textContent = b.classList.contains("on") ? "✓" : "";   // сразу, не дожидаясь сервера
+  ordEditItem(o, +b.closest("tr").dataset.i, (it) => { if (it.done) delete it.done; else it.done = true; });
 });
 document.getElementById("ordBody").addEventListener("keydown", (e) => {   // Enter — к следующей детали
   if (e.key !== "Enter" || !e.target.classList.contains("ord-iss-input")) return;
@@ -269,7 +280,11 @@ document.getElementById("ordChAccept").addEventListener("click", () => {
   const had = new Map(ordItems(o).map((it) => [ordKey(it), it]));
   const next = ordBare(o.items).map((it) => {
     const h = had.get(ordKey(it));
-    return h && h.issued != null ? { ...it, issued: Math.min(h.issued, it.qty) } : it;
+    if (!h) return it;
+    const n = { ...it };
+    if (h.issued != null) n.issued = Math.min(h.issued, it.qty);
+    if (h.done) n.done = true;
+    return n;
   });
   ordSave(o, { hleb_items: next, base_items: ordBare(o.items) });
 });

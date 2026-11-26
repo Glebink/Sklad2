@@ -1556,6 +1556,10 @@ body.ord-mode.ord-none #viewOrders { display: none !important; }
   font: inherit; font-size: 16px; font-weight: 700; background: transparent; color: var(--fg); }
 .ord-iss-input:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
 .ord-iss-input:disabled { color: var(--muted); }
+.ord-table .ord-ask { position: absolute; left: 0; right: 0; bottom: 3px; text-align: center; font-size: 10.5px; font-weight: 600; color: var(--muted); pointer-events: none; }
+.ord-iss-input.has-ask { padding-bottom: 13px; }
+.ord-table tr:has(.has-ask) td { height: 44px; }
+.ord-table th.check, .ord-table td.check { width: 44px; text-align: center; }
 .ord-table tr.ord-short td { background: var(--s-rejected-bg); }   /* не выдано */
 .ord-table tr.ord-part td { background: var(--s-accepted-bg); }     /* выдано частично */
 .ord-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; }

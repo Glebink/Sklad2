@@ -431,6 +431,9 @@ const tests = {
     eq(await q.isDisabled("#ordToTicketBtn"), true, "без статуса в учёт не переносится");
     const iss = q.locator('#ordBody tr[data-i="0"] .ord-iss-input');
     await iss.fill("2"); await iss.press("Tab"); await q.waitForTimeout(150);
+    eq(await q.textContent('#ordBody tr[data-i="0"] .ord-ask'), "из 3", "в «Шт» — сколько выдаём, в углу — сколько просили");
+    await q.click('#ordBody tr[data-i="1"] .chk-toggle'); await q.waitForTimeout(150);
+    eq(s.db.parts_orders[0].hleb_items[1].done, true, "галочка «собрано»");
     eq(s.db.parts_orders[0].status, "picking", "«выдано» у нового заказа — началась сборка");
     // ремонтник правит во время сборки: у hleb список не меняется сам, у ⟳ — «!»
     await p.evaluate(() => loadOrders()); await p.waitForTimeout(100);   // на устройстве статус приходит через Realtime
@@ -440,7 +443,7 @@ const tests = {
     eq(s.db.parts_orders[0].items[2].qty, 5, "правка во время сборки ушла");
     assert((await p.textContent("#zkFoot")).includes("ждут подтверждения"), "ремонтник видит, что правка ждёт");
     await q.evaluate(() => loadOrders()); await q.waitForTimeout(100);
-    eq(await q.textContent('#ordBody tr[data-i="2"] .ord-num'), "4", "список сборки сам не обновился");
+    eq(await q.inputValue('#ordBody tr[data-i="2"] .ord-iss-input'), "4", "список сборки сам не обновился");
     eq(await q.$eval("#ordRefreshBtn", (b) => b.classList.contains("pending")), true, "«!» у кнопки обновления");
     await q.click("#ordRefreshBtn"); await q.waitForTimeout(100);
     eq(await q.$$eval("#ordChList li", (a) => a.map((x) => x.textContent)), ["~ Шайба 8 — было 4, стало 5"], "окно с изменениями");
