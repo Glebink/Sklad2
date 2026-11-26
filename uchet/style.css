@@ -1549,8 +1549,8 @@ body.ord-mode.ord-none #viewOrders { display: none !important; }
 .ord-table thead th:first-child { width: 30%; }
 .ord-table .ord-num { width: 72px; text-align: center; font-weight: 700; }
 .ord-table td.code { font-weight: 700; overflow-wrap: anywhere; }
-.ord-table td.name { position: relative; padding-right: 40px; overflow-wrap: anywhere; }
-.ord-table .ord-oc { position: absolute; top: 4px; right: 6px; font-size: 11px; color: var(--muted); }
+.ord-table td.name { overflow-wrap: anywhere; }
+.ord-table .ord-oc { position: absolute; top: 3px; right: 5px; font-size: 11px; font-weight: 600; color: var(--muted); pointer-events: none; }
 .ord-table td.ord-iss { position: relative; padding: 0; }
 .ord-iss-input { position: absolute; inset: 0; width: 100%; height: 100%; box-sizing: border-box; margin: 0; border: 0; text-align: center;
   font: inherit; font-size: 16px; font-weight: 700; background: transparent; color: var(--fg); }
@@ -1560,7 +1560,9 @@ body.ord-mode.ord-none #viewOrders { display: none !important; }
 .ord-iss-input.has-ask { padding-bottom: 13px; }
 .ord-table tr:has(.has-ask) td { height: 44px; }
 .ord-name-row { display: flex; align-items: center; gap: 8px; }
-.ord-name-row .ord-chk { flex: none; }
+.ord-name-row .main-name { flex: 1 1 auto; min-width: 0; }
+.ord-name-row .ord-chk { flex: none; margin-left: auto; }
+@media (min-width: 900px) { .ord-table td.code, .ord-table td.code .code-text { font-size: 15px; color: var(--fg); letter-spacing: .02em; } }   /* на ПК код крупнее и ярче */
 .ord-table .ord-num { width: 96px; }
 .ord-table tr.ord-short td { background: var(--s-rejected-bg); }   /* не выдано */
 .ord-table tr.ord-part td { background: var(--s-accepted-bg); }     /* выдано частично */
