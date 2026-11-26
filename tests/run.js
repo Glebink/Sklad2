@@ -457,8 +457,10 @@ const tests = {
     eq(s.db.parts_orders[0].items.length, 3, "отказ — список ремонтника вернулся");
     await p.evaluate(() => loadOrders()); await p.waitForTimeout(100);
     eq(await p.$$eval("#zkBody tr[data-i]", (a) => a.length), 3, "ремонтник видит вернувшийся список");
-    await q.click('#ordStatusBtns [data-st="partial"]'); await q.waitForTimeout(150);
-    eq(s.db.parts_orders[0].status, "partial", "статус на сервере");
+    eq(await q.$$eval('#ordStatusBtns [data-st="partial"]', (a) => a.length), 0, "кнопки «Частично» нет");
+    await q.click('#ordStatusBtns [data-st="ready"]'); await q.waitForTimeout(150);
+    eq(s.db.parts_orders[0].status, "partial", "«Готово» при недовыдаче — «собрано частично»");
+    eq(await q.$eval('#ordStatusBtns [data-st="ready"]', (b) => b.classList.contains("on")), true, "у hleb горит «Готово»");
     eq(await q.textContent("#ordAccState"), "Не учтено", "ещё не учтено");
     // ремонтник больше не может править
     await p.evaluate(() => { const o = orders[0]; o.status = "new"; o.items[0].qty = 9; saveItems(o); });

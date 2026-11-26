@@ -1,7 +1,8 @@
 /* Учёт потребления — вкладка «Заказы» (только hleb): заказы деталей от ремонтников.
    Ремонтник (роль repair, ../zakaz/) набирает детали и отправляет заказ — он появляется здесь.
    hleb собирает: у каждой детали «выдано» (по умолчанию — сколько просили), статус заказа —
-   ◷ сборка / ✓ готово / ~ собрано частично / ✕ отмена (ремонтник видит его у себя). «Перенести в учёт» кладёт
+   ◷ сборка / ✓ готово / ✕ отмена (ремонтник видит его у себя). «Готово», когда выдано меньше, чем просили,
+   сохраняется как «~ собрано частично» (отдельной кнопки нет; правка «Шт» после — пересчитывает). «Перенести в учёт» кладёт
    выданное в последнюю сегодняшнюю заявку на учёт (нет — создаёт) и отмечает заказ «Учтено».
    Сборка: hleb работает со своей копией списка (hleb_items, с «выдано»), ремонтник ещё правит свой (items).
    Его правки сами не подмешиваются: у кнопки ⟳ появляется «!», hleb смотрит изменения и принимает
@@ -134,7 +135,7 @@ function renderOrderView() {
   const locked = !!o.accounted_at;   // перенесённый в учёт заказ больше не правится
   document.getElementById("ordTitle").innerHTML = ordAva(o) + `<span>${escapeHtml(ordAuthor(o) + " · " + ordWhen(o.sent_at))}</span>`;
   document.querySelectorAll("#ordStatusBtns [data-st]").forEach((b) => {
-    b.classList.toggle("on", b.dataset.st === o.status);
+    b.classList.toggle("on", b.dataset.st === o.status || (b.dataset.st === "ready" && o.status === "partial"));
     b.disabled = locked;
   });
   document.getElementById("ordBody").innerHTML = list.length ? list.map((it, i) => {
@@ -155,8 +156,8 @@ function renderOrderView() {
   btn.disabled = !canMove;
   btn.textContent = locked ? "✓ Учтено " + ordWhen(o.accounted_at) : "Перенести в учёт";
   document.getElementById("ordAccState").textContent = locked ? "" : (o.status === "ready" || o.status === "partial") ? "Не учтено"
-    : o.status === "new" ? "Нажмите «Сборка», потом ✓ или ~ — и перенесите в учёт."
-    : o.status === "picking" ? (ordPending(o) ? "Ремонтник изменил список — нажмите «!» у кнопки обновления." : "Идёт сборка. Собрали — ✓ или ~.") : "";
+    : o.status === "new" ? "Нажмите «Сборка», потом «Готово» — и перенесите в учёт."
+    : o.status === "picking" ? (ordPending(o) ? "Ремонтник изменил список — нажмите «!» у кнопки обновления." : "Идёт сборка. Собрали — «Готово» (выдали меньше — станет «собрано частично»).") : "";
 }
 
 /* ---------- правка: статус, «выдано» ---------- */
@@ -176,6 +177,9 @@ async function ordSave(o, patch) {
   }
 }
 const ordCopy = (x) => JSON.parse(JSON.stringify(x || []));
+// «Готово» при недовыдаче — «собрано частично»
+const ordShort = (o, list) => list.some((it) => ordIssued({ status: "ready" }, it) < it.qty);
+function ordDoneStatus(o, list) { return ordShort(o, list) ? "partial" : "ready"; }
 function ordStatusPatch(o, st) {
   if (st === "picking") return { status: st, hleb_items: ordCopy(o.items), base_items: ordBare(o.items) };   // начало сборки — своя копия
   if (o.status === "picking") return { status: st, items: ordCopy(ordItems(o)), base_items: null };          // итог сборки — ремонтнику
@@ -183,9 +187,11 @@ function ordStatusPatch(o, st) {
 }
 document.getElementById("ordStatusBtns").addEventListener("click", (e) => {
   const b = e.target.closest("[data-st]"), o = ordSelected();
-  if (!b || !o || o.accounted_at || b.dataset.st === o.status) return;
+  if (!b || !o || o.accounted_at) return;
+  const st = b.dataset.st === "ready" ? ordDoneStatus(o, ordItems(o)) : b.dataset.st;
+  if (st === o.status) return;
   if (o.status === "picking" && ordPending(o) && !confirm("Ремонтник изменил список, а вы изменения не приняли. Они будут отклонены. Продолжить?")) return;
-  ordSave(o, ordStatusPatch(o, b.dataset.st));
+  ordSave(o, ordStatusPatch(o, st));
 });
 document.getElementById("ordBody").addEventListener("input", (e) => {
   const inp = e.target.closest(".ord-iss-input");
@@ -202,7 +208,11 @@ function ordEditItem(o, i, change) {
   const set = (list) => { change(list[i]); return list; };
   if (o.status === "new") ordSave(o, { status: "picking", hleb_items: set(ordCopy(o.items)), base_items: ordBare(o.items) });
   else if (o.status === "picking") ordSave(o, { hleb_items: set(ordCopy(ordItems(o))) });
-  else ordSave(o, { items: set(o.items) });
+  else {
+    const items = set(o.items), patch = { items };
+    if (o.status === "ready" || o.status === "partial") patch.status = ordDoneStatus(o, items);   // готово ↔ частично по «Шт»
+    ordSave(o, patch);
+  }
 }
 document.getElementById("ordBody").addEventListener("click", (e) => {
   const b = e.target.closest(".chk-toggle"), o = ordSelected();
