@@ -1559,7 +1559,9 @@ body.ord-mode.ord-none #viewOrders { display: none !important; }
 .ord-table .ord-ask { position: absolute; left: 0; right: 0; bottom: 3px; text-align: center; font-size: 10.5px; font-weight: 600; color: var(--muted); pointer-events: none; }
 .ord-iss-input.has-ask { padding-bottom: 13px; }
 .ord-table tr:has(.has-ask) td { height: 44px; }
-.ord-table th.check, .ord-table td.check { width: 44px; text-align: center; }
+.ord-name-row { display: flex; align-items: center; gap: 8px; }
+.ord-name-row .ord-chk { flex: none; }
+.ord-table .ord-num { width: 96px; }
 .ord-table tr.ord-short td { background: var(--s-rejected-bg); }   /* не выдано */
 .ord-table tr.ord-part td { background: var(--s-accepted-bg); }     /* выдано частично */
 .ord-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
@@ -1567,7 +1569,7 @@ body.ord-mode.ord-none #viewOrders { display: none !important; }
 .ord-acc-state { color: var(--muted); font-size: 14px; }
 @media (max-width: 899px) {
   .ord-table thead th:first-child { width: 26%; }
-  .ord-table .ord-num { width: 58px; }
+  .ord-table .ord-num { width: 78px; }
   .ord-table td.code { font-size: 11.5px; }
 }
 .ord-ava { flex: none; width: 26px; height: 26px; border-radius: 50%; object-fit: cover; margin-right: 8px; }

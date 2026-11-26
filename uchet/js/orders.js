@@ -141,12 +141,13 @@ function renderOrderView() {
     const w = it.code ? oneCInfoFor(it.code, it) : null, iss = ordIssued(o, it);
     return `<tr data-i="${i}"${iss <= 0 ? ` class="ord-short"` : iss < it.qty ? ` class="ord-part"` : ""}>`
       + `<td class="code">${it.code ? `<span class="code-text" data-code="${escapeHtml(it.code)}">${formatCodeDisplay(it.code)}</span>` : "—"}</td>`
-      + `<td class="name"><div class="main-name">${escapeHtml(it.name)}</div>${w && w.qty != null ? `<span class="ord-oc" title="Остаток 1С">${w.qty}</span>` : ""}</td>`
+      // ✓ «собрано» — слева в ячейке названия (без своего столбца)
+      + `<td class="name"><div class="ord-name-row"><button class="chk-toggle ord-chk${it.done ? " on" : ""}" title="Собрано"${locked ? " disabled" : ""}>${it.done ? "✓" : ""}</button>`
+      + `<div class="main-name">${escapeHtml(it.name)}</div></div>${w && w.qty != null ? `<span class="ord-oc" title="Остаток 1С">${w.qty}</span>` : ""}</td>`
       // «Шт» — сколько выдаём: сначала сколько просили, нет столько — вписываем, сколько есть (в углу — сколько просили)
       + `<td class="ord-num ord-iss"><input type="text" class="ord-iss-input${iss !== it.qty ? " has-ask" : ""}" inputmode="numeric" pattern="[0-9]*" maxlength="4" value="${iss}"${locked ? " disabled" : ""} aria-label="Шт, выдаём">`
-      + (iss !== it.qty ? `<span class="ord-ask" title="Просили">из ${it.qty}</span>` : "") + `</td>`
-      + `<td class="check"><button class="chk-toggle${it.done ? " on" : ""}" title="Собрано"${locked ? " disabled" : ""}>${it.done ? "✓" : ""}</button></td></tr>`;
-  }).join("") : `<tr><td colspan="4" class="wh-empty">Позиций нет.</td></tr>`;   // Код, Наименование, Шт, ✓
+      + (iss !== it.qty ? `<span class="ord-ask" title="Просили">из ${it.qty}</span>` : "") + `</td></tr>`;
+  }).join("") : `<tr><td colspan="3" class="wh-empty">Позиций нет.</td></tr>`;   // Код, Наименование (с ✓), Шт
   const canMove = (o.status === "ready" || o.status === "partial") && !locked && o.items.some((it) => ordIssued(o, it) > 0);
   document.getElementById("ordRefreshBtn").classList.toggle("pending", ordPending(o));
   const btn = document.getElementById("ordToTicketBtn");
