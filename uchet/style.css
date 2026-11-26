@@ -1618,3 +1618,15 @@ body.ord-mode.ord-none #viewOrders { display: none !important; }
 .st-ico { display: inline-block; vertical-align: -2px; }
 .ord-badge .st-ico, .zk-badge .st-ico { vertical-align: 0; }
 .ord-refresh { display: inline-flex; align-items: center; justify-content: center; }
+/* телефон: строки заказа у hleb в 1,5 раза выше (~44 px), шрифты крупнее */
+@media (max-width: 899px) {
+  .ord-table tbody td { height: 44px; padding-top: 6px; padding-bottom: 6px; }
+  .ord-table tbody td.name { font-size: 15.5px; line-height: 1.25; }
+  .ord-table tbody td.code, .ord-table tbody td.code .code-text { font-size: 13px; }
+  .ord-table .ord-iss-input { font-size: 21px; }
+  .ord-iss-input.has-ask { padding-bottom: 15px; }
+  .ord-table tr:has(.has-ask) td { height: 56px; }
+  .ord-table .ord-ask { font-size: 12px; bottom: 4px; }
+  .ord-table .ord-oc { font-size: 12px; }
+  .ord-table .ord-chk { width: 28px; height: 28px; font-size: 15px; }
+}
