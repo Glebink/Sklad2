@@ -70,7 +70,7 @@ function updateLayout() {
   document.body.classList.toggle("has-ticket", !!o);
   $("zkEmpty").hidden = !!o;
   $("zkView").hidden = !o;
-  $("zkHeadTitle").textContent = o ? "Заявка № " + orderNumber(o) : "Заявки на детали";
+  $("zkHeadTitle").textContent = o ? "Заявка № " + orderNumber(o) + " · " + fmtWhen(o.created_at) : "Заявки на детали";
 }
 function selectOrder(id) {
   currentId = id && orders.some((o) => o.id === id) ? id : null;

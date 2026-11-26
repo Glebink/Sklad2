@@ -59,6 +59,10 @@ body:not(.zk-editable) .zk-del-col { display: none; }
   body.has-ticket .u-list, body.has-ticket #zkEmpty { display: none !important; }
   body.no-ticket .zk-head-title { display: none; }
   body.has-ticket .zk-brand { display: none; }
+  /* номер и дата — в шапке; здесь остаётся только статус (у черновика строки нет) */
+  #zkViewTitle { display: none; }
+  .zk-view-head:has(#zkStatus:empty) { display: none; }
+  .zk-view-head:has(#zkStatus:empty) + .table-scroll { margin-top: 12px; }
   .zk-table thead th:nth-child(2) { width: 26%; }
   .zk-table .zk-num { width: 52px; }
   .zk-table td.code { font-size: 11.5px; }
