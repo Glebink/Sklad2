@@ -180,6 +180,26 @@ $("zkNewBtn").addEventListener("click", async () => {
   } catch (e) { alert("Не удалось создать заявку (нет связи?): " + errText(e)); }
 });
 
+// модель для подсказок: Все / YGW 4.0 / YGW 5.0 / 9Bot (у детали модель — model или model2)
+const MODEL_KEY = "sklad2_zakaz_model_v1";
+let model = "";
+try { model = localStorage.getItem(MODEL_KEY) || ""; } catch (e) {}
+function setModel(m) {
+  model = m;
+  try { localStorage.setItem(MODEL_KEY, m); } catch (e) {}
+  $("zkModel").querySelectorAll(".ms-opt").forEach((b) => b.classList.toggle("active", (b.dataset.model || "") === m));
+}
+setModel(model);
+$("zkModel").addEventListener("click", (e) => {
+  const b = e.target.closest(".ms-opt");
+  if (!b) return;
+  setModel(b.dataset.model || "");
+  if (nameInput.value.trim()) renderSuggest();
+});
+function catalogForModel() {
+  return model ? { parts: catalog.parts.filter((it) => it.model === model || it.model2 === model) } : catalog;
+}
+
 // строка добавления: деталь из подсказки (или своим текстом) + количество
 let picked = null;
 const nameInput = $("newItemName"), qtyInput = $("newItemQty"), box = $("addSuggestBox");
@@ -188,12 +208,12 @@ function renderSuggest() {
   const q = nameInput.value;
   $("newItemClear").classList.toggle("show", !!q);
   if (!q.trim()) { closeSuggest(); return; }
-  const found = searchStore(catalog, q);
+  const found = searchStore(catalogForModel(), q);
   box.innerHTML = found.length ? found.map((r, i) => {
     const models = [r.model, r.model2].filter(Boolean).map((m) => `<span class="suggest-model">${esc(m)}</span>`).join("");
     const oc = r.ocqty != null ? `<span class="suggest-oc-qty">${r.ocqty}</span>` : "";
     return `<div class="suggest-item" data-i="${i}">${oc}<span class="code">${esc(r.code || "—")}</span> — ${esc(r.name)}${models}</div>`;
-  }).join("") : `<div class="suggest-empty">В каталоге не найдено — можно добавить своим названием.</div>`;
+  }).join("") : `<div class="suggest-empty">${model ? "У " + esc(model) + " не найдено — выберите «Все»" : "В каталоге не найдено"} или добавьте своим названием.</div>`;
   box.classList.add("open");
   box.querySelectorAll(".suggest-item").forEach((el) => el.addEventListener("click", () => {
     const r = found[+el.dataset.i];
@@ -206,7 +226,7 @@ function renderSuggest() {
 nameInput.addEventListener("input", () => { picked = null; renderSuggest(); });
 $("newItemClear").addEventListener("click", () => { nameInput.value = ""; picked = null; renderSuggest(); nameInput.focus(); });
 qtyInput.addEventListener("input", () => { const d = qtyInput.value.replace(/\D+/g, ""); if (d !== qtyInput.value) qtyInput.value = d; });
-document.addEventListener("click", (e) => { if (!$("zkAddPanel").contains(e.target)) closeSuggest(); });
+document.addEventListener("click", (e) => { if (!$("zkAddPanel").contains(e.target) && !$("zkModel").contains(e.target)) closeSuggest(); });
 function addItem() {
   const o = current(), name = nameInput.value.trim();
   if (!editable(o) || !name) return;

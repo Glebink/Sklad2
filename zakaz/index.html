@@ -13,9 +13,9 @@
 <meta name="apple-mobile-web-app-title" content="Склад">
 <link rel="stylesheet" href="../lib/fonts/fonts.css">
 <!-- оформление — как в «Учёте»: общие стили учёта + немного своих -->
-<link rel="stylesheet" href="../uchet/style.css?v=2611241048">
-<link rel="stylesheet" href="style.css?v=2611241048">
-<link rel="stylesheet" href="../auth.css?v=2611241048">
+<link rel="stylesheet" href="../uchet/style.css?v=2611261359">
+<link rel="stylesheet" href="style.css?v=2611261359">
+<link rel="stylesheet" href="../auth.css?v=2611261359">
 </head>
 <body class="has-list no-ticket">
 
@@ -66,6 +66,13 @@
     <button class="util primary" id="addItemBtn" title="Добавить">+</button>
     <div class="suggest-box" id="addSuggestBox"></div>
   </div>
+  <!-- подсказки — только по выбранной модели (выбор хранится на устройстве) -->
+  <div class="model-switch zk-models" id="zkModel" data-value="">
+    <button type="button" class="ms-opt active" data-model="">Все</button>
+    <button type="button" class="ms-opt" data-model="YGW 4.0">4.0</button>
+    <button type="button" class="ms-opt" data-model="YGW 5.0">5.0</button>
+    <button type="button" class="ms-opt" data-model="9Bot">9Bot</button>
+  </div>
 
   <div class="section-head zk-view-head">
     <h2 class="section-title" id="zkViewTitle"></h2>
@@ -108,9 +115,9 @@
 </div>
 
 <script src="../lib/supabase-2.45.4.js"></script>
-<script src="../auth.js?v=2611241048"></script>
-<script src="../uchet/js/search.js?v=2611241048"></script>
-<script src="app.js?v=2611241048"></script>
+<script src="../auth.js?v=2611261359"></script>
+<script src="../uchet/js/search.js?v=2611261359"></script>
+<script src="app.js?v=2611261359"></script>
 
 </body>
 </html>

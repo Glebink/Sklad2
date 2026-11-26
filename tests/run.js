@@ -399,7 +399,11 @@ const tests = {
     await p.fill("#newItemName", "болт"); await p.waitForTimeout(100);
     eq(await p.$eval("#addSuggestBox .suggest-item .suggest-oc-qty", (e) => e.textContent), "5", "в подсказке остаток 1С");
     await p.tap("#addSuggestBox .suggest-item"); await p.fill("#newItemQty", "3"); await p.tap("#addItemBtn");
-    await p.fill("#newItemName", "колесо"); await p.waitForTimeout(100); await p.tap("#addSuggestBox .suggest-item"); await p.tap("#addItemBtn");
+    await p.tap('#zkModel [data-model="YGW 4.0"]'); await p.fill("#newItemName", "колесо"); await p.waitForTimeout(100);
+    eq(await p.$$eval("#addSuggestBox .suggest-item", (a) => a.length), 0, "фильтр 4.0: мотор-колеса 5.0 нет");
+    await p.tap('#zkModel [data-model="YGW 5.0"]'); await p.waitForTimeout(100);
+    await p.tap("#addSuggestBox .suggest-item"); await p.tap("#addItemBtn");
+    await p.tap('#zkModel [data-model=""]');
     await p.fill("#newItemName", "Шайба 8"); await p.fill("#newItemQty", "2"); await p.tap("#addItemBtn");
     await p.waitForTimeout(800);
     eq(s.db.parts_orders[0].items, [{ code: "111", name: "Болт М6", qty: 3 }, { code: "333", name: "Мотор-колесо", qty: 1 }, { code: "", name: "Шайба 8", qty: 2 }], "черновик на сервере");

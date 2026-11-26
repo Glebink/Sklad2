@@ -7,6 +7,10 @@
 
 .zk-view { min-width: 0; max-width: 900px; }
 .zk-view .add-panel.one-row { margin: 10px 0 0; }
+.zk-models { margin: 8px 0 0; max-width: 360px; }
+.zk-models .ms-opt { flex: 1 1 0; }
+/* подсказки открываются под фильтром — модель можно переключить, не закрывая их */
+#zkAddPanel .suggest-box { top: calc(100% + 50px); }
 .zk-view-head { display: flex; align-items: center; gap: 10px; margin: 14px 0 8px; flex-wrap: wrap; }
 .zk-view-head .section-title { margin: 0; }
 
