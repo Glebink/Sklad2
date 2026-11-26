@@ -224,7 +224,8 @@ function renderSuggest() {
   }));
 }
 nameInput.addEventListener("input", () => { picked = null; renderSuggest(); });
-$("newItemClear").addEventListener("click", () => { nameInput.value = ""; picked = null; renderSuggest(); nameInput.focus(); });
+// крестик только чистит: фокус не ставим — иначе на телефоне снова вылезает клавиатура
+$("newItemClear").addEventListener("click", () => { nameInput.value = ""; picked = null; renderSuggest(); nameInput.blur(); });
 qtyInput.addEventListener("input", () => { const d = qtyInput.value.replace(/\D+/g, ""); if (d !== qtyInput.value) qtyInput.value = d; });
 document.addEventListener("click", (e) => { if (!$("zkAddPanel").contains(e.target) && !$("zkModel").contains(e.target)) closeSuggest(); });
 function addItem() {

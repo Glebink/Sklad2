@@ -469,7 +469,7 @@ document.getElementById("ocCompareSearchClear").addEventListener("click", () => 
   const input = document.getElementById("ocCompareSearch");
   input.value = "";
   renderOcCompareList();
-  input.focus();
+  input.blur();   // без фокуса — без клавиатуры на телефоне
 });
 document.getElementById("ocCompareX").addEventListener("click", () => {
   closeModal("ocCompareOverlay");

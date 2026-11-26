@@ -379,7 +379,7 @@ if (newItemClearBtn) {
     addSuggestBox.classList.remove("open");
     addSuggestBox.innerHTML = "";
     updateNewItemClear();
-    newItemInput.focus();
+    newItemInput.blur();   // только чистим: фокус на телефоне снова поднимал клавиатуру
   });
 }
 newItemInput.addEventListener("input", updateNewItemClear);

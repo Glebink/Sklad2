@@ -298,7 +298,7 @@ invAddName.addEventListener("input", () => {
   }, invAddStore(), "В этой инвентаризации такой позиции нет.");
 });
 registerSuggestZone(invAddBox, [invAddName]);
-invAddClear.addEventListener("click", () => { invAddReset(); invAddName.focus(); });
+invAddClear.addEventListener("click", () => { invAddReset(); invAddName.blur(); });   // без фокуса — без клавиатуры
 invAddQty.addEventListener("input", () => {
   const d = invAddQty.value.replace(/\D+/g, "");
   if (d !== invAddQty.value) invAddQty.value = d;
