@@ -124,8 +124,9 @@ function issuedOf(o, it) { return it.issued != null ? it.issued : o.status === "
 function renderFoot(o) {
   const foot = $("zkFoot");
   if (o.status === "new" && !o.sent_at) {
-    foot.innerHTML = `<button class="util primary zk-send" id="zkSendBtn"${o.items.length ? "" : " disabled"}>Отправить</button>`
-      + `<button class="util zk-drop" id="zkDropBtn">Удалить черновик</button>`;
+    // круглые: корзина слева, «отправить» (самолётик) справа
+    foot.innerHTML = `<button class="zk-round zk-drop" id="zkDropBtn" title="Удалить черновик" aria-label="Удалить черновик"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></button>`
+      + `<button class="zk-round zk-send" id="zkSendBtn" title="Отправить" aria-label="Отправить"${o.items.length ? "" : " disabled"}><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2.6 10.6 20.3 3.3c.9-.4 1.8.4 1.5 1.4l-4.2 15.6c-.3 1-1.4 1.4-2.2.8l-4.6-3.4-2.4 2.3c-.4.4-1.1.2-1.2-.4l-.6-4.3 9.7-8.6c.2-.2-.1-.5-.3-.3L5.9 13.1l-3.2-1.1c-.8-.3-.8-1.1-.1-1.4z"/></svg></button>`;
   } else if (o.status === "new") {
     foot.innerHTML = `<p class="zk-note">Отправлена ${fmtWhen(o.sent_at)}. Пока заявку не начали собирать, её можно дописать или поправить.</p>`;
   } else if (o.status === "picking") {

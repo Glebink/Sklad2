@@ -50,8 +50,13 @@ body:not(.zk-editable) .zk-del-col { display: none; }
 
 .zk-foot { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
 .zk-foot .util { min-height: 44px; padding: 0 18px; font-weight: 700; }
-.zk-foot .zk-send { flex: 1 1 auto; font-size: 16px; }
-.zk-foot .zk-drop { color: var(--bad-ink); }
+/* черновик: круглые кнопки — корзина слева, отправить (самолётик) справа */
+.zk-round { display: inline-flex; align-items: center; justify-content: center; flex: none; padding: 0; border-radius: 50%; cursor: pointer; }
+.zk-round.zk-drop { width: 48px; height: 48px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--bad-ink); }
+.zk-round.zk-send { width: 58px; height: 58px; margin-left: auto; border: 0; background: #3E8EF7; color: #fff; box-shadow: 0 4px 12px rgba(62,142,247,.35); }
+.zk-round.zk-send svg { margin-left: -3px; }
+.zk-round:active { transform: scale(.94); }
+.zk-round.zk-send:disabled { opacity: .4; box-shadow: none; cursor: default; }
 .zk-note { margin: 0; color: var(--muted); font-size: 14px; }
 
 /* телефон: список и заявка — два экрана, как заявки в «Учёте» */
