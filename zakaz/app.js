@@ -104,7 +104,8 @@ function renderView() {
   const st = statusOf(o), can = editable(o), done = o.status !== "new" && o.status !== "picking";
   $("zkViewTitle").textContent = "Заявка № " + orderNumber(o) + " · " + fmtWhen(o.created_at);
   $("zkStatus").className = "zk-status " + st.cls;
-  $("zkStatus").innerHTML = (st.icon ? st.icon + " " : "") + esc(st.text);
+  // у черновика в заголовке статус не пишем (в списке — «Черновик»)
+  $("zkStatus").innerHTML = st === STATUS.draft ? "" : (st.icon ? st.icon + " " : "") + esc(st.text);
   $("zkAddPanel").hidden = !can;
   document.body.classList.toggle("zk-done", done);
   document.body.classList.toggle("zk-editable", can);
